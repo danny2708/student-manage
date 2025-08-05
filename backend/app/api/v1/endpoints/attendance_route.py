@@ -1,12 +1,65 @@
-from sqlachemy import Column, Integer, Date, String, ForeignKey
-from app.database import Base
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List, Optional
 
-class Attendance(Base):
-    __tablename__ = "attendances"
+from app.crud import attendance_crud as crud_attendance
+from app.schemas import attendance_schema as schemas_attendance
+from app.api import deps
 
-    attendance_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"))
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    date = Column(Date, nullable=False)
-    status = Column(String, nullable=False)
+router = APIRouter()
+
+@router.post("/", response_model=schemas_attendance.Attendance, status_code=status.HTTP_201_CREATED)
+def create_new_attendance(attendance: schemas_attendance.AttendanceCreate, db: Session = Depends(deps.get_db)):
+    """
+    Tạo một bản ghi điểm danh mới.
+    """
+    # Bạn có thể thêm kiểm tra xem student_id và class_id có tồn tại không
+    return crud_attendance.create_attendance(db=db, attendance=attendance)
+
+@router.get("/", response_model=List[schemas_attendance.Attendance])
+def read_all_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+    """
+    Lấy danh sách tất cả các bản ghi điểm danh.
+    """
+    attendances = crud_attendance.get_all_attendances(db, skip=skip, limit=limit)
+    return attendances
+
+@router.get("/{attendance_id}", response_model=schemas_attendance.Attendance)
+def read_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
+    """
+    Lấy thông tin của một bản ghi điểm danh cụ thể bằng ID.
+    """
+    db_attendance = crud_attendance.get_attendance(db, attendance_id=attendance_id)
+    if db_attendance is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Điểm danh không tìm thấy."
+        )
+    return db_attendance
+
+@router.put("/{attendance_id}", response_model=schemas_attendance.Attendance)
+def update_existing_attendance(attendance_id: int, attendance: schemas_attendance.AttendanceUpdate, db: Session = Depends(deps.get_db)):
+    """
+    Cập nhật thông tin của một bản ghi điểm danh cụ thể bằng ID.
+    """
+    db_attendance = crud_attendance.update_attendance(db, attendance_id=attendance_id, attendance_update=attendance)
+    if db_attendance is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Điểm danh không tìm thấy."
+        )
+    return db_attendance
+
+@router.delete("/{attendance_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_existing_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
+    """
+    Xóa một bản ghi điểm danh cụ thể bằng ID.
+    """
+    db_attendance = crud_attendance.delete_attendance(db, attendance_id=attendance_id)
+    if db_attendance is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Điểm danh không tìm thấy."
+        )
+    return {"message": "Điểm danh đã được xóa thành công."}
 
