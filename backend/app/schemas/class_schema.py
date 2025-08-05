@@ -1,9 +1,19 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from app.database import Base
+from pydantic import BaseModel, Field
+from typing import Optional
 
-class Class(Base):
-    __tablename__ = "classes"
+class ClassBase(BaseModel):
+    class_name: str = Field(..., example="10A1")
+    teacher_id: int = Field(..., example=1, description="ID của giáo viên chủ nhiệm")
 
-    class_id = Column(Integer, primary_key=True, index=True)
-    class_name = Column(String, nullable=False)
-    teacher_id = Column(Integer, ForeignKey("teachers.teacher_id"))
+class ClassCreate(ClassBase):
+    pass
+
+class ClassUpdate(ClassBase):
+    class_name: Optional[str] = None
+    teacher_id: Optional[int] = None
+
+class Class(ClassBase):
+    class_id: int = Field(..., example=1)
+
+    class Config:
+        from_attributes = True

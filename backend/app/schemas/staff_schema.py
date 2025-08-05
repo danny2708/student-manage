@@ -16,11 +16,11 @@ class StaffUpdate(StaffBase):
     role: Optional[str] = None
     date_of_birth: Optional[date] = None
     salary: Optional[float] = None
-    user_id: Optional[int] = None # Có thể cập nhật user_id nếu cần chuyển đổi tài khoản
+    user_id: Optional[int] = None 
 
 class Staff(StaffBase):
     staff_id: int = Field(..., example=1)
-    user_id: int = Field(..., example=2) # Đảm bảo user_id xuất hiện trong response
+    user_id: int = Field(..., example=2) 
 
     class Config:
         from_attributes = True
