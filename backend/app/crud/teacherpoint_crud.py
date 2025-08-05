@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.teacherpoint_model import TeacherPoint
+from app.models.teacherpoint_model import TeacherPoint
 from app.schemas.teacherpoint_schema import TeacherPointCreate, TeacherPointUpdate
 
 def get_teacher_point(db: Session, point_id: int):
