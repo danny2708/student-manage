@@ -22,3 +22,4 @@ class TeacherPoint(TeacherPointBase):
 
     class Config:
         from_attributes = True
+
