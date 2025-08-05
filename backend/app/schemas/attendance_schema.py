@@ -1,12 +1,24 @@
-from sqlachemy import Column, Integer, Date, String, ForeignKey
-from app.database import Base
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import date
 
-class Attendance(Base):
-    __tablename__ = "attendances"
+class AttendanceBase(BaseModel):
+    student_id: int = Field(..., example=1)
+    class_id: int = Field(..., example=1)
+    date: date = Field(..., example="2023-10-26")
+    status: str = Field(..., example="Present", description="Trạng thái: Present, Absent, Late")
 
-    attendance_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"))
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    date = Column(Date, nullable=False)
-    status = Column(String, nullable=False)
+class AttendanceCreate(AttendanceBase):
+    pass
 
+class AttendanceUpdate(AttendanceBase):
+    student_id: Optional[int] = None
+    class_id: Optional[int] = None
+    date: Optional[date] = None
+    status: Optional[str] = None
+
+class Attendance(AttendanceBase):
+    attendance_id: int = Field(..., example=1)
+
+    class Config:
+        from_attributes = True

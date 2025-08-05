@@ -1,13 +1,31 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
-from app.database import Base
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import date
 
-class Evaluation(Base):
-    __tablename__ = "evaluations"
+class EvaluationBase(BaseModel):
+    student_id: int = Field(..., example=1)
+    description: Optional[str] = Field(None, example="Học sinh tích cực tham gia hoạt động nhóm.")
+    type: str = Field(..., example="Behavior", description="Loại đánh giá: Behavior, Academic Progress, Participation")
+    score: Optional[float] = Field(None, example=9.0)
+    date_recorded: date = Field(..., example="2023-11-01")
 
-    evaluation_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"))
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    type = Column(String)
-    description = Column(String)
-    score = Column(Integer)
-    date_recorded = Column(Date)
+class EvaluationCreate(EvaluationBase):
+    pass
+
+class EvaluationUpdate(EvaluationBase):
+    student_id: Optional[int] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    score: Optional[float] = None
+    date_recorded: Optional[date] = None
+
+class Evaluation(BaseModel): # Changed from EvaluationBase to BaseModel for the final output schema
+    evaluation_id: int = Field(..., example=1)
+    student_id: int = Field(..., example=1)
+    description: Optional[str] = Field(None, example="Học sinh tích cực tham gia hoạt động nhóm.")
+    type: str = Field(..., example="Behavior", description="Loại đánh giá: Behavior, Academic Progress, Participation")
+    score: Optional[float] = Field(None, example=9.0)
+    date_recorded: date = Field(..., example="2023-11-01")
+
+    class Config:
+        from_attributes = True

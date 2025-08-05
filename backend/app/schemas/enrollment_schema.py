@@ -1,10 +1,22 @@
-from sqlalchemy import Column, Integer, Date, ForeignKey
-from app.database import Base
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
 
-class Enrollment(Base):
-    __tablename__ = "enrollments"
+class EnrollmentBase(BaseModel):
+    student_id: int = Field(..., example=1)
+    class_id: int = Field(..., example=1)
+    enrolled_at: datetime = Field(..., example="2023-09-01T09:00:00")
 
-    enrollment_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"))
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    enrolled_at = Column(Date)
+class EnrollmentCreate(EnrollmentBase):
+    pass
+
+class EnrollmentUpdate(EnrollmentBase):
+    student_id: Optional[int] = None
+    class_id: Optional[int] = None
+    enrolled_at: Optional[datetime] = None
+
+class Enrollment(EnrollmentBase):
+    enrollment_id: int = Field(..., example=1)
+
+    class Config:
+        from_attributes = True

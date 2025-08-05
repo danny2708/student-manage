@@ -1,13 +1,26 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
-from app.database import Base
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import date
 
-class Student(Base):
-    __tablename__ = "students"
+class StudentBase(BaseModel):
+    full_name: str = Field(..., example="Nguyen Van E")
+    date_of_birth: date = Field(..., example="2010-05-20")
+    gender: str = Field(..., example="Male")
+    class_id: Optional[int] = Field(None, example=1, description="ID của lớp hiện tại của học sinh") 
+    
+class StudentCreate(StudentBase):
+    user_id: int = Field(..., example=7)
 
-    student_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
-    full_name = Column(String, nullable=False)
-    date_of_birth = Column(Date)
-    gender = Column(String)
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    parent_id = Column(Integer)
+class StudentUpdate(StudentBase):
+    full_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    class_id: Optional[int] = None
+    user_id: Optional[int] = None
+
+class Student(StudentBase):
+    student_id: int = Field(..., example=1)
+    user_id: int = Field(..., example=7)
+
+    class Config:
+        from_attributes = True

@@ -1,11 +1,23 @@
-from sqlalchemy import Column, Integer, String
-from app.database import Base
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
 
-class Teacher(Base):
-    __tablename__ = "teachers"
+class TeacherBase(BaseModel):
+    full_name: str = Field(..., example="Tran Van C")
+    email: EmailStr = Field(..., example="tran.c@school.com")
+    phone_number: Optional[str] = Field(None, example="0901234567")
 
-    teacher_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer)
-    full_name = Column(String)
-    email = Column(String)
-    phone_number = Column(String)
+class TeacherCreate(TeacherBase):
+    user_id: int = Field(..., example=5)
+
+class TeacherUpdate(TeacherBase):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+    user_id: Optional[int] = None
+
+class Teacher(TeacherBase):
+    teacher_id: int = Field(..., example=1)
+    user_id: int = Field(..., example=5)
+
+    class Config:
+        from_attributes = True
