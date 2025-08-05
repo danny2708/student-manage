@@ -1,4 +1,4 @@
-from sqlachemy import Column, Integer, Date, String, ForeignKey
+from sqlalchemy import Column, Integer, Date, String, ForeignKey
 from app.database import Base
 
 class Attendance(Base):
