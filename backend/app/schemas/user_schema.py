@@ -1,27 +1,33 @@
 # app/schemas/user_schema.py
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
-from app.models.user_model import UserRole # Import UserRole từ user_model
+from typing import List, Optional
+from pydantic import BaseModel, EmailStr
 
-# Schema cơ sở cho User
+# Import các schema cho Role mới được tạo
+from app.schemas.role_schema import Role
+
+# Schema cơ bản cho User (các trường chung)
 class UserBase(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50, description="Tên đăng nhập")
-    role: UserRole = Field(UserRole.student, description="Vai trò của người dùng (student, teacher, manager, parent, staff)")
+    username: str
+    email: EmailStr
 
-# Schema để tạo User (bao gồm mật khẩu)
+# Schema để tạo User mới
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, description="Mật khẩu (sẽ được băm)")
+    password: str
+    # roles_ids là một danh sách ID vai trò khi tạo người dùng
+    roles_ids: List[int] = []
 
-# Schema để cập nhật User (mật khẩu là tùy chọn)
-class UserUpdate(UserBase):
-    username: Optional[str] = Field(None, min_length=3, max_length=50, description="Tên đăng nhập mới")
-    password: Optional[str] = Field(None, min_length=6, description="Mật khẩu mới (sẽ được băm)")
-    role: Optional[UserRole] = Field(None, description="Vai trò mới của người dùng")
+# Schema để cập nhật User
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    # Bạn có thể thêm trường để cập nhật danh sách vai trò nếu cần
+    roles_ids: Optional[List[int]] = None
 
-# Schema để đọc User (không bao gồm mật khẩu)
+# Schema dùng để đọc/trả về dữ liệu User
 class User(UserBase):
-    user_id: int = Field(..., description="ID người dùng")
+    user_id: int
+    is_active: bool = True  # Thêm một trường ví dụ
+    roles: List[Role] = []  # Vai trò giờ là một danh sách các đối tượng Role
 
     class Config:
-        from_attributes = True # Thay thế orm_mode = True trong Pydantic v2
-
+        from_attributes = True

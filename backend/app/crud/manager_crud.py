@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.manager_model import Manager
-from app.schemas.manager_schema import ManagerCreate, ManagerUpdate
+from app.schemas.manager_schema import ManagerUpdate
+from app.schemas.role_schema_with_user_id import ManagerCreateWithUser
 
 def get_manager(db: Session, manager_id: int):
     """Lấy thông tin quản lý theo ID."""
@@ -14,9 +15,9 @@ def get_all_managers(db: Session, skip: int = 0, limit: int = 100):
     """Lấy danh sách tất cả quản lý."""
     return db.query(Manager).offset(skip).limit(limit).all()
 
-def create_manager(db: Session, manager: ManagerCreate):
-    """Tạo mới một quản lý."""
-    db_manager = Manager(**manager.model_dump())
+def create_manager(db: Session, manager_in: ManagerCreateWithUser):
+    # Tạo một đối tượng Manager mới từ schema đầu vào
+    db_manager = Manager(**manager_in.model_dump())
     db.add(db_manager)
     db.commit()
     db.refresh(db_manager)

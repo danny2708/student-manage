@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.staff_model import Staff
-from app.schemas.staff_schema import StaffCreate, StaffUpdate
+from app.schemas.staff_schema import StaffUpdate
+from app.schemas.role_schema_with_user_id import StaffCreateWithUser
 
 def get_staff(db: Session, staff_id: int):
     """Lấy thông tin nhân viên theo ID."""
@@ -14,9 +15,8 @@ def get_all_staff(db: Session, skip: int = 0, limit: int = 100):
     """Lấy danh sách tất cả nhân viên."""
     return db.query(Staff).offset(skip).limit(limit).all()
 
-def create_staff(db: Session, staff: StaffCreate):
-    """Tạo mới một nhân viên."""
-    db_staff = Staff(**staff.model_dump())
+def create_staff(db: Session, staff_in: StaffCreateWithUser):
+    db_staff = Staff(**staff_in.model_dump())
     db.add(db_staff)
     db.commit()
     db.refresh(db_staff)
