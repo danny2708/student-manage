@@ -1,32 +1,30 @@
 # app/models/user_model.py
-from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
 from app.database import Base
-import enum # Import enum module
-
-# Định nghĩa Enum cho các vai trò người dùng
-class UserRole(enum.Enum):
-    student = "student"
-    teacher = "teacher"
-    manager = "manager"
-    parent = "parent"
-    staff = "staff"
-    # Bạn có thể thêm các vai trò khác nếu cần
+from app.models.association_tables import user_roles
 
 class User(Base):
     __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False) # Mật khẩu đã được băm
-    role = Column(Enum(UserRole), default=UserRole.student, nullable=False) # Sử dụng Enum cho role
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
 
-    # Bạn có thể thêm các mối quan hệ (relationships) ở đây sau này
-    # Ví dụ: students = relationship("Student", back_populates="user")
-    # teachers = relationship("Teacher", back_populates="user")
-    # managers = relationship("Manager", back_populates="user")
-    # parents = relationship("Parent", back_populates="user")
-    # staff_members = relationship("Staff", back_populates="user")
+    # Định nghĩa mối quan hệ một-đến-một với các bảng vai trò cụ thể
+    student = relationship("Student", back_populates="user", uselist=False)
+    teacher = relationship("Teacher", back_populates="user", uselist=False)
+    manager = relationship("Manager", back_populates="user", uselist=False)
+    parent = relationship("Parent", back_populates="user", uselist=False)
+    staff = relationship("Staff", back_populates="user", uselist=False)
+
+    # Định nghĩa mối quan hệ nhiều-đến-nhiều với bảng Role
+    roles = relationship(
+        "Role", 
+        secondary=user_roles, 
+        back_populates="users"
+    )
 
     def __repr__(self):
-        return f"<User(user_id={self.user_id}, username='{self.username}', role='{self.role.value}')>"
-
+        return f"<User(user_id={self.user_id}, username='{self.username}')>"

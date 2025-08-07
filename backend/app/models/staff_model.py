@@ -1,21 +1,17 @@
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey
+# app/models/staff_model.py
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Staff(Base):
-    __tablename__ = "staff"
+    __tablename__ = "staffs"
 
     staff_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False) # Đảm bảo cột này tồn tại
-    name = Column(String, index=True, nullable=False)
-    role = Column(String, nullable=False) # Ví dụ: "admin", "hr", "accountant"
-    date_of_birth = Column(Date, nullable=True)
-    salary = Column(Float, nullable=True)
+    full_name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
 
-       
-    user = relationship("User", backref="staff_member")
+    # Mối quan hệ ngược lại với bảng users, khớp với thuộc tính `staff` trong User
+    user = relationship("User", back_populates="staff")
 
     def __repr__(self):
-        return f"<Staff(staff_id={self.staff_id}, name='{self.name}', role='{self.role}')>"
-
-    
+        return f"<Staff(staff_id={self.staff_id}, full_name='{self.full_name}')>"
