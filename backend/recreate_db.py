@@ -1,4 +1,4 @@
-from app.database import Base, engine, SessionLocal
+from backend.app.database import Base, engine, SessionLocal
 from app.models import (
     user_model, staff_model, manager_model, payroll_model, teacher_model, parent_model, student_model,
     studentparent_model, subject_model, score_model, tuition_model, studentclass_model,

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.student_model import Student
-from app.schemas.student_schema import StudentCreate, StudentUpdate
+from app.schemas.student_schema import StudentUpdate
+from app.schemas.role_schema_with_user_id import StudentCreateWithUser
 
 def get_student(db: Session, student_id: int):
     """Lấy thông tin học sinh theo ID."""
@@ -18,13 +19,18 @@ def get_all_students(db: Session, skip: int = 0, limit: int = 100):
     """Lấy danh sách tất cả học sinh."""
     return db.query(Student).offset(skip).limit(limit).all()
 
-def create_student(db: Session, student: StudentCreate):
-    """Tạo mới một học sinh."""
-    db_student = Student(**student.model_dump())
+def create_student(db: Session, student_in: StudentCreateWithUser):
+    """
+    Tạo một đối tượng Student mới trong cơ sở dữ liệu.
+    Hàm này nhận schema mới 'StudentCreateWithUser' để đảm bảo tính nhất quán với API.
+    """
+    # Tạo một đối tượng Student mới từ schema đầu vào
+    db_student = Student(**student_in.model_dump())
     db.add(db_student)
     db.commit()
     db.refresh(db_student)
     return db_student
+
 
 def update_student(db: Session, student_id: int, student_update: StudentUpdate):
     """Cập nhật thông tin học sinh."""

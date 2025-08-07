@@ -18,12 +18,23 @@ def get_all_parents(db: Session, skip: int = 0, limit: int = 100):
     """Lấy danh sách tất cả phụ huynh."""
     return db.query(Parent).offset(skip).limit(limit).all()
 
-def create_parent(db: Session, parent: ParentCreate):
-    """Tạo mới một phụ huynh."""
-    db_parent = Parent(**parent.model_dump())
+def create_parent(db: Session, parent_data: ParentCreate) -> Parent:
+    # Lấy thông tin user từ parent_data
+    user_data = parent_data.user_info
+    
+    # Tạo user mới trước
+    db_user = create_user_base(db=db, user=user_data)
+    
+    # Tạo parent mới, chỉ sử dụng các trường hợp lệ của Parent SQLAlchemy model
+    db_parent = Parent(
+        user_id=db_user.user_id,
+        relationship_to_student=parent_data.relationship_to_student
+    )
+    
     db.add(db_parent)
     db.commit()
     db.refresh(db_parent)
+    
     return db_parent
 
 def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate):

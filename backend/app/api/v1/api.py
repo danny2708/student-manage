@@ -1,6 +1,7 @@
+# app/api/v1/api.py
 from fastapi import APIRouter
 
-# Import trực tiếp từng router từ các tệp của chúng
+# --- Import các routers chức năng chung ---
 from app.api.v1.endpoints.user_route import router as user_router
 from app.api.v1.endpoints.staff_route import router as staff_router
 from app.api.v1.endpoints.manager_route import router as manager_router
@@ -21,10 +22,13 @@ from app.api.v1.endpoints.schedule_route import router as schedule_router
 from app.api.v1.endpoints.teacher_point_route import router as teacher_point_router
 from app.api.v1.endpoints.notification_route import router as notification_router
 
+# --- Import các routers đăng ký chuyên biệt ---
+# Router cho việc đăng ký một người dùng duy nhất
+from app.api.v1.endpoints.register_route import router as register_router
 
 api_router = APIRouter()
 
-# Bao gồm các router riêng lẻ vào router chính của API v1
+# --- Bao gồm các routers vào router chính ---
 api_router.include_router(user_router, prefix="/users", tags=["Users"])
 api_router.include_router(staff_router, prefix="/staff", tags=["Staff"])
 api_router.include_router(manager_router, prefix="/managers", tags=["Managers"])
@@ -45,3 +49,5 @@ api_router.include_router(schedule_router, prefix="/schedules", tags=["Schedules
 api_router.include_router(teacher_point_router, prefix="/teacher_points", tags=["Teacher Points"])
 api_router.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
 
+# --- Bao gồm các routers đăng ký chuyên biệt ---
+api_router.include_router(register_router, prefix="/register", tags=["Register"])
