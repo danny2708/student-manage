@@ -1,7 +1,11 @@
 from sqlalchemy.orm import Session
 from app.models.student_model import Student
 from app.schemas.student_schema import StudentUpdate
-from app.schemas.role_schema_with_user_id import StudentCreateWithUser
+from app.schemas.user_role import StudentCreateWithUser, RoleCreate
+from app.crud.user_crud import create_user
+from app.models.user_model import User
+from app.models.role_model import Role
+
 
 def get_student(db: Session, student_id: int):
     """Lấy thông tin học sinh theo ID."""
@@ -21,16 +25,42 @@ def get_all_students(db: Session, skip: int = 0, limit: int = 100):
 
 def create_student(db: Session, student_in: StudentCreateWithUser):
     """
-    Tạo một đối tượng Student mới trong cơ sở dữ liệu.
-    Hàm này nhận schema mới 'StudentCreateWithUser' để đảm bảo tính nhất quán với API.
+    Tạo một user mới và sau đó tạo một student mới, liên kết với user đó.
     """
-    # Tạo một đối tượng Student mới từ schema đầu vào
-    db_student = Student(**student_in.model_dump())
+    # 1. Tách dữ liệu user và student từ schema StudentCreateWithUser
+    user_data = {
+        "username": student_in.username,
+        "password": student_in.password,
+        "fullname": student_in.fullname,
+        "email": student_in.email,
+        "phone": student_in.phone,
+        "date_of_birth": student_in.date_of_birth,
+        "gender": student_in.gender,
+        "address": student_in.address
+    }
+    
+    student_data = {
+        "class_id": student_in.class_id,
+        "enrollment_date": student_in.enrollment_date
+    }
+    
+    # 2. Tạo user mới và gán role 'student'
+    new_user = create_user(
+        db=db,
+        user_in=user_data,
+        roles=[RoleCreate(role_name="student")]
+    )
+    
+    # 3. Tạo student mới, liên kết với user_id vừa tạo
+    db_student = Student(
+        **student_data,
+        user_id=new_user.user_id  # Liên kết student với user_id vừa tạo
+    )
     db.add(db_student)
     db.commit()
     db.refresh(db_student)
+    
     return db_student
-
 
 def update_student(db: Session, student_id: int, student_update: StudentUpdate):
     """Cập nhật thông tin học sinh."""
@@ -51,4 +81,3 @@ def delete_student(db: Session, student_id: int):
         db.delete(db_student)
         db.commit()
     return db_student
-

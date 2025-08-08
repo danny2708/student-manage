@@ -1,13 +1,19 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text
 from app.database import Base
+from sqlalchemy.orm import relationship
+
 
 class Evaluation(Base):
-    __tablename__ = "evaluations"
+    """
+    Model cho bảng evaluations.
+    """
+    __tablename__ = 'evaluations'
+    evaluation_id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey('students.student_id'), nullable=False)
+    teacher_id = Column(Integer, ForeignKey('teachers.teacher_id'), nullable=False)
+    evaluation_text = Column(Text)
+    evaluation_date = Column(Date, nullable=False)
 
-    evaluation_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"))
-    class_id = Column(Integer, ForeignKey("classes.class_id"))
-    type = Column(String)
-    description = Column(String)
-    score = Column(Integer)
-    date_recorded = Column(Date)
+    # Mối quan hệ với học sinh và giáo viên (many-to-one)
+    student = relationship("Student", back_populates="evaluations")
+    teacher = relationship("Teacher", back_populates="evaluations")

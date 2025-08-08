@@ -1,33 +1,24 @@
-# app/schemas/user_schema.py
-from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
 
-# Import các schema cho Role mới được tạo
-from app.schemas.role_schema import Role
-
-# Schema cơ bản cho User (các trường chung)
 class UserBase(BaseModel):
-    username: str
-    email: EmailStr
+    username: str = Field(..., example="john_doe")
+    email: Optional[str] = Field(None, example="john.doe@example.com")
+    full_name: Optional[str] = Field(None, example="John Doe")
 
-# Schema để tạo User mới
 class UserCreate(UserBase):
-    password: str
-    # roles_ids là một danh sách ID vai trò khi tạo người dùng
-    roles_ids: List[int] = []
+    password: str = Field(..., example="verysecretpassword")
 
-# Schema để cập nhật User
-class UserUpdate(BaseModel):
+class UserUpdate(UserBase):
     username: Optional[str] = None
-    email: Optional[EmailStr] = None
-    # Bạn có thể thêm trường để cập nhật danh sách vai trò nếu cần
-    roles_ids: Optional[List[int]] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    password: Optional[str] = None
 
-# Schema dùng để đọc/trả về dữ liệu User
 class User(UserBase):
-    user_id: int
-    is_active: bool = True  # Thêm một trường ví dụ
-    roles: List[Role] = []  # Vai trò giờ là một danh sách các đối tượng Role
-
+    id: int = Field(..., example=1)
+    created_at: datetime
+    
     class Config:
         from_attributes = True
