@@ -1,16 +1,13 @@
-# app/schemas/role_schema.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-# Schema cơ bản để đọc dữ liệu Role
 class RoleBase(BaseModel):
-    name: str
+    name: str = Field(..., example="student")
 
 class RoleCreate(RoleBase):
     pass
 
-# Schema dùng để trả về dữ liệu Role, có thêm role_id
 class Role(RoleBase):
-    role_id: int
+    id: int = Field(..., example=1)
 
     class Config:
         from_attributes = True

@@ -4,16 +4,16 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 # Import các CRUD operations và schemas
-from app.crud import studentclass_crud
+from app.crud import student_class_crud
 from app.crud import student_crud # Giả định có một crud cho student
 from app.crud import class_crud # Giả định có một crud cho class
-from app.schemas.studentclass_schema import StudentClass, StudentClassCreate, StudentClassUpdate
+from app.schemas.student_class_association_schema import StudentClassAssociation, StudentClassAssociationCreate, StudentClassAssociationUpdate
 from app.api import deps
 
 router = APIRouter()
 
-@router.post("/", response_model=StudentClass, status_code=status.HTTP_201_CREATED)
-def create_new_student_class(student_class_in: StudentClassCreate, db: Session = Depends(deps.get_db)):
+@router.post("/", response_model=StudentClassAssociation, status_code=status.HTTP_201_CREATED)
+def create_new_student_class(student_class_in: StudentClassAssociationCreate, db: Session = Depends(deps.get_db)):
     """
     Tạo một liên kết học sinh-lớp học mới.
     """
@@ -34,22 +34,22 @@ def create_new_student_class(student_class_in: StudentClassCreate, db: Session =
         )
 
     # Bước 3: Tạo bản ghi liên kết
-    return studentclass_crud.create_student_class(db=db, student_class=student_class_in)
+    return student_class_crud.create_student_class(db=db, student_class=student_class_in)
 
-@router.get("/", response_model=List[StudentClass])
+@router.get("/", response_model=List[StudentClassAssociation])
 def read_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các liên kết học sinh-lớp học.
     """
-    student_classes = studentclass_crud.get_all_student_classes(db, skip=skip, limit=limit)
+    student_classes = student_class_crud.get_all_student_classes(db, skip=skip, limit=limit)
     return student_classes
 
-@router.get("/{studentclass_id}", response_model=StudentClass)
+@router.get("/{studentclass_id}", response_model=StudentClassAssociation)
 def read_student_class(studentclass_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một liên kết học sinh-lớp học cụ thể bằng ID.
     """
-    db_student_class = studentclass_crud.get_student_class(db, studentclass_id=studentclass_id)
+    db_student_class = student_class_crud.get_student_class(db, studentclass_id=studentclass_id)
     if db_student_class is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -57,12 +57,12 @@ def read_student_class(studentclass_id: int, db: Session = Depends(deps.get_db))
         )
     return db_student_class
 
-@router.put("/{studentclass_id}", response_model=StudentClass)
-def update_existing_student_class(studentclass_id: int, student_class_update: StudentClassUpdate, db: Session = Depends(deps.get_db)):
+@router.put("/{studentclass_id}", response_model=StudentClassAssociation)
+def update_existing_student_class(studentclass_id: int, student_class_update: StudentClassAssociationUpdate, db: Session = Depends(deps.get_db)):
     """
     Cập nhật thông tin của một liên kết học sinh-lớp học cụ thể bằng ID.
     """
-    db_student_class = studentclass_crud.update_student_class(db, studentclass_id=studentclass_id, student_class_update=student_class_update)
+    db_student_class = student_class_crud.update_student_class(db, studentclass_id=studentclass_id, student_class_update=student_class_update)
     if db_student_class is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -75,7 +75,7 @@ def delete_existing_student_class(studentclass_id: int, db: Session = Depends(de
     """
     Xóa một liên kết học sinh-lớp học cụ thể bằng ID.
     """
-    db_student_class = studentclass_crud.delete_student_class(db, studentclass_id=studentclass_id)
+    db_student_class = student_class_crud.delete_student_class(db, studentclass_id=studentclass_id)
     if db_student_class is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

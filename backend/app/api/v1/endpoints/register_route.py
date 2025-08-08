@@ -1,9 +1,10 @@
-# app/api/v1/endpoints/register_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select # Import select statement for modern SQLAlchemy querying
 from passlib.context import CryptContext
+from typing import List, Optional
 
-# Import các models cần thiết, bao gồm cả Role và Class
+# Import các models cần thiết, bao gồm cả Role, Class và bảng liên kết
 from app.api.deps import get_db
 from app.models.user_model import User
 from app.models.student_model import Student
@@ -11,14 +12,19 @@ from app.models.teacher_model import Teacher
 from app.models.staff_model import Staff
 from app.models.manager_model import Manager
 from app.models.parent_model import Parent
-from app.models.class_model import Class  # Thêm import Class model
+from app.models.class_model import Class
 from app.models.role_model import Role
+from app.models.association_tables import StudentClassAssociation  # Import bảng liên kết
 
+# Import các schemas đã được cập nhật
 from app.schemas.register_schema import (
     RegisterRequest,
     ParentAndChildrenRequest,
-    RegisterStudentWithParentRequest
+    RegisterStudentWithParentRequest,
 )
+from app.schemas.student_class_association_schema import StudentClassAssociationCreate # Import schema để tạo bảng liên kết
+
+from datetime import date
 
 router = APIRouter()
 
@@ -29,9 +35,11 @@ def get_password_hash(password: str) -> str:
     """Tạo một hash an toàn từ mật khẩu."""
     return pwd_context.hash(password)
 
-def get_role_object(db: Session, role_name: str):
+def get_role_object(db: Session, role_name: str) -> Role:
     """Hàm helper để truy vấn đối tượng Role từ database."""
-    role = db.query(Role).filter(Role.name == role_name).first()
+    # Sửa cú pháp truy vấn
+    stmt = select(Role).where(Role.name == role_name)
+    role = db.execute(stmt).scalars().first()
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -39,12 +47,11 @@ def get_role_object(db: Session, role_name: str):
         )
     return role
 
-
 # --- Endpoint 1: Đăng ký một người dùng duy nhất (single-user) ---
 @router.post(
     "/single-user",
     status_code=status.HTTP_201_CREATED,
-    summary="Đăng ký một người dùng duy nhất (staff, teacher, manager, student, parent)"
+    summary="Đăng ký một người dùng duy nhất (staff, teacher, manager, parent)"
 )
 def register_single_user(
     request: RegisterRequest,
@@ -53,7 +60,15 @@ def register_single_user(
     """
     Xử lý đăng ký một người dùng duy nhất dựa trên vai trò.
     """
-    existing_user = db.query(User).filter(User.username == request.user_info.username).first()
+    if request.user_info.role == "student":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể đăng ký học sinh qua endpoint này. Vui lòng sử dụng endpoint khác để gán lớp hoặc phụ huynh."
+        )
+
+    # Sửa cú pháp truy vấn
+    stmt = select(User).where(User.username == request.user_info.username)
+    existing_user = db.execute(stmt).scalars().first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -79,7 +94,10 @@ def register_single_user(
     db.refresh(new_user)
 
     # 4. Tạo thông tin chi tiết dựa trên vai trò
-    role_info_data = request.role_info.model_dump(exclude_unset=True)
+    if request.role_info:
+        role_info_data = request.role_info.model_dump(exclude_unset=True)
+    else:
+        role_info_data = {}
 
     if request.user_info.role == "staff":
         new_staff = Staff(**role_info_data, user_id=new_user.user_id)
@@ -90,13 +108,6 @@ def register_single_user(
     elif request.user_info.role == "manager":
         new_manager = Manager(**role_info_data, user_id=new_user.user_id)
         db.add(new_manager)
-    elif request.user_info.role == "student":
-        # Do mối quan hệ nhiều-nhiều, không thể truyền class_id vào Student
-        # Bạn sẽ cần một endpoint khác để gán học sinh vào lớp
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Không thể đăng ký học sinh qua endpoint này. Vui lòng sử dụng endpoint khác để gán lớp."
-        )
     elif request.user_info.role == "parent":
         new_parent = Parent(**role_info_data, user_id=new_user.user_id)
         db.add(new_parent)
@@ -108,7 +119,6 @@ def register_single_user(
         "message": f"Đăng ký người dùng vai trò '{request.user_info.role}' thành công.",
         "user_id": new_user.user_id
     }
-
 
 # --- Endpoint 2: Đăng ký phụ huynh và con cùng lúc (parent-and-children) ---
 @router.post(
@@ -123,7 +133,9 @@ def register_parent_with_children(
     """
     Xử lý đăng ký một phụ huynh và một hoặc nhiều người con trong cùng một yêu cầu.
     """
-    existing_user = db.query(User).filter(User.username == request.username).first()
+    # Sửa cú pháp truy vấn
+    stmt = select(User).where(User.username == request.username)
+    existing_user = db.execute(stmt).scalars().first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -131,7 +143,9 @@ def register_parent_with_children(
         )
 
     parent_role_object = get_role_object(db, "parent")
-
+    student_role_object = get_role_object(db, "student")
+    
+    # 1. Tạo user và parent
     hashed_password = get_password_hash(request.password)
     new_parent_user = User(
         username=request.username,
@@ -153,12 +167,14 @@ def register_parent_with_children(
     db.flush()
 
     child_ids = []
-    student_role_object = get_role_object(db, "student")
-
+    
+    # 2. Lặp qua danh sách con để tạo user và student
     for student_info in request.children_info:
         # Kiểm tra username của học sinh để tránh trùng lặp
-        student_username = f"student_{student_info.full_name.replace(' ', '').lower()}"
-        existing_student_user = db.query(User).filter(User.username == student_username).first()
+        student_username = f"student_{student_info.full_name.replace(' ', '').lower()}_{date.today().strftime('%Y%m%d')}"
+        # Sửa cú pháp truy vấn
+        stmt = select(User).where(User.username == student_username)
+        existing_student_user = db.execute(stmt).scalars().first()
         if existing_student_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -176,7 +192,6 @@ def register_parent_with_children(
         db.add(new_student_user)
         db.flush()
 
-        # KHÔNG truyền class_id vào khi tạo Student
         new_student = Student(
             user_id=new_student_user.user_id,
             full_name=student_info.full_name,
@@ -186,19 +201,28 @@ def register_parent_with_children(
         db.add(new_student)
         db.flush()
 
-        # Tìm đối tượng Class để thiết lập mối quan hệ
-        target_class = db.query(Class).filter(Class.class_id == student_info.class_id).first()
-        if not target_class:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Không tìm thấy Class với id {student_info.class_id}."
-            )
-        
-        # Thêm Student vào Class, SQLAlchemy sẽ xử lý bảng liên kết
-        target_class.students.append(new_student)
-
-        # Thêm Student vào Parent, SQLAlchemy sẽ xử lý bảng liên kết
+        # 3. Tạo bản ghi liên kết student-parent
         new_parent.students.append(new_student)
+
+        # 4. Tạo bản ghi liên kết student-class
+        if student_info.class_id:
+            # Sửa cú pháp truy vấn
+            stmt = select(Class).where(Class.class_id == student_info.class_id)
+            target_class = db.execute(stmt).scalars().first()
+            if not target_class:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy Class với id {student_info.class_id}."
+                )
+
+            association_data = StudentClassAssociationCreate(
+                student_id=new_student.student_id,
+                class_id=target_class.class_id,
+                enrollment_date=date.today(),
+                status="Active"
+            )
+            new_association = StudentClassAssociation(**association_data.model_dump())
+            db.add(new_association)
         
         child_ids.append(new_student.student_id)
 
@@ -225,7 +249,9 @@ def register_student_with_parent(
     """
     Xử lý đăng ký một học sinh mới và liên kết với một phụ huynh đã có.
     """
-    existing_parent_user = db.query(User).filter(User.user_id == request.parent_user_id).first()
+    # Sửa cú pháp truy vấn
+    stmt = select(User).where(User.user_id == request.parent_user_id)
+    existing_parent_user = db.execute(stmt).scalars().first()
     if not existing_parent_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -238,7 +264,9 @@ def register_student_with_parent(
             detail="Người dùng không có vai trò 'parent'."
         )
 
-    existing_parent = db.query(Parent).filter(Parent.user_id == existing_parent_user.user_id).first()
+    # Sửa cú pháp truy vấn
+    stmt = select(Parent).where(Parent.user_id == existing_parent_user.user_id)
+    existing_parent = db.execute(stmt).scalars().first()
     if not existing_parent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -247,8 +275,10 @@ def register_student_with_parent(
 
     student_role_object = get_role_object(db, "student")
     
-    student_username = f"{request.student_info.full_name.replace(' ', '').lower()}"
-    existing_student_user = db.query(User).filter(User.username == student_username).first()
+    student_username = f"student_{request.student_info.full_name.replace(' ', '').lower()}_{date.today().strftime('%Y%m%d')}"
+    # Sửa cú pháp truy vấn
+    stmt = select(User).where(User.username == student_username)
+    existing_student_user = db.execute(stmt).scalars().first()
     if existing_student_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -266,7 +296,6 @@ def register_student_with_parent(
     db.add(new_student_user)
     db.flush()
 
-    # Tách class_id ra khỏi student_info để không truyền vào model Student
     student_info_data = request.student_info.model_dump()
     class_id = student_info_data.pop("class_id", None)
     
@@ -274,17 +303,25 @@ def register_student_with_parent(
     db.add(new_student)
     db.flush()
     
-    # Liên kết với Class
     if class_id:
-        target_class = db.query(Class).filter(Class.class_id == class_id).first()
+        # Sửa cú pháp truy vấn
+        stmt = select(Class).where(Class.class_id == class_id)
+        target_class = db.execute(stmt).scalars().first()
         if not target_class:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Không tìm thấy Class với id {class_id}."
             )
-        target_class.students.append(new_student)
+        
+        association_data = StudentClassAssociationCreate(
+            student_id=new_student.student_id,
+            class_id=target_class.class_id,
+            enrollment_date=date.today(),
+            status="Active"
+        )
+        new_association = StudentClassAssociation(**association_data.model_dump())
+        db.add(new_association)
 
-    # Liên kết với Parent
     existing_parent.students.append(new_student)
 
     db.commit()
