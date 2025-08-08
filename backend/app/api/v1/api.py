@@ -15,7 +15,6 @@ from app.api.v1.endpoints.score_route import router as score_router
 from app.api.v1.endpoints.tuition_route import router as tuition_router
 from app.api.v1.endpoints.student_class_route import router as student_class_router
 from app.api.v1.endpoints.class_route import router as class_router
-from app.api.v1.endpoints.enrollment_route import router as enrollment_router
 from app.api.v1.endpoints.attendance_route import router as attendance_router
 from app.api.v1.endpoints.evaluation_route import router as evaluation_router
 from app.api.v1.endpoints.schedule_route import router as schedule_router
@@ -42,7 +41,6 @@ api_router.include_router(score_router, prefix="/scores", tags=["Scores"])
 api_router.include_router(tuition_router, prefix="/tuitions", tags=["Tuitions"])
 api_router.include_router(student_class_router, prefix="/student_classes", tags=["Student Classes"])
 api_router.include_router(class_router, prefix="/classes", tags=["Classes"])
-api_router.include_router(enrollment_router, prefix="/enrollments", tags=["Enrollments"])
 api_router.include_router(attendance_router, prefix="/attendances", tags=["Attendances"])
 api_router.include_router(evaluation_router, prefix="/evaluations", tags=["Evaluations"])
 api_router.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])

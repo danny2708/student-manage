@@ -1,16 +1,17 @@
-from sqlalchemy import Column, Integer, ForeignKey, Float, Date, String
+from sqlalchemy import Column, Integer, ForeignKey, Date, DECIMAL 
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Tuition(Base):
-    __tablename__ = "tuition"
+    """
+    Model cho bảng tuition.
+    """
+    __tablename__ = 'tuition'
+    tuition_id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey('students.student_id'), nullable=False)
+    amount = Column(DECIMAL(10, 2), nullable=False)
+    payment_date = Column(Date, nullable=False)
 
-    tuition_id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.student_id"), nullable=False)
-    amount = Column(Float, nullable=False)
-    due_date = Column(Date, nullable=False)
-    status = Column(String, nullable=False) # Ví dụ: "Paid", "Pending", "Overdue"
-    sent_date = Column(Date, nullable=False) # Ngày gửi thông báo hoặc hóa đơn
-
-    student = relationship("Student", backref="tuition_records")
+    # Mối quan hệ với học sinh (many-to-one)
+    student = relationship("Student", back_populates="tuitions")
 

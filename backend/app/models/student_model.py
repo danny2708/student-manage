@@ -4,31 +4,31 @@ from sqlalchemy.orm import relationship
 
 # Import Base và bảng liên kết
 from app.database import Base
-from app.models.association_tables import student_parent_association, student_class_association
+from app.models.association_tables import StudentParentAssociation, StudentClassAssociation
 
 class Student(Base):
-    __tablename__ = "students"
+    """
+    Model cho bảng students.
+    """
+    __tablename__ = 'students'
+    student_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
 
-    student_id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String(100), nullable=False)
-    date_of_birth = Column(Date, nullable=True)
-    gender = Column(String(10), nullable=True)
-    
-    # Xóa cột class_id vì nó không thuộc bảng students
-
-    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True)
+    # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="student")
 
-    # Mối quan hệ nhiều-nhiều với phụ huynh
-    parents = relationship(
-        "Parent",
-        secondary=student_parent_association,
-        back_populates="students"
-    )
+    # Mối quan hệ với phụ huynh (many-to-many)
+    parents = relationship("Parent", secondary= StudentParentAssociation, back_populates="children")
 
-    # Mối quan hệ nhiều-nhiều với lớp học thông qua bảng liên kết
-    classes = relationship(
-        "Class",
-        secondary=student_class_association,
-        back_populates="students"
-    )
+    # Mối quan hệ với lớp học (many-to-many)
+    classes = relationship("Class", secondary=StudentClassAssociation.__table__, back_populates="students")
+
+    # Mối quan hệ với các bảng khác (one-to-many)
+    scores = relationship("Score", back_populates="student")
+    tuitions = relationship("Tuition", back_populates="student")
+    enrollments = relationship("Enrollment", back_populates="student")
+    attendances = relationship("Attendance", back_populates="student")
+    evaluations = relationship("Evaluation", back_populates="student")
+
+    def __repr__(self):
+        return f"<Student(user_id='{self.user_id}')>"

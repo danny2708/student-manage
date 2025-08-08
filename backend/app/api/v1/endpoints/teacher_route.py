@@ -9,7 +9,7 @@ from app.crud import user_crud
 
 # Import các schemas cần thiết trực tiếp từ module
 from app.schemas import teacher_schema
-from app.schemas.role_schema_with_user_id import TeacherCreateWithUser
+from app.schemas.user_role import TeacherCreateWithUser
 
 # Import các dependencies
 from app.api import deps

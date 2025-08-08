@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/evaluation_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -6,7 +5,7 @@ from typing import List, Optional
 # Import các CRUD operations
 from app.crud import evaluation_crud
 from app.crud import student_crud
-from app.crud import enrollment_crud
+# Không import enrollment_crud vì model đã bị xóa
 
 # Import các schemas cần thiết trực tiếp từ module
 from app.schemas import evaluation_schema
@@ -18,6 +17,7 @@ router = APIRouter()
 def create_new_evaluation(evaluation_in: evaluation_schema.EvaluationCreate, db: Session = Depends(deps.get_db)):
     """
     Tạo một bản ghi đánh giá mới.
+    Bản ghi đánh giá sẽ được liên kết trực tiếp với một học sinh.
     """
     # Bước 1: Kiểm tra xem student_id có tồn tại không
     db_student = student_crud.get_student(db, student_id=evaluation_in.student_id)
@@ -27,15 +27,7 @@ def create_new_evaluation(evaluation_in: evaluation_schema.EvaluationCreate, db:
             detail=f"Student with id {evaluation_in.student_id} not found."
         )
 
-    # Bước 2: Kiểm tra xem enrollment_id có tồn tại không
-    db_enrollment = enrollment_crud.get_enrollment(db, enrollment_id=evaluation_in.enrollment_id)
-    if not db_enrollment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Enrollment with id {evaluation_in.enrollment_id} not found."
-        )
-
-    # Bước 3: Tạo bản ghi đánh giá mới
+    # Bước 2: Tạo bản ghi đánh giá mới
     return evaluation_crud.create_evaluation(db=db, evaluation=evaluation_in)
 
 @router.get("/", response_model=List[evaluation_schema.Evaluation])
@@ -83,5 +75,4 @@ def delete_existing_evaluation(evaluation_id: int, db: Session = Depends(deps.ge
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Đánh giá không tìm thấy."
         )
-    # Trả về status code 204 mà không có nội dung, vì đây là tiêu chuẩn cho xóa thành công
     return

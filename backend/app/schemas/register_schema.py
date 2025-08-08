@@ -1,63 +1,37 @@
-# app/schemas/register_schema.py
-from datetime import date
+from pydantic import BaseModel, Field
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from datetime import date
 
-# --- 1. Schemas cho User cơ bản ---
-class UserBase(BaseModel):
-    username: str
-    password: str
-    email: EmailStr
+# Tạo một schema mới cho thông tin đăng ký user, có bao gồm 'role'
+# Schema này sẽ thay thế UserLogin trong RegisterRequest
+class UserRegistrationInfo(BaseModel):
+    username: str = Field(..., example="john_doe")
+    email: str = Field(..., example="johndoe@example.com")
+    password: str = Field(..., example="super-secret-password")
+    role: str = Field(..., example="teacher", description="Vai trò của người dùng (e.g., staff, teacher, manager, parent, student)")
 
-class UserInfo(UserBase):
-    role: str
+class StudentRegistrationInfo(BaseModel):
+    full_name: str = Field(..., example="Nguyen Van A")
+    date_of_birth: date = Field(..., example="2010-01-01")
+    gender: str = Field(..., example="Male")
+    class_id: Optional[int] = Field(None, example=1, description="ID của lớp học, nếu có")
 
-# --- 2. Schemas cho các vai trò chi tiết ---
-# Loại bỏ trường 'role'
-class StaffCreate(BaseModel):
-    full_name: str
-    date_of_birth: Optional[date] = None
-
-class TeacherCreate(BaseModel):
-    full_name: str
-    date_of_birth: Optional[date] = None
-    subject: Optional[str] = None
-
-class ManagerCreate(BaseModel):
-    full_name: str
-    date_of_birth: Optional[date] = None
-
-class StudentCreate(BaseModel):
-    full_name: str
-    date_of_birth: Optional[date] = None
-    gender: Optional[str] = None
-    class_id: Optional[int] = None
-
-class ParentCreate(BaseModel):
-    full_name: str
-    date_of_birth: Optional[date] = None
-    phone_number: Optional[str] = None
-
-
-# --- 3. Schemas cho các yêu cầu đăng ký (Register Requests) ---
-# Endpoint 1: Đăng ký một người dùng duy nhất
+# Schema cho endpoint đăng ký một người dùng duy nhất
 class RegisterRequest(BaseModel):
-    user_info: UserInfo
-    role_info: Optional[
-        StaffCreate | TeacherCreate | ManagerCreate | StudentCreate | ParentCreate
-    ] = None
+    user_info: UserRegistrationInfo  # Sử dụng schema đã có trường 'role'
+    role_info: Optional[dict] = Field(None, description="Thông tin chi tiết theo vai trò (e.g., teacher_id, position)")
 
-# Endpoint 2: Đăng ký phụ huynh và con cùng lúc (Đã Hợp nhất)
+# Schema cho endpoint đăng ký phụ huynh và con
 class ParentAndChildrenRequest(BaseModel):
-    username: str
-    password: str
-    email: EmailStr
-    full_name: str
-    date_of_birth: Optional[date] = None
-    phone_number: Optional[str] = None
-    children_info: List[StudentCreate]
+    username: str = Field(..., example="parent_user")
+    email: str = Field(..., example="parent@example.com")
+    password: str = Field(..., example="super-secret-password")
+    full_name: str = Field(..., example="Tran Thi B")
+    date_of_birth: date = Field(..., example="1985-05-15")
+    phone_number: str = Field(..., example="0912345678")
+    children_info: List[StudentRegistrationInfo] = Field(..., description="Danh sách thông tin của các học sinh")
 
-# Endpoint 3: Liên kết học sinh với phụ huynh đã có
+# Schema cho endpoint liên kết học sinh với phụ huynh đã có
 class RegisterStudentWithParentRequest(BaseModel):
-    parent_user_id: int
-    student_info: StudentCreate
+    parent_user_id: int = Field(..., example=1, description="ID của phụ huynh đã tồn tại")
+    student_info: StudentRegistrationInfo

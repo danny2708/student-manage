@@ -4,14 +4,21 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Teacher(Base):
-    __tablename__ = "teachers"
+    """
+    Model cho bảng teachers.
+    """
+    __tablename__ = 'teachers'
+    teacher_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
 
-    teacher_id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String(100), nullable=False)
-    date_of_birth = Column(Date, nullable=True)
-    gender = Column(String(10), nullable=True)
-
-    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True)
+    # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="teacher")
 
+    # Mối quan hệ với lớp học (one-to-many)
     classes = relationship("Class", back_populates="teacher")
+
+    # Mối quan hệ với đánh giá (one-to-many)
+    evaluations = relationship("Evaluation", back_populates="teacher")
+
+    def __repr__(self):
+        return f"<Teacher(user_id='{self.user_id}')>"

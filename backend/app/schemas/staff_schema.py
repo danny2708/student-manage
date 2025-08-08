@@ -1,27 +1,26 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date
+from datetime import datetime
 
+# Schema cơ sở cho Staff
 class StaffBase(BaseModel):
-    name: str = Field(..., example="Nguyen Van A")
-    role: str = Field(..., example="Admin Assistant")
-    date_of_birth: date = Field(..., example="1990-01-15")
-    salary: float = Field(..., example=50000.0)
+    user_id: int
+    role: str
+    created_at: datetime = Field(..., example="2023-10-26T14:30:00")
 
+# Schema để tạo Staff mới
 class StaffCreate(StaffBase):
-    user_id: int = Field(..., example=2)
+    pass
 
-class StaffUpdate(StaffBase):
-    name: Optional[str] = None
-    role: Optional[str] = None
-    date_of_birth: Optional[date] = None
-    salary: Optional[float] = None
-    user_id: Optional[int] = None 
-
+# Schema để đọc/trả về Staff hoàn chỉnh
 class Staff(StaffBase):
-    staff_id: int = Field(..., example=1)
-    user_id: int = Field(..., example=2) 
+    id: int
 
     class Config:
         from_attributes = True
 
+# Schema để cập nhật Staff
+class StaffUpdate(BaseModel):
+    user_id: Optional[int] = None
+    role: Optional[str] = None
+    created_at: Optional[datetime] = None

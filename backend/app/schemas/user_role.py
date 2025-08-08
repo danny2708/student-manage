@@ -2,14 +2,19 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from datetime import date
 
-# ----------------- Base schemas for User and Role -----------------
-# Pydantic models for request bodies and response bodies.
-# These define the data structure for creating, reading, updating, and deleting data.
+# Import các schema cần thiết từ các module khác
+from .user_schema import UserCreate
+from .teacher_schema import TeacherCreate
+from .staff_schema import StaffCreate
+from .student_schema import StudentCreate, StudentUpdate
+from .parent_schema import ParentCreate, ParentUpdate
 
-class User(BaseModel):
+
+# ----------------- Base schemas for User and Role -----------------
+
+class UserBase(BaseModel):
     """
     Schema cơ sở cho người dùng.
-    Chứa các trường dữ liệu chung cho người dùng.
     """
     username: str
     fullname: Optional[str] = None
@@ -39,42 +44,49 @@ class UserRoleInDB(RoleBase):
     model_config = ConfigDict(from_attributes=True)
 
 # ----------------- User and Role relationship schemas -----------------
-# These schemas handle the relationships between User, Student, Parent, and Manager.
 
-class StudentCreateWithUser(User):
+class StudentCreateWithUser(BaseModel):
     """
-    Schema để tạo một sinh viên mới cùng với thông tin người dùng.
-    Kế thừa từ UserBase và thêm các trường cụ thể cho sinh viên.
+    Schema kết hợp để tạo Student và User cùng lúc.
     """
-    password: str
-    class_id: Optional[int] = None
-    enrollment_date: Optional[date] = None
+    user_data: UserCreate
+    student_data: StudentCreate
 
 class StudentUpdate(BaseModel):
     """
     Schema để cập nhật thông tin sinh viên.
-    Tất cả các trường là tùy chọn.
     """
-    class_id: Optional[int] = None
-    enrollment_date: Optional[date] = None
+    student_data: StudentUpdate
 
-class ParentCreateWithUser(User):
+class ParentCreateWithUser(BaseModel):
     """
-    Schema để tạo một phụ huynh mới cùng với thông tin người dùng.
+    Schema kết hợp để tạo Parent và User cùng lúc.
     """
-    password: str
-    child_id: int # Liên kết phụ huynh với một sinh viên cụ thể
+    user_data: UserCreate
+    parent_data: ParentCreate
 
 class ParentUpdate(BaseModel):
     """
     Schema để cập nhật thông tin phụ huynh.
     """
-    # Không có trường nào để cập nhật trong trường hợp này, 
-    # nhưng có thể mở rộng sau này.
-    pass
+    parent_data: ParentUpdate
 
-class ManagerCreateWithUser(User):
+class StaffCreateWithUser(BaseModel):
+    """
+    Schema kết hợp để tạo Staff và User cùng lúc.
+    """
+    user_data: UserCreate
+    staff_data: StaffCreate
+
+class ManagerCreateWithUser(UserBase):
     """
     Schema để tạo một quản lý mới cùng với thông tin người dùng.
     """
     password: str
+
+class TeacherCreateWithUser(BaseModel):
+    """
+    Schema kết hợp để tạo Teacher và User cùng lúc.
+    """
+    user_data: UserCreate
+    teacher_data: TeacherCreate

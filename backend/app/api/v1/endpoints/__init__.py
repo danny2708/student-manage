@@ -7,7 +7,6 @@ from . import parent_route
 from . import student_route
 from . import tuition_route
 from . import class_route
-from . import enrollment_route
 from . import attendance_route
 from . import schedule_route
 from . import teacher_point_route

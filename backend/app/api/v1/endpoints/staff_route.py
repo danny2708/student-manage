@@ -8,7 +8,7 @@ from app.crud import user_crud  # THÊM: Import user_crud để kiểm tra user_
 
 # Import các schemas cần thiết
 from app.schemas import staff_schema 
-from app.schemas.role_schema_with_user_id import StaffCreateWithUser  # THÊM: Import schema cần thiết
+from app.schemas.user_role import StaffCreateWithUser  # THÊM: Import schema cần thiết
 
 # Import các dependencies
 from app.api import deps

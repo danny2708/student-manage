@@ -1,25 +1,28 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime  # Giữ nguyên datetime để bao gồm cả ngày và giờ
 
+# Schema cơ sở cho TeacherPoint
 class TeacherPointBase(BaseModel):
-    teacher_id: int = Field(..., example=1)
-    point_value: float = Field(..., example=10.0, description="Giá trị điểm thưởng/phạt")
-    reason: str = Field(..., example="Hoàn thành xuất sắc nhiệm vụ")
-    created_at: datetime = Field(..., example="2023-11-05T10:00:00")
+    teacher_id: int
+    student_id: int
+    points: int
+    created_at: datetime = Field(..., example="2023-10-26T14:30:00") # Đã đổi tên trường từ 'date' thành 'created_at'
 
+# Schema để tạo TeacherPoint mới
 class TeacherPointCreate(TeacherPointBase):
     pass
 
-class TeacherPointUpdate(TeacherPointBase):
-    teacher_id: Optional[int] = None
-    point_value: Optional[float] = None
-    reason: Optional[str] = None
-    created_at: Optional[datetime] = None
-
+# Schema để đọc/trả về TeacherPoint hoàn chỉnh
 class TeacherPoint(TeacherPointBase):
-    point_id: int = Field(..., example=1)
+    id: int
 
     class Config:
         from_attributes = True
 
+# Schema để cập nhật TeacherPoint
+class TeacherPointUpdate(BaseModel):
+    teacher_id: Optional[int] = None
+    student_id: Optional[int] = None
+    points: Optional[int] = None
+    created_at: Optional[datetime] = None # Đã đổi tên trường

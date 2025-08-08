@@ -1,17 +1,19 @@
-from sqlalchemy import Column, Integer, ForeignKey, Date, Float
+from sqlalchemy import Column, Integer, ForeignKey, Date, DECIMAL
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Payroll(Base):
-    __tablename__ = "payroll"
-
-    payroll_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False) # Có thể liên kết với Staff hoặc Manager
-    month = Column(Date, nullable=False) # Chỉ lưu tháng và năm
-    base_salary = Column(Float, nullable=False)
-    reward_bonus = Column(Float, default=0.0)
-    total = Column(Float, nullable=False)
+    """
+    Model cho bảng payroll.
+    """
+    __tablename__ = 'payroll'
+    payroll_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    month = Column(Integer, nullable=False)
+    base_salary = Column(DECIMAL(10, 2), nullable=False)
+    reward_bonus = Column(DECIMAL(10, 2), nullable=False)
+    total = Column(DECIMAL(10, 2), nullable=False)
     sent_date = Column(Date, nullable=False)
 
-    user = relationship("User", backref="payrolls")
-
+    # Mối quan hệ với người dùng (many-to-one)
+    user = relationship("User")

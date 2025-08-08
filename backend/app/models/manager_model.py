@@ -4,14 +4,15 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Manager(Base):
-    __tablename__ = "managers"
+    """
+    Model cho bảng managers.
+    """
+    __tablename__ = 'managers'
+    manager_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
 
-    manager_id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.user_id"), unique=True, nullable=False)
-
-    # Mối quan hệ ngược lại với bảng users, khớp với thuộc tính `manager` trong User
+    # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="manager")
 
     def __repr__(self):
-        return f"<Manager(manager_id={self.manager_id}, full_name='{self.full_name}')>"
+        return f"<Manager(user_id='{self.user_id}')>"
