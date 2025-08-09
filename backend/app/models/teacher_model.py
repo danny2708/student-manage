@@ -2,7 +2,7 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
-
+from app.models.user_model import User
 class Teacher(Base):
     """
     Model cho bảng teachers.

@@ -12,6 +12,10 @@ class Enrollment(Base):
     class_id = Column(Integer, ForeignKey("classes.class_id"), nullable=False)
     enrolled_at = Column(DateTime, default=datetime.utcnow, nullable=False) # Đã thay đổi thành DateTime và thêm default
 
-    student = relationship("Student", backref="enrollments")
-    class_obj = relationship("Class", backref="enrollments_in_class") # Đổi tên để tránh xung đột với từ khóa 'class'
+    student = relationship("Student", back_populates="enrollments")
+    # enrollment_model.py
+    # enrollment_model.py
+    class_obj = relationship("Class", back_populates="enrollments")
+
+    # Đổi tên để tránh xung đột với từ khóa 'class'
 

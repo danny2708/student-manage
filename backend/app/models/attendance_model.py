@@ -13,4 +13,4 @@ class Attendance(Base):
 
     # Mối quan hệ với học sinh và lớp học (many-to-one)
     student = relationship("Student", back_populates="attendances")
-    class_ = relationship("Class", back_populates="attendances")
+    class_obj = relationship("Class", back_populates="attendances")

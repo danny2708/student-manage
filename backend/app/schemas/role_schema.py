@@ -7,7 +7,7 @@ class RoleCreate(RoleBase):
     pass
 
 class Role(RoleBase):
-    id: int = Field(..., example=1)
+    role_id: int = Field(..., example=1)
 
     class Config:
         from_attributes = True

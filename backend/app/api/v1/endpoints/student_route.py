@@ -8,7 +8,7 @@ from app.crud import user_crud
 
 # Import các schemas cần thiết trực tiếp từ module
 from app.schemas import student_schema
-from app.schemas.user_role import StudentCreateWithUser
+from app.schemas.user_role_schema import StudentCreateWithUser
 
 # Import các dependencies
 from app.api import deps
