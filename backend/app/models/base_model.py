@@ -1,3 +1,10 @@
-from sqlalchemy.ext.declarative import declarative_base
+# app/database/base_model.py
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    """
+    Lớp cơ sở khai báo cho các mô hình SQLAlchemy 2.0.
+    Tất cả các mô hình khác sẽ kế thừa từ lớp này.
+    """
+    pass
+

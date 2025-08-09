@@ -1,80 +1,26 @@
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
-from datetime import date
+from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy.orm import relationship
+from app.database import Base
+from app.models.association_tables import user_roles
 
-# ----------------- Base schemas for User and Role -----------------
-# Pydantic models for request bodies and response bodies.
-# These define the data structure for creating, reading, updating, and deleting data.
+class User(Base):
+    __tablename__ = "users"
 
-class User(BaseModel):
-    """
-    Schema cơ sở cho người dùng.
-    Chứa các trường dữ liệu chung cho người dùng.
-    """
-    username: str
-    fullname: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    date_of_birth: Optional[date] = None
-    gender: Optional[bool] = None
-    address: Optional[str] = None
+    user_id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    full_name = Column(String, nullable=False)
+    gender = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
 
-class RoleBase(BaseModel):
-    """
-    Schema cơ sở cho vai trò (Role).
-    """
-    role_name: str
-
-class RoleCreate(RoleBase):
-    """
-    Schema để tạo một vai trò mới.
-    """
-    pass
-
-class UserRoleInDB(RoleBase):
-    """
-    Schema cho vai trò khi được đọc từ cơ sở dữ liệu.
-    """
-    role_id: int
-    model_config = ConfigDict(from_attributes=True)
-
-# ----------------- User and Role relationship schemas -----------------
-# These schemas handle the relationships between User, Student, Parent, and Manager.
-
-class StudentCreateWithUser(User):
-    """
-    Schema để tạo một sinh viên mới cùng với thông tin người dùng.
-    Kế thừa từ UserBase và thêm các trường cụ thể cho sinh viên.
-    """
-    password: str
-    class_id: Optional[int] = None
-    enrollment_date: Optional[date] = None
-
-class StudentUpdate(BaseModel):
-    """
-    Schema để cập nhật thông tin sinh viên.
-    Tất cả các trường là tùy chọn.
-    """
-    class_id: Optional[int] = None
-    enrollment_date: Optional[date] = None
-
-class ParentCreateWithUser(User):
-    """
-    Schema để tạo một phụ huynh mới cùng với thông tin người dùng.
-    """
-    password: str
-    child_id: int # Liên kết phụ huynh với một sinh viên cụ thể
-
-class ParentUpdate(BaseModel):
-    """
-    Schema để cập nhật thông tin phụ huynh.
-    """
-    # Không có trường nào để cập nhật trong trường hợp này, 
-    # nhưng có thể mở rộng sau này.
-    pass
-
-class ManagerCreateWithUser(User):
-    """
-    Schema để tạo một quản lý mới cùng với thông tin người dùng.
-    """
-    password: str
+    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    staff = relationship("Staff", back_populates="user")
+    manager = relationship("Manager", back_populates="user")
+    teacher = relationship("Teacher", back_populates="user")
+    student = relationship("Student", back_populates="user")
+    parent = relationship("Parent", back_populates="user")
+    
+    def __repr__(self):
+        return f"<User(user_id={self.user_id}, username='{self.username}')>"

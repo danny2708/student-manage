@@ -6,7 +6,7 @@ from typing import List
 from app.crud import manager_crud
 from app.crud import user_crud
 from app.schemas import manager_schema 
-from app.schemas.user_role import ManagerCreateWithUser
+from app.schemas.user_role_schema import ManagerCreateWithUser
 
 from app.api import deps
 
