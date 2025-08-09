@@ -1,9 +1,9 @@
 """user_role_schema"""
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
-from datetime import date
+from datetime import date, datetime # Th\u00EAm datetime v\u00E0o \u0111\u00E2y
 
-# Import các schema cần thiết từ các module khác
+# Import c\u00E1c schema c\u1EA7n thi\u1EBFt t\u1EEB c\u00E1c module kh\u00E1c
 from .user_schema import UserCreate
 from .teacher_schema import TeacherCreate
 from .staff_schema import StaffCreate
@@ -15,7 +15,7 @@ from .parent_schema import ParentCreate, ParentUpdate
 
 class UserBase(BaseModel):
     """
-    Schema cơ sở cho người dùng.
+    Schema c\u01A1 s\u1EDF cho ng\u01B0\u1EDDi d\u00F9ng.
     """
     username: str
     fullname: Optional[str] = None
@@ -27,67 +27,78 @@ class UserBase(BaseModel):
 
 class RoleBase(BaseModel):
     """
-    Schema cơ sở cho vai trò (Role).
+    Schema c\u01A1 s\u1EDF cho vai tr\u00F2 (Role).
     """
     role_name: str
 
 class RoleCreate(RoleBase):
     """
-    Schema để tạo một vai trò mới.
+    Schema \u0111\u1EC3 t\u1EA1o m\u1ED9t vai tr\u00F2 m\u1EDBi.
     """
     pass
 
 class UserRoleInDB(RoleBase):
     """
-    Schema cho vai trò khi được đọc từ cơ sở dữ liệu.
+    Schema cho vai tr\u00F2 khi \u0111\u01B0\u1EE3c \u0111\u1ECDc t\u1EEB c\u01A1 s\u1EDF d\u1EEF li\u1EC7u.
     """
     role_id: int
     model_config = ConfigDict(from_attributes=True)
 
 # ----------------- User and Role relationship schemas -----------------
 
+# B\u1ED5 sung schema UserRoleCreate \u0111\u1EC3 s\u1EED d\u1EE5ng trong CRUD v\u00E0 API
+class UserRoleCreate(BaseModel):
+    """
+    Schema \u0111\u1EC3 t\u1EA1o m\u1ED9t m\u1ED1i quan h\u1EC7 vai tr\u00F2 cho ng\u01B0\u1EDDi d\u00F9ng.
+    """
+    user_id: int
+    role_name: str
+    assigned_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StudentCreateWithUser(BaseModel):
     """
-    Schema kết hợp để tạo Student và User cùng lúc.
+    Schema k\u1EBFt h\u1EE3p \u0111\u1EC3 t\u1EA1o Student v\u00E0 User c\u00F9ng l\u00FAC.
     """
     user_data: UserCreate
     student_data: StudentCreate
 
 class StudentUpdate(BaseModel):
     """
-    Schema để cập nhật thông tin sinh viên.
+    Schema \u0111\u1EC3 c\u1EADp nh\u1EADt th\u00F4ng tin sinh vi\u00EAn.
     """
     student_data: StudentUpdate
 
 class ParentCreateWithUser(BaseModel):
     """
-    Schema kết hợp để tạo Parent và User cùng lúc.
+    Schema k\u1EBFt h\u1EE3p \u0111\u1EC3 t\u1EA1o Parent v\u00E0 User c\u00F9ng l\u00FAC.
     """
     user_data: UserCreate
     parent_data: ParentCreate
 
 class ParentUpdate(BaseModel):
     """
-    Schema để cập nhật thông tin phụ huynh.
+    Schema \u0111\u1EC3 c\u1EADp nh\u1EADt th\u00F4ng tin ph\u1EE5 huynh.
     """
     parent_data: ParentUpdate
 
 class StaffCreateWithUser(BaseModel):
     """
-    Schema kết hợp để tạo Staff và User cùng lúc.
+    Schema k\u1EBFt h\u1EE3p \u0111\u1EC3 t\u1EA1o Staff v\u00E0 User c\u00F9ng l\u00FAC.
     """
     user_data: UserCreate
     staff_data: StaffCreate
 
 class ManagerCreateWithUser(UserBase):
     """
-    Schema để tạo một quản lý mới cùng với thông tin người dùng.
+    Schema \u0111\u1EC3 t\u1EA1o m\u1ED9t qu\u1EA3n l\u00FD m\u1EDBi c\u00F9ng v\u1EDBi th\u00F4ng tin ng\u01B0\u1EDDi d\u00F9ng.
     """
     password: str
 
 class TeacherCreateWithUser(BaseModel):
     """
-    Schema kết hợp để tạo Teacher và User cùng lúc.
+    Schema k\u1EBFt h\u1EE3p \u0111\u1EC3 t\u1EA1o Teacher v\u00E0 User c\u00F9ng l\u00FAC.
     """
     user_data: UserCreate
     teacher_data: TeacherCreate
