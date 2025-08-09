@@ -1,27 +1,33 @@
-# app/api/v1/endpoints/teacher_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
+from datetime import datetime
 
-# Import các CRUD operations
+# CRUD
 from app.crud import teacher_crud
 from app.crud import user_crud
+from app.crud import user_role_crud # cần import CRUD user_role
 
-# Import các schemas cần thiết trực tiếp từ module
+# Schemas
 from app.schemas import teacher_schema
-from app.schemas.user_role_schema import TeacherCreateWithUser
+from app.schemas.user_role_schema import UserRoleCreate
+from pydantic import BaseModel
 
-# Import các dependencies
+# Dependencies
 from app.api import deps
 
 router = APIRouter()
 
+# Schema chỉ nhận user_id
+class TeacherAssign(BaseModel):
+    user_id: int
+
 @router.post("/", response_model=teacher_schema.Teacher, status_code=status.HTTP_201_CREATED)
-def create_teacher(teacher_in: TeacherCreateWithUser, db: Session = Depends(deps.get_db)):
+def assign_teacher(teacher_in: TeacherAssign, db: Session = Depends(deps.get_db)):
     """
-    Tạo một vai trò teacher mới và liên kết nó với một người dùng đã tồn tại.
+    Gán một user đã tồn tại thành giáo viên + cập nhật role 'teacher' trong user_roles.
     """
-    # Bước 1: Kiểm tra xem user_id có tồn tại trong bảng users không
+    # 1. Kiểm tra user có tồn tại
     db_user = user_crud.get_user(db=db, user_id=teacher_in.user_id)
     if not db_user:
         raise HTTPException(
@@ -29,7 +35,7 @@ def create_teacher(teacher_in: TeacherCreateWithUser, db: Session = Depends(deps
             detail=f"User with id {teacher_in.user_id} not found."
         )
 
-    # Bước 2: Kiểm tra xem người dùng này đã có vai trò giáo viên chưa
+    # 2. Kiểm tra user đã là teacher chưa
     existing_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=teacher_in.user_id)
     if existing_teacher:
         raise HTTPException(
@@ -37,23 +43,39 @@ def create_teacher(teacher_in: TeacherCreateWithUser, db: Session = Depends(deps
             detail=f"User with id {teacher_in.user_id} is already a teacher."
         )
 
-    # Bước 3: Tạo bản ghi teacher và liên kết với user_id
-    # Truyền Pydantic model trực tiếp thay vì dùng .model_dump()
-    db_teacher = teacher_crud.create_teacher(db=db, teacher_in=teacher_in)
+    # 3. Gán teacher
+    db_teacher = teacher_crud.create_teacher(
+        db=db,
+        teacher_in=teacher_schema.TeacherCreate(user_id=teacher_in.user_id)
+    )
+
+    # 4. Cập nhật user_roles nếu chưa có role "teacher"
+    existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.user_id, role_name="teacher")
+    if not existing_role:
+        user_role_crud.create_user_role(
+            db=db,
+            role_in=UserRoleCreate(
+                user_id=teacher_in.user_id,
+                role_name="teacher",
+                assigned_at=datetime.utcnow()
+            )
+        )
+
     return db_teacher
+
 
 @router.get("/", response_model=List[teacher_schema.Teacher])
 def read_all_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả giáo viên.
     """
-    teachers = teacher_crud.get_all_teachers(db, skip=skip, limit=limit)
-    return teachers
+    return teacher_crud.get_all_teachers(db, skip=skip, limit=limit)
+
 
 @router.get("/{teacher_id}", response_model=teacher_schema.Teacher)
 def read_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
     """
-    Lấy thông tin của một giáo viên cụ thể bằng ID.
+    Lấy thông tin một giáo viên theo ID.
     """
     db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
     if db_teacher is None:
@@ -63,10 +85,11 @@ def read_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
         )
     return db_teacher
 
+
 @router.put("/{teacher_id}", response_model=teacher_schema.Teacher)
 def update_existing_teacher(teacher_id: int, teacher: teacher_schema.TeacherUpdate, db: Session = Depends(deps.get_db)):
     """
-    Cập nhật thông tin của một giáo viên cụ thể bằng ID.
+    Cập nhật thông tin giáo viên theo ID.
     """
     db_teacher = teacher_crud.update_teacher(db, teacher_id=teacher_id, teacher_update=teacher)
     if db_teacher is None:
@@ -76,10 +99,11 @@ def update_existing_teacher(teacher_id: int, teacher: teacher_schema.TeacherUpda
         )
     return db_teacher
 
+
 @router.delete("/{teacher_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_existing_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
     """
-    Xóa một giáo viên cụ thể bằng ID.
+    Xóa giáo viên theo ID.
     """
     db_teacher = teacher_crud.delete_teacher(db, teacher_id=teacher_id)
     if db_teacher is None:
@@ -87,5 +111,4 @@ def delete_existing_teacher(teacher_id: int, db: Session = Depends(deps.get_db))
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Giáo viên không tìm thấy."
         )
-    # Trả về status code 204 mà không có nội dung, vì đây là tiêu chuẩn cho xóa thành công
     return
