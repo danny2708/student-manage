@@ -1,4 +1,5 @@
 from . import user_crud
+from . import user_role_crud
 from . import staff_crud
 from . import manager_crud
 from . import payroll_crud
