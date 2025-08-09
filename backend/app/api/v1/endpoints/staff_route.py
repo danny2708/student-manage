@@ -8,7 +8,7 @@ from app.crud import user_crud  # THÊM: Import user_crud để kiểm tra user_
 
 # Import các schemas cần thiết
 from app.schemas import staff_schema 
-from app.schemas.user_role import StaffCreateWithUser  # THÊM: Import schema cần thiết
+from app.schemas.user_role_schema import StaffCreateWithUser  # THÊM: Import schema cần thiết
 
 # Import các dependencies
 from app.api import deps
@@ -21,7 +21,7 @@ def create_staff(staff_in: StaffCreateWithUser, db: Session = Depends(deps.get_d
     Tạo một vai trò staff mới và liên kết nó với một người dùng đã tồn tại.
     """
     # Bước 1: Kiểm tra xem user_id có tồn tại không
-    db_user = user_crud.get_user(db=db, user_id=staff_in.user_id)
+    db_user = user_crud.read_user(db=db, user_id=staff_in.user_id)
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
