@@ -16,11 +16,11 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
 
     roles = relationship("Role", secondary=user_roles, back_populates="users")
-    staff = relationship("Staff", back_populates="user")
-    manager = relationship("Manager", back_populates="user")
-    teacher = relationship("Teacher", back_populates="user")
-    student = relationship("Student", back_populates="user")
-    parent = relationship("Parent", back_populates="user")
+    staff = relationship("Staff", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    manager = relationship("Manager", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    teacher = relationship("Teacher", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    student = relationship("Student", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    parent = relationship("Parent", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     
     def __repr__(self):
         return f"<User(user_id={self.user_id}, username='{self.username}')>"

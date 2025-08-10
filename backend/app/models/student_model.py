@@ -8,7 +8,7 @@ class Student(Base):
     __tablename__ = 'students'
 
     student_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
 
     # Many-to-many with Parent
     parents = relationship(

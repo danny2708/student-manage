@@ -9,7 +9,7 @@ class Teacher(Base):
     """
     __tablename__ = 'teachers'
     teacher_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
 
     # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="teacher")
