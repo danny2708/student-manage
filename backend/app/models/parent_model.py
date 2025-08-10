@@ -7,7 +7,7 @@ class Parent(Base):
     __tablename__ = 'parents'
 
     parent_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
 
     # Many-to-many với Student
     children = relationship(
