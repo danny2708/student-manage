@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 
 class SubjectBase(BaseModel):
     name: str = Field(..., example="Math")
@@ -7,7 +8,7 @@ class SubjectCreate(SubjectBase):
     pass
 
 class Subject(SubjectBase):
-    id: int = Field(..., example=1)
+    subject_id: Optional[int] = None
 
 class SubjectUpdate(SubjectBase):
     pass

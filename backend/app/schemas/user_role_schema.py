@@ -1,9 +1,7 @@
 """user_role_schema"""
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
-from datetime import date, datetime # Th\u00EAm datetime v\u00E0o \u0111\u00E2y
-
-# Import c\u00E1c schema c\u1EA7n thi\u1EBFt t\u1EEB c\u00E1c module kh\u00E1c
+from datetime import date, datetime 
 from .user_schema import UserCreate
 from .teacher_schema import TeacherCreate
 from .staff_schema import StaffCreate

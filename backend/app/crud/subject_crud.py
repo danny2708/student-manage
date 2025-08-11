@@ -6,9 +6,9 @@ def get_subject(db: Session, subject_id: int):
     """Lấy thông tin môn học theo ID."""
     return db.query(Subject).filter(Subject.subject_id == subject_id).first()
 
-def get_subject_by_name(db: Session, subject_name: str):
+def get_subject_by_name(db: Session, name: str):
     """Lấy thông tin môn học theo tên."""
-    return db.query(Subject).filter(Subject.subject_name == subject_name).first()
+    return db.query(Subject).filter(Subject.name == name).first()
 
 def get_subjects_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100):
     """Lấy danh sách môn học theo teacher_id."""

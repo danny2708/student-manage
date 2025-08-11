@@ -15,7 +15,7 @@ def create_new_subject(subject_in: subject_schema.SubjectCreate, db: Session = D
     Tạo một môn học mới.
     """
     # Kiểm tra xem tên môn học đã tồn tại chưa
-    db_subject = subject_crud.get_subject_by_name(db, subject_name=subject_in.subject_name)
+    db_subject = subject_crud.get_subject_by_name(db, name=subject_in.name)
     if db_subject:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

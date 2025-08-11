@@ -2,37 +2,55 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-
+from datetime import datetime
 # Import các CRUD operations và schemas trực tiếp
-from app.crud import parent_crud
+from app.crud import parent_crud, user_crud, user_role_crud
+from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import parent_schema
 from app.api import deps
 
 router = APIRouter()
 
 @router.post("/", response_model=parent_schema.Parent, status_code=status.HTTP_201_CREATED)
-def create_new_parent(parent_in: parent_schema.ParentCreate, db: Session = Depends(deps.get_db)):
+def assign_parent(parent_in: parent_schema.ParentAssign, db: Session = Depends(deps.get_db)):
     """
-    Tạo một phụ huynh mới.
+    Gán một user đã tồn tại thành parent + cập nhật role 'parent' trong user_roles.
     """
-    # Bước 1: Kiểm tra xem email đã tồn tại chưa
-    db_parent_by_email = parent_crud.get_parent_by_email(db, email=parent_in.email)
-    if db_parent_by_email:
+    # 1. Kiểm tra user có tồn tại
+    db_user = user_crud.get_user(db=db, user_id=parent_in.user_id)
+    if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email đã tồn tại."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {parent_in.user_id} not found."
         )
-        
-    # Bước 2: Kiểm tra xem user_id đã được liên kết với phụ huynh khác chưa
-    existing_parent = parent_crud.get_parent_by_user_id(db, user_id=parent_in.user_id)
+
+    # 2. Kiểm tra user đã là parent chưa
+    existing_parent = parent_crud.get_parent_by_user_id(db=db, user_id=parent_in.user_id)
     if existing_parent:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User ID đã được liên kết với một phụ huynh khác."
+            detail=f"User with id {parent_in.user_id} is already a parent."
         )
 
-    # Bước 3: Tạo phụ huynh mới
-    return parent_crud.create_parent(db=db, parent=parent_in)
+    # 3. Gán parent
+    db_parent = parent_crud.create_parent(
+        db=db,
+        parent_in=parent_schema.ParentCreate(user_id=parent_in.user_id)
+    )
+
+    # 4. Cập nhật user_roles nếu chưa có role "parent"
+    existing_role = user_role_crud.get_user_role(db, user_id=parent_in.user_id, role_name="parent")
+    if not existing_role:
+        user_role_crud.create_user_role(
+            db=db,
+            role_in=UserRoleCreate(
+                user_id=parent_in.user_id,
+                role_name="parent",
+                assigned_at=datetime.utcnow()
+            )
+        )
+
+    return db_parent
 
 @router.get("/", response_model=List[parent_schema.Parent])
 def read_all_parents(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
@@ -68,16 +86,20 @@ def update_existing_parent(parent_id: int, parent_update: parent_schema.ParentUp
         )
     return db_parent
 
-@router.delete("/{parent_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{parent_id}", response_model=dict)
 def delete_existing_parent(parent_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một phụ huynh cụ thể bằng ID.
-    """
-    db_parent = parent_crud.delete_parent(db, parent_id=parent_id)
+    db_parent = parent_crud.get_parent(db, parent_id=parent_id)
     if db_parent is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Phụ huynh không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    # Trả về status code 204 mà không có nội dung, đây là chuẩn cho xóa thành công
-    return
+
+    deleted_parent = parent_crud.delete_parent(db, parent_id=parent_id)
+
+    return {
+        "deleted_parent": parent_schema.Parent.from_orm(deleted_parent).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }
+

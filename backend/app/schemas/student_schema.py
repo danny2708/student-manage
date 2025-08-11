@@ -3,7 +3,6 @@ from typing import Optional
 # Schema cơ sở cho Student
 class StudentBase(BaseModel):
     user_id: int
-    student_id: int
 
 # Schema để tạo Student mới
 class StudentCreate(StudentBase):
@@ -11,12 +10,16 @@ class StudentCreate(StudentBase):
 
 # Schema để đọc/trả về Student hoàn chỉnh
 class Student(StudentBase):
-    id: int
+    user_id: int
+    student_id: int
 
     class Config:
         from_attributes = True
 
+class StudentAssign(BaseModel):
+    user_id: int
+    
+
 # Schema để cập nhật Student
 class StudentUpdate(BaseModel):
     user_id: Optional[int] = None
-    student_id: Optional[int] = None
