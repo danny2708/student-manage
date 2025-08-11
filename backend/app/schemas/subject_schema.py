@@ -10,6 +10,9 @@ class SubjectCreate(SubjectBase):
 class Subject(SubjectBase):
     subject_id: Optional[int] = None
 
+    class Config:
+        from_attributes = True 
+        
 class SubjectUpdate(SubjectBase):
     pass
 

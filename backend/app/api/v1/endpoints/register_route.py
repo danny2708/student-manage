@@ -10,7 +10,6 @@ from app.api.deps import get_db
 from app.models.user_model import User
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
-from app.models.staff_model import Staff
 from app.models.manager_model import Manager
 from app.models.parent_model import Parent
 from app.models.class_model import Class
@@ -107,10 +106,7 @@ def register_single_user(
         else:
             role_info_data = {}
 
-        if request.user_info.role == "staff":
-            new_staff = Staff(**role_info_data, user_id=new_user.user_id)
-            db.add(new_staff)
-        elif request.user_info.role == "teacher":
+        if request.user_info.role == "teacher":
             new_teacher = Teacher(**role_info_data, user_id=new_user.user_id)
             db.add(new_teacher)
         elif request.user_info.role == "manager":

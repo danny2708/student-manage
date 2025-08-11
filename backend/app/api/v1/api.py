@@ -3,7 +3,6 @@ from fastapi import APIRouter
 
 # --- Import các routers chức năng chung ---
 from app.api.v1.endpoints.user_route import router as user_router
-from app.api.v1.endpoints.staff_route import router as staff_router
 from app.api.v1.endpoints.manager_route import router as manager_router
 from app.api.v1.endpoints.payroll_route import router as payroll_router
 from app.api.v1.endpoints.teacher_route import router as teacher_router
@@ -29,7 +28,6 @@ api_router = APIRouter()
 
 # --- Bao gồm các routers vào router chính ---
 api_router.include_router(user_router, prefix="/users", tags=["Users"])
-api_router.include_router(staff_router, prefix="/staff", tags=["Staff"])
 api_router.include_router(manager_router, prefix="/managers", tags=["Managers"])
 api_router.include_router(payroll_router, prefix="/payrolls", tags=["Payrolls"])
 api_router.include_router(teacher_router, prefix="/teachers", tags=["Teachers"])

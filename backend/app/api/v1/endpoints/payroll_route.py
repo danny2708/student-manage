@@ -6,8 +6,8 @@ from typing import List
 
 # Import các CRUD operations và schemas trực tiếp
 from app.crud import payroll_crud
-# Sửa lỗi: Import đúng tên module là staff_crud
-from app.crud import staff_crud 
+# Sửa lỗi: Import đúng tên module là teacher_crud
+from app.crud import teacher_crud 
 from app.schemas import payroll_schema
 from app.api import deps
 
@@ -19,8 +19,8 @@ def create_new_payroll(payroll_in: payroll_schema.PayrollCreate, db: Session = D
     Tạo một bản ghi bảng lương mới.
     """
     # Bước 1: Kiểm tra xem employee_id có tồn tại trong bảng employees không
-    # Sửa lỗi: Dùng đúng tên module `staff_crud` và hàm `get_staff`
-    db_employee = staff_crud.get_staff(db, staff_id=payroll_in.employee_id)
+    # Sửa lỗi: Dùng đúng tên module `teacher_crud` và hàm `get_teacher`
+    db_employee = teacher_crud.get_teacher(db, teacher_id=payroll_in.employee_id)
     if not db_employee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

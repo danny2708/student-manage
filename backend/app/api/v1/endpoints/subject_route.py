@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
+from datetime import datetime
 from app.crud import subject_crud
 from app.schemas import subject_schema
 from app.api import deps
@@ -58,16 +58,19 @@ def update_existing_subject(subject_id: int, subject_update: subject_schema.Subj
         )
     return db_subject
 
-@router.delete("/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{subject_id}", response_model=dict)
 def delete_existing_subject(subject_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một môn học cụ thể bằng ID.
-    """
-    db_subject = subject_crud.delete_subject(db, subject_id=subject_id)
+    db_subject = subject_crud.get_subject(db, subject_id=subject_id)
     if db_subject is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Môn học không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    # Trả về status code 204 mà không có nội dung, đây là chuẩn cho xóa thành công
-    return
+
+    deleted_subject = subject_crud.delete_subject(db, subject_id=subject_id)
+
+    return {
+        "deleted_subject": subject_schema.Subject.from_orm(deleted_subject).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }
