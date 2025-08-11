@@ -5,6 +5,9 @@ from pydantic import BaseModel
 class TeacherBase(BaseModel):
     user_id: int
 
+    class Config:
+        from_attributes = True
+        
 class TeacherCreate(TeacherBase):
     user_id: int
 
@@ -17,3 +20,7 @@ class Teacher(TeacherBase):
 
     class Config:
         from_attributes = True
+        
+# Schema chỉ nhận user_id
+class TeacherAssign(BaseModel):
+    user_id: int

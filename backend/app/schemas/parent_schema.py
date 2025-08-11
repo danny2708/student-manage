@@ -1,16 +1,25 @@
-from pydantic import BaseModel, Field
+# app/schemas/Parent_schema.py
+from datetime import datetime
+from pydantic import BaseModel
 
 class ParentBase(BaseModel):
-    user_id: int = Field(..., example=1)
+    user_id: int
 
+    class Config:
+        from_attributes = True
+        
 class ParentCreate(ParentBase):
     pass
 
-class Parent(ParentBase):
-    id: int = Field(..., example=1)
+class ParentUpdate(BaseModel):
+    user_id: int | None = None
 
-class ParentUpdate(ParentBase):
-    pass
-    
+class Parent(ParentBase):
+    parent_id: int
+    user_id: int
+
     class Config:
         from_attributes = True
+
+class ParentAssign(ParentBase):
+    user_id: int

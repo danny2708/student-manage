@@ -1,7 +1,6 @@
 
 from .user_model import User
 from .role_model import Role
-from .staff_model import Staff
 from .student_model import Student
 from .teacher_model import Teacher
 from .parent_model import Parent

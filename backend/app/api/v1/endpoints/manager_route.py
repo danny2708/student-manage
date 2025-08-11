@@ -1,24 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 # Import các CRUD operations
 from app.crud import manager_crud
-from app.crud import user_crud
+from app.crud import user_crud, user_role_crud
+from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import manager_schema 
-from app.schemas.user_role_schema import ManagerCreateWithUser
-
 from app.api import deps
 
 router = APIRouter()
 
-
 @router.post("/", response_model=manager_schema.Manager, status_code=status.HTTP_201_CREATED)
-def create_new_manager(manager_in: ManagerCreateWithUser, db: Session = Depends(deps.get_db)):
+def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depends(deps.get_db)):
     """
-    Tạo một vai trò quản lý mới và liên kết nó với một người dùng đã tồn tại.
+    Gán một user đã tồn tại thành manager + cập nhật role 'manager' trong user_roles.
     """
-    # Bước 1: Kiểm tra xem user_id có tồn tại trong bảng users không
+    # 1. Kiểm tra user tồn tại
     db_user = user_crud.get_user(db=db, user_id=manager_in.user_id)
     if not db_user:
         raise HTTPException(
@@ -26,17 +25,33 @@ def create_new_manager(manager_in: ManagerCreateWithUser, db: Session = Depends(
             detail=f"User with id {manager_in.user_id} not found."
         )
 
-    # Bước 2: Kiểm tra xem người dùng này đã có vai trò quản lý chưa
-    existing_manager = manager_crud.get_manager_by_user_id(db, user_id=manager_in.user_id)
+    # 2. Kiểm tra đã là manager chưa
+    existing_manager = manager_crud.get_manager_by_user_id(db=db, user_id=manager_in.user_id)
     if existing_manager:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User ID đã được liên kết với một quản lý khác."
+            detail=f"User with id {manager_in.user_id} is already a manager."
         )
 
-    # Bước 3: Tạo bản ghi manager và liên kết với user_id
-    # Lưu ý: Hàm manager_crud.create_manager sẽ nhận Pydantic model trực tiếp
-    return manager_crud.create_manager(db=db, manager_in=manager_in)
+    # 3. Tạo manager
+    db_manager = manager_crud.create_manager(
+        db=db,
+        manager_in=manager_schema.ManagerCreate(user_id=manager_in.user_id)
+    )
+
+    # 4. Gán role "manager" vào user_roles nếu chưa có
+    existing_role = user_role_crud.get_user_role(db, user_id=manager_in.user_id, role_name="manager")
+    if not existing_role:
+        user_role_crud.create_user_role(
+            db=db,
+            role_in=UserRoleCreate(
+                user_id=manager_in.user_id,
+                role_name="manager",
+                assigned_at=datetime.utcnow()
+            )
+        )
+
+    return db_manager
 
 
 @router.get("/", response_model=List[manager_schema.Manager])
@@ -76,15 +91,20 @@ def update_existing_manager(manager_id: int, manager: manager_schema.ManagerUpda
     return db_manager
 
 
-@router.delete("/{manager_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{manager_id}", response_model=dict)
 def delete_existing_manager(manager_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một quản lý cụ thể bằng ID.
-    """
-    db_manager = manager_crud.delete_manager(db, manager_id=manager_id)
+    db_manager = manager_crud.get_manager(db, manager_id=manager_id)
     if db_manager is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Quản lý không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    return {"message": "Quản lý đã được xóa thành công."}
+
+    deleted_manager = manager_crud.delete_manager(db, manager_id=manager_id)
+
+    return {
+        "deleted_manager": manager_schema.Manager.from_orm(deleted_manager).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }
+

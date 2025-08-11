@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.models.teacher_model import Teacher
 from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
-
+from app.models.association_tables import user_roles 
 
 def get_teacher(db: Session, teacher_id: int) -> Optional[Teacher]:
     """
@@ -74,17 +74,16 @@ def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) 
     return db_teacher
 
 
-def delete_teacher(db: Session, teacher_id: int) -> Optional[Teacher]:
-    """
-    Xóa một giáo viên và user liên quan.
-    """
-    db_teacher = get_teacher(db, teacher_id)
+def delete_teacher(db: Session, teacher_id: int):
+    db_teacher = db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
     if not db_teacher:
         return None
-
-    from app.crud.user_crud import delete_user
-    delete_user(db, db_teacher.user_id)
-
+    # Lưu dữ liệu trước khi xóa
+    deleted_data = db_teacher
+    db.execute(
+        user_roles.delete().where(user_roles.c.user_id == db_teacher.user_id)
+    )
     db.delete(db_teacher)
     db.commit()
-    return db_teacher
+    return deleted_data
+

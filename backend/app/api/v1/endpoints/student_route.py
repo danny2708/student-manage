@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
+from datetime import datetime
 # Import các CRUD operations
 from app.crud import student_crud
-from app.crud import user_crud
-
+from app.crud import user_crud, user_role_crud
+from app.schemas.user_role_schema import UserRoleCreate
 # Import các schemas cần thiết trực tiếp từ module
 from app.schemas import student_schema
-from app.schemas.user_role_schema import StudentCreateWithUser
 
 # Import các dependencies
 from app.api import deps
@@ -16,11 +15,11 @@ from app.api import deps
 router = APIRouter()
 
 @router.post("/", response_model=student_schema.Student, status_code=status.HTTP_201_CREATED)
-def create_student(student_in: StudentCreateWithUser, db: Session = Depends(deps.get_db)):
+def assign_student(student_in: student_schema.StudentAssign, db: Session = Depends(deps.get_db)):
     """
-    Tạo một vai trò student mới và liên kết nó với một người dùng đã tồn tại.
+    Gán một user đã tồn tại thành student + cập nhật role 'student' trong user_roles.
     """
-    # Bước 1: Kiểm tra xem user_id có tồn tại không
+    # 1. Kiểm tra user có tồn tại
     db_user = user_crud.get_user(db=db, user_id=student_in.user_id)
     if not db_user:
         raise HTTPException(
@@ -28,16 +27,32 @@ def create_student(student_in: StudentCreateWithUser, db: Session = Depends(deps
             detail=f"User with id {student_in.user_id} not found."
         )
 
-    # Bước 2: Kiểm tra xem người dùng này đã có vai trò student chưa
+    # 2. Kiểm tra user đã là student chưa
     existing_student = student_crud.get_student_by_user_id(db=db, user_id=student_in.user_id)
     if existing_student:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User ID đã được liên kết với một học sinh khác."
+            detail=f"User with id {student_in.user_id} is already a student."
         )
 
-    # Bước 3: Tạo bản ghi student và liên kết với user_id
-    db_student = student_crud.create_student(db=db, student_in=student_in)
+    # 3. Gán student
+    db_student = student_crud.create_student(
+        db=db,
+        student_in=student_schema.StudentCreate(user_id=student_in.user_id)
+    )
+
+    # 4. Cập nhật user_roles nếu chưa có role "student"
+    existing_role = user_role_crud.get_user_role(db, user_id=student_in.user_id, role_name="student")
+    if not existing_role:
+        user_role_crud.create_user_role(
+            db=db,
+            role_in=UserRoleCreate(
+                user_id=student_in.user_id,
+                role_name="student",
+                assigned_at=datetime.utcnow()
+            )
+        )
+
     return db_student
 
 @router.get("/", response_model=List[student_schema.Student])
@@ -74,15 +89,20 @@ def update_existing_student(student_id: int, student: student_schema.StudentUpda
         )
     return db_student
 
-@router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{student_id}", response_model=dict)
 def delete_existing_student(student_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một học sinh cụ thể bằng ID.
-    """
-    db_student = student_crud.delete_student(db, student_id=student_id)
+    db_student = student_crud.get_student(db, student_id=student_id)
     if db_student is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Học sinh không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    return
+
+    deleted_student = student_crud.delete_student(db, student_id=student_id)
+
+    return {
+        "deleted_student": student_schema.Student.from_orm(deleted_student).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }
+

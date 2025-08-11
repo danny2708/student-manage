@@ -18,12 +18,8 @@ from app.api import deps
 
 router = APIRouter()
 
-# Schema chỉ nhận user_id
-class TeacherAssign(BaseModel):
-    user_id: int
-
 @router.post("/", response_model=teacher_schema.Teacher, status_code=status.HTTP_201_CREATED)
-def assign_teacher(teacher_in: TeacherAssign, db: Session = Depends(deps.get_db)):
+def assign_teacher(teacher_in: teacher_schema.TeacherAssign, db: Session = Depends(deps.get_db)):
     """
     Gán một user đã tồn tại thành giáo viên + cập nhật role 'teacher' trong user_roles.
     """
@@ -100,15 +96,20 @@ def update_existing_teacher(teacher_id: int, teacher: teacher_schema.TeacherUpda
     return db_teacher
 
 
-@router.delete("/{teacher_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{teacher_id}", response_model=dict)
 def delete_existing_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa giáo viên theo ID.
-    """
-    db_teacher = teacher_crud.delete_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Giáo viên không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    return
+
+    deleted_teacher = teacher_crud.delete_teacher(db, teacher_id=teacher_id)
+
+    return {
+        "deleted_teacher": teacher_schema.Teacher.from_orm(deleted_teacher).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }
+
