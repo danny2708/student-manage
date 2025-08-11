@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
+from datetime import datetime
 # Import các CRUD operations
 from app.crud import class_crud
 # Import các schemas cần thiết trực tiếp từ module
@@ -59,15 +59,19 @@ def update_existing_class(class_id: int, class_update: class_schema.ClassUpdate,
         )
     return db_class
 
-@router.delete("/{class_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{class_id}", response_model=dict)
 def delete_existing_class(class_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một lớp học cụ thể bằng ID.
-    """
-    db_class = class_crud.delete_class(db, class_id=class_id)
+    db_class = class_crud.get_class(db, class_id=class_id)
     if db_class is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lớp học không tìm thấy."
+            detail="Nhân viên không tìm thấy."
         )
-    return
+
+    deleted_class = class_crud.delete_class(db, class_id=class_id)
+
+    return {
+        "deleted_class": class_schema.Class.from_orm(deleted_class).dict(),
+        "deleted_at": datetime.utcnow().isoformat(),
+        "status": "success"
+    }

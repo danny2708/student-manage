@@ -10,7 +10,7 @@ class ClassCreate(ClassBase):
     pass
 
 class ClassUpdate(ClassBase):
-    name: Optional[str] = None
+    class_name: Optional[str] = None
     teacher_id: Optional[int] = None
     subject_id: Optional[int] = None
 

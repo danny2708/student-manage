@@ -41,8 +41,11 @@ def update_subject(db: Session, subject_id: int, subject_update: SubjectUpdate):
 def delete_subject(db: Session, subject_id: int):
     """Xóa một môn học."""
     db_subject = db.query(Subject).filter(Subject.subject_id == subject_id).first()
-    if db_subject:
-        db.delete(db_subject)
-        db.commit()
-    return db_subject
+    if not db_subject:
+        return None
+    # Lưu dữ liệu trước khi xóa
+    deleted_data = db_subject
+    db.delete(db_subject)
+    db.commit()
+    return deleted_data
 

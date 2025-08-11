@@ -39,10 +39,12 @@ def update_class(db: Session, class_id: int, class_update: ClassUpdate):
     return db_class
 
 def delete_class(db: Session, class_id: int):
-    """Xóa một lớp học."""
     db_class = db.query(Class).filter(Class.class_id == class_id).first()
-    if db_class:
-        db.delete(db_class)
-        db.commit()
-    return db_class
+    if not db_class:
+        return None
+    # Lưu dữ liệu trước khi xóa
+    deleted_data = db_class
+    db.delete(db_class)
+    db.commit()
+    return deleted_data
 

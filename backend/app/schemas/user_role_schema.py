@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime 
 from .user_schema import UserCreate
 from .teacher_schema import TeacherCreate
-from .staff_schema import StaffCreate
 from .student_schema import StudentCreate, StudentUpdate
 from .parent_schema import ParentCreate, ParentUpdate
 
@@ -80,13 +79,6 @@ class ParentUpdate(BaseModel):
     Schema \u0111\u1EC3 c\u1EADp nh\u1EADt th\u00F4ng tin ph\u1EE5 huynh.
     """
     parent_data: ParentUpdate
-
-class StaffCreateWithUser(BaseModel):
-    """
-    Schema k\u1EBFt h\u1EE3p \u0111\u1EC3 t\u1EA1o Staff v\u00E0 User c\u00F9ng l\u00FAC.
-    """
-    user_data: UserCreate
-    staff_data: StaffCreate
 
 class ManagerCreateWithUser(UserBase):
     """

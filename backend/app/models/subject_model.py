@@ -11,5 +11,7 @@ class Subject(Base):
     subject_id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
 
+    classes = relationship("Class", back_populates="subject")
+
     def __repr__(self):
         return f"<Subject(name='{self.name}')>"
