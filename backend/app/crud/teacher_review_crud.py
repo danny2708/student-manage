@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from backend.app.models.teacher_review_model import TeacherReview
-from backend.app.schemas.teacher_review_schema import TeacherReviewCreate, TeacherReviewUpdate
+from app.models.teacher_review_model import TeacherReview
+from app.schemas.teacher_review_schema import TeacherReviewCreate, TeacherReviewUpdate
 import logging
 
 logger = logging.getLogger(__name__)
