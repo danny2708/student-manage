@@ -3,9 +3,11 @@ from app.models import (
     user_model, staff_model, manager_model, payroll_model, teacher_model, parent_model, student_model,
     studentparent_model, subject_model, score_model, tuition_model, studentclass_model,
     class_model, enrollment_model, attendance_model, evaluation_model, schedule_model,
-    teacherpoint_model, notification_model
+    notification_model
 )
 from sqlalchemy import text
+
+from backend.app.models import teacher_review_model
 
 def recreate_database():
     print("Đang xóa tất cả các bảng cơ sở dữ liệu (sử dụng CASCADE)...")

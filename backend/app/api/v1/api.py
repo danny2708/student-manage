@@ -17,7 +17,7 @@ from app.api.v1.endpoints.class_route import router as class_router
 from app.api.v1.endpoints.attendance_route import router as attendance_router
 from app.api.v1.endpoints.evaluation_route import router as evaluation_router
 from app.api.v1.endpoints.schedule_route import router as schedule_router
-from app.api.v1.endpoints.teacher_point_route import router as teacher_point_router
+from backend.app.api.v1.endpoints.teacher_review_route import router as teacher_review_router
 from app.api.v1.endpoints.notification_route import router as notification_router
 
 # --- Import các routers đăng ký chuyên biệt ---
@@ -42,7 +42,7 @@ api_router.include_router(class_router, prefix="/classes", tags=["Classes"])
 api_router.include_router(attendance_router, prefix="/attendances", tags=["Attendances"])
 api_router.include_router(evaluation_router, prefix="/evaluations", tags=["Evaluations"])
 api_router.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])
-api_router.include_router(teacher_point_router, prefix="/teacher_points", tags=["Teacher Points"])
+api_router.include_router(teacher_review_router, prefix="/teacher_reviews", tags=["Teacher Reviews"])
 api_router.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
 
 # --- Bao gồm các routers đăng ký chuyên biệt ---
