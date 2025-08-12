@@ -8,6 +8,6 @@ from . import tuition_route
 from . import class_route
 from . import attendance_route
 from . import schedule_route
-from . import teacher_point_route
+from . import teacher_review_route
 from . import notification_route
 from . import register_route

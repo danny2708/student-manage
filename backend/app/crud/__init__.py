@@ -14,5 +14,5 @@ from . import class_crud
 from . import attendance_crud
 from . import evaluation_crud
 from . import schedule_crud
-from . import teacherpoint_crud
+from . import teacher_review_crud
 from . import notification_crud
