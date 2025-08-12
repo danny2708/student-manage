@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from backend.app.crud import teacher_review_crud
+from app.crud import teacher_review_crud
 from app.crud import teacher_crud  # CRUD cho teacher
-from backend.app.schemas import teacher_review_schema
+from app.schemas import teacher_review_schema
 from app.api import deps
 
 router = APIRouter()

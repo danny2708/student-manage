@@ -17,7 +17,7 @@ from app.api.v1.endpoints.class_route import router as class_router
 from app.api.v1.endpoints.attendance_route import router as attendance_router
 from app.api.v1.endpoints.evaluation_route import router as evaluation_router
 from app.api.v1.endpoints.schedule_route import router as schedule_router
-from backend.app.api.v1.endpoints.teacher_review_route import router as teacher_review_router
+from app.api.v1.endpoints.teacher_review_route import router as teacher_review_router
 from app.api.v1.endpoints.notification_route import router as notification_router
 
 # --- Import các routers đăng ký chuyên biệt ---
