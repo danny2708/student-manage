@@ -37,7 +37,7 @@ def create_new_score(score_in: score_schema.ScoreCreate, db: Session = Depends(d
     return score_crud.create_score(db=db, score=score_in)
 
 @router.get("/", response_model=List[score_schema.Score])
-def read_all_scores(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_scores(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả điểm số.
     """
@@ -45,7 +45,7 @@ def read_all_scores(skip: int = 0, limit: int = 100, db: Session = Depends(deps.
     return scores
 
 @router.get("/{score_id}", response_model=score_schema.Score)
-def read_score(score_id: int, db: Session = Depends(deps.get_db)):
+def get_score(score_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi điểm số cụ thể bằng ID.
     """

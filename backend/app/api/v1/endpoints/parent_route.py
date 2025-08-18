@@ -29,7 +29,7 @@ def assign_parent(parent_in: parent_schema.ParentAssign, db: Session = Depends(d
     if existing_parent:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with id {parent_in.user_id} is already a parent."
+            detail=f"User with id {parent_in.user_id} is algety a parent."
         )
 
     # 3. Gán parent
@@ -53,7 +53,7 @@ def assign_parent(parent_in: parent_schema.ParentAssign, db: Session = Depends(d
     return db_parent
 
 @router.get("/", response_model=List[parent_schema.Parent])
-def read_all_parents(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_parents(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả phụ huynh.
     """
@@ -61,7 +61,7 @@ def read_all_parents(skip: int = 0, limit: int = 100, db: Session = Depends(deps
     return parents
 
 @router.get("/{parent_id}", response_model=parent_schema.Parent)
-def read_parent(parent_id: int, db: Session = Depends(deps.get_db)):
+def get_parent(parent_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một phụ huynh cụ thể bằng ID.
     """

@@ -18,8 +18,6 @@ student_parent_association = Table(
     Base.metadata,
     Column("student_id", Integer, ForeignKey("students.student_id"), primary_key=True),
     Column("parent_id", Integer, ForeignKey("parents.parent_id"), primary_key=True),
-    Column("relation", String, nullable=True),  # quan hệ: cha/mẹ/người giám hộ
-    Column("created_at", Date, default=date.today),
 )
 
 # ---- Student-Class association ----

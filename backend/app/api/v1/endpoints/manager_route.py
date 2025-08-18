@@ -55,7 +55,7 @@ def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depen
 
 
 @router.get("/", response_model=List[manager_schema.Manager])
-def read_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả quản lý.
     """
@@ -64,7 +64,7 @@ def read_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(dep
 
 
 @router.get("/{manager_id}", response_model=manager_schema.Manager)
-def read_manager(manager_id: int, db: Session = Depends(deps.get_db)):
+def get_manager(manager_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một quản lý cụ thể bằng ID.
     """

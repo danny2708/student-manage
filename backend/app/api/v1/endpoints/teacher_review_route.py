@@ -27,14 +27,14 @@ def create_new_teacher_review(teacher_review_in: teacher_review_schema.TeacherRe
     return teacher_review_crud.create_teacher_review(db=db, teacher_review=teacher_review_in)
 
 @router.get("/", response_model=List[teacher_review_schema.TeacherReview])
-def read_all_teacher_reviews(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_teacher_reviews(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả đánh giá giáo viên.
     """
     return teacher_review_crud.get_all_teacher_reviews(db, skip=skip, limit=limit)
 
 @router.get("/{review_id}", response_model=teacher_review_schema.TeacherReview)
-def read_teacher_review(review_id: int, db: Session = Depends(deps.get_db)):
+def get_teacher_review(review_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin một đánh giá giáo viên theo ID.
     """

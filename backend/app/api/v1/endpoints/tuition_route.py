@@ -36,7 +36,7 @@ def create_new_tuition(tuition_in: tuition_schema.TuitionCreate, db: Session = D
     return tuition_crud.create_tuition(db=db, tuition=tuition_in)
 
 @router.get("/", response_model=List[tuition_schema.Tuition])
-def read_all_tuitions(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_tuitions(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các bản ghi học phí.
     """
@@ -44,7 +44,7 @@ def read_all_tuitions(skip: int = 0, limit: int = 100, db: Session = Depends(dep
     return tuitions
 
 @router.get("/{tuition_id}", response_model=tuition_schema.Tuition)
-def read_tuition(tuition_id: int, db: Session = Depends(deps.get_db)):
+def get_tuition(tuition_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi học phí cụ thể bằng ID.
     """

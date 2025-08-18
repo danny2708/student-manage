@@ -1,55 +1,61 @@
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.user_schema import User, UserCreate, UserUpdate
-from app.crud import user_crud # Đảm bảo file user_crud.py đã được cập nhật
+from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
+from app.schemas.sheet_import_user_schema import SheetUserImportRequest  # ✅ schema cho import
+from app.crud import user_crud
 
 router = APIRouter()
 
 @router.post(
     "/",
-    response_model=User,
+    response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một người dùng mới"
 )
 def create_user_info(user: UserCreate, db: Session = Depends(get_db)):
     """
-    Tạo một người dùng mới trong cơ sở dữ liệu.
+    API tạo một người dùng mới trong cơ sở dữ liệu.
     """
     return user_crud.create_user(db=db, user=user)
 
+
 @router.get(
     "/",
-    response_model=List[User],
+    response_model=List[UserOut],
     summary="Lấy danh sách tất cả người dùng"
 )
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
-    Truy vấn và trả về danh sách tất cả người dùng với tùy chọn phân trang.
+    Truy vấn danh sách người dùng với tùy chọn phân trang.
     """
-    users = user_crud.get_users(db, skip=skip, limit=limit)
-    return users
+    return user_crud.get_users(db, skip=skip, limit=limit)
+
 
 @router.get(
     "/{user_id}",
-    response_model=User,
+    response_model=UserOut,
     summary="Lấy thông tin một người dùng bằng ID"
 )
-def read_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db)):
     """
-    Truy vấn và trả về thông tin của một người dùng cụ thể bằng ID.
+    Truy vấn thông tin chi tiết của một người dùng cụ thể.
     """
     user = user_crud.get_user(db, user_id=user_id)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tìm thấy.")
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Người dùng không tìm thấy."
+        )
     return user
+
 
 @router.put(
     "/{user_id}",
-    response_model=User,
+    response_model=UserOut,
     summary="Cập nhật thông tin người dùng"
 )
 def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
@@ -57,13 +63,17 @@ def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depend
     Cập nhật thông tin của một người dùng đã tồn tại.
     """
     updated_user = user_crud.update_user(db, user_id, user_update)
-    if updated_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tìm thấy.")
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Người dùng không tìm thấy."
+        )
     return updated_user
+
 
 @router.delete(
     "/{user_id}",
-    response_model=User,
+    response_model=UserOut,
     summary="Xóa một người dùng"
 )
 def delete_user_info(user_id: int, db: Session = Depends(get_db)):
@@ -71,6 +81,10 @@ def delete_user_info(user_id: int, db: Session = Depends(get_db)):
     Xóa một người dùng cụ thể khỏi cơ sở dữ liệu.
     """
     deleted_user = user_crud.delete_user(db, user_id)
-    if deleted_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tìm thấy.")
+    if not deleted_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Người dùng không tìm thấy."
+        )
     return deleted_user
+

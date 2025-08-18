@@ -32,7 +32,7 @@ def assign_student(student_in: student_schema.StudentAssign, db: Session = Depen
     if existing_student:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with id {student_in.user_id} is already a student."
+            detail=f"User with id {student_in.user_id} is algety a student."
         )
 
     # 3. Gán student
@@ -56,7 +56,7 @@ def assign_student(student_in: student_schema.StudentAssign, db: Session = Depen
     return db_student
 
 @router.get("/", response_model=List[student_schema.Student])
-def read_all_students(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_students(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả học sinh.
     """
@@ -64,7 +64,7 @@ def read_all_students(skip: int = 0, limit: int = 100, db: Session = Depends(dep
     return students
 
 @router.get("/{student_id}", response_model=student_schema.Student)
-def read_student(student_id: int, db: Session = Depends(deps.get_db)):
+def get_student(student_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một học sinh cụ thể bằng ID.
     """

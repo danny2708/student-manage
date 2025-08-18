@@ -31,7 +31,7 @@ def create_new_payroll(payroll_in: payroll_schema.PayrollCreate, db: Session = D
     return payroll_crud.create_payroll(db=db, payroll=payroll_in)
 
 @router.get("/", response_model=List[payroll_schema.Payroll])
-def read_all_payrolls(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_payrolls(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các bản ghi bảng lương.
     """
@@ -39,7 +39,7 @@ def read_all_payrolls(skip: int = 0, limit: int = 100, db: Session = Depends(dep
     return payrolls
 
 @router.get("/{payroll_id}", response_model=payroll_schema.Payroll)
-def read_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):
+def get_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi bảng lương cụ thể bằng ID.
     """

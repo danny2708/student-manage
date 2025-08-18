@@ -14,6 +14,7 @@ class User(Base):
     gender = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
     date_of_birth = Column(Date, nullable=True)
+    first_password = Column(String, nullable=True)
 
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     manager = relationship("Manager", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)

@@ -37,7 +37,7 @@ def create_new_student_class(student_class_in: StudentClassAssociationCreate, db
     return student_class_crud.create_student_class(db=db, student_class=student_class_in)
 
 @router.get("/", response_model=List[StudentClassAssociation])
-def read_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các liên kết học sinh-lớp học.
     """
@@ -45,7 +45,7 @@ def read_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depe
     return student_classes
 
 @router.get("/{studentclass_id}", response_model=StudentClassAssociation)
-def read_student_class(studentclass_id: int, db: Session = Depends(deps.get_db)):
+def get_student_class(studentclass_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một liên kết học sinh-lớp học cụ thể bằng ID.
     """
