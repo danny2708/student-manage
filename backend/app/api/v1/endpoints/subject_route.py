@@ -25,7 +25,7 @@ def create_new_subject(subject_in: subject_schema.SubjectCreate, db: Session = D
     return subject_crud.create_subject(db=db, subject=subject_in)
 
 @router.get("/", response_model=List[subject_schema.Subject])
-def read_all_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả môn học.
     """
@@ -33,7 +33,7 @@ def read_all_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(dep
     return subjects
 
 @router.get("/{subject_id}", response_model=subject_schema.Subject)
-def read_subject(subject_id: int, db: Session = Depends(deps.get_db)):
+def get_subject(subject_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một môn học cụ thể bằng ID.
     """

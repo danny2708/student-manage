@@ -38,7 +38,7 @@ def create_new_notification(notification_in: notification_schema.NotificationCre
     return notification_crud.create_notification(db=db, notification=notification_in)
 
 @router.get("/", response_model=List[notification_schema.Notification])
-def read_all_notifications(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_notifications(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các thông báo.
     """
@@ -46,7 +46,7 @@ def read_all_notifications(skip: int = 0, limit: int = 100, db: Session = Depend
     return notifications
 
 @router.get("/{notification_id}", response_model=notification_schema.Notification)
-def read_notification(notification_id: int, db: Session = Depends(deps.get_db)):
+def get_notification(notification_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một thông báo cụ thể bằng ID.
     """

@@ -31,7 +31,7 @@ def create_new_evaluation(evaluation_in: evaluation_schema.EvaluationCreate, db:
     return evaluation_crud.create_evaluation(db=db, evaluation=evaluation_in)
 
 @router.get("/", response_model=List[evaluation_schema.Evaluation])
-def read_all_evaluations(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_evaluations(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các bản ghi đánh giá.
     """
@@ -39,7 +39,7 @@ def read_all_evaluations(skip: int = 0, limit: int = 100, db: Session = Depends(
     return evaluations
 
 @router.get("/{evaluation_id}", response_model=evaluation_schema.Evaluation)
-def read_evaluation(evaluation_id: int, db: Session = Depends(deps.get_db)):
+def get_evaluation(evaluation_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi đánh giá cụ thể bằng ID.
     """

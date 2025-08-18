@@ -3,7 +3,7 @@ from sqlalchemy import insert, select, update, delete
 from sqlalchemy.orm import Session
 
 from app.models.association_tables import student_parent_association
-from app.schemas.student_parent_association_schema import (
+from app.schemas.student_parent_schema import (
     StudentParentAssociationCreate,
     StudentParentAssociationUpdate,
 )

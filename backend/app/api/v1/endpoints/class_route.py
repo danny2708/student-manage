@@ -26,7 +26,7 @@ def create_new_class(class_in: class_schema.ClassCreate, db: Session = Depends(d
     return class_crud.create_class(db=db, class_data=class_in)
 
 @router.get("/", response_model=List[class_schema.Class])
-def read_all_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các lớp học.
     """
@@ -34,7 +34,7 @@ def read_all_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps
     return classes
 
 @router.get("/{class_id}", response_model=class_schema.Class)
-def read_class(class_id: int, db: Session = Depends(deps.get_db)):
+def get_class(class_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một lớp học cụ thể bằng ID.
     """

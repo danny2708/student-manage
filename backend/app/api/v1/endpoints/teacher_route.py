@@ -36,7 +36,7 @@ def assign_teacher(teacher_in: teacher_schema.TeacherAssign, db: Session = Depen
     if existing_teacher:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with id {teacher_in.user_id} is already a teacher."
+            detail=f"User with id {teacher_in.user_id} is algety a teacher."
         )
 
     # 3. Gán teacher
@@ -61,7 +61,7 @@ def assign_teacher(teacher_in: teacher_schema.TeacherAssign, db: Session = Depen
 
 
 @router.get("/", response_model=List[teacher_schema.Teacher])
-def read_all_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả giáo viên.
     """
@@ -69,7 +69,7 @@ def read_all_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(dep
 
 
 @router.get("/{teacher_id}", response_model=teacher_schema.Teacher)
-def read_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
+def get_teacher(teacher_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin một giáo viên theo ID.
     """

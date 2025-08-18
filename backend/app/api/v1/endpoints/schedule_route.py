@@ -28,7 +28,7 @@ def create_new_schedule(schedule_in: schedule_schema.ScheduleCreate, db: Session
     return schedule_crud.create_schedule(db=db, schedule=schedule_in)
 
 @router.get("/", response_model=List[schedule_schema.Schedule])
-def read_all_schedules(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_schedules(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các bản ghi lịch học.
     """
@@ -36,7 +36,7 @@ def read_all_schedules(skip: int = 0, limit: int = 100, db: Session = Depends(de
     return schedules
 
 @router.get("/{schedule_id}", response_model=schedule_schema.Schedule)
-def read_schedule(schedule_id: int, db: Session = Depends(deps.get_db)):
+def get_schedule(schedule_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi lịch học cụ thể bằng ID.
     """

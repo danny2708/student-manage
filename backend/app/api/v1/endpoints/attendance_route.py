@@ -17,7 +17,7 @@ def create_new_attendance(attendance: attendance_schema.AttendanceCreate, db: Se
     return attendance_crud.create_attendance(db=db, attendance=attendance)
 
 @router.get("/", response_model=List[attendance_schema.Attendance])
-def read_all_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def get_all_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Lấy danh sách tất cả các bản ghi điểm danh.
     """
@@ -25,7 +25,7 @@ def read_all_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(
     return attendances
 
 @router.get("/{attendance_id}", response_model=attendance_schema.Attendance)
-def read_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
+def get_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
     """
     Lấy thông tin của một bản ghi điểm danh cụ thể bằng ID.
     """
