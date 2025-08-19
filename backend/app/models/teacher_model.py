@@ -3,6 +3,9 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.models.user_model import User
+# Import mô hình Test để thiết lập mối quan hệ
+from app.models.test_model import Test
+
 class Teacher(Base):
     """
     Model cho bảng teachers.
@@ -19,6 +22,9 @@ class Teacher(Base):
 
     # Mối quan hệ với đánh giá (one-to-many)
     evaluations = relationship("Evaluation", back_populates="teacher")
+    
+    # Mối quan hệ one-to-many với Test
+    tests = relationship("Test", back_populates="teacher")
 
     def __repr__(self):
         return f"<Teacher(user_id='{self.user_id}')>"

@@ -1,9 +1,10 @@
-# app/models/class_model.py
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.models.association_tables import student_class_association
+# Import mô hình Test để tạo mối quan hệ
+from app.models.test_model import Test
 
 class Class(Base):
     """
@@ -25,11 +26,14 @@ class Class(Base):
     secondary=student_class_association,
     back_populates="classes"
 )
-
     
     # Mối quan hệ với enrollments và attendances (one-to-many)
     enrollments = relationship("Enrollment", back_populates="class_obj")
     attendances = relationship("Attendance", back_populates="class_obj")
+    
+    # Thêm mối quan hệ mới với bảng Test
+    # Điều này cho phép bạn truy cập tất cả các bài kiểm tra của một lớp học
+    tests = relationship("Test", back_populates="class_rel")
 
     def __repr__(self):
         return f"<Class(name='{self.class_name}')>"

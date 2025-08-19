@@ -7,7 +7,7 @@ from . import parent_crud
 from . import student_crud
 from . import student_parent_crud
 from . import subject_crud
-from . import score_crud
+from . import test_crud
 from . import tuition_crud
 from . import student_class_crud
 from . import class_crud
