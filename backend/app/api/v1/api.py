@@ -10,7 +10,7 @@ from app.api.v1.endpoints.parent_route import router as parent_router
 from app.api.v1.endpoints.student_route import router as student_router
 from app.api.v1.endpoints.student_parent_route import router as student_parent_router
 from app.api.v1.endpoints.subject_route import router as subject_router
-from app.api.v1.endpoints.score_route import router as score_router
+from app.api.v1.endpoints.test_route import router as test_router
 from app.api.v1.endpoints.tuition_route import router as tuition_router
 from app.api.v1.endpoints.student_class_route import router as student_class_router
 from app.api.v1.endpoints.class_route import router as class_router
@@ -23,6 +23,7 @@ from app.api.v1.endpoints.sheet_import_users_route import router as sheet_import
 # --- Import các routers đăng ký chuyên biệt ---
 # Router cho việc đăng ký một người dùng duy nhất
 from app.api.v1.endpoints.register_route import router as register_router
+from app.api.v1.endpoints.auth_route import router as auth_router
 
 api_router = APIRouter()
 
@@ -35,7 +36,7 @@ api_router.include_router(parent_router, prefix="/parents", tags=["Parents"])
 api_router.include_router(student_router, prefix="/students", tags=["Students"])
 api_router.include_router(student_parent_router, prefix="/student_parents", tags=["Student-Parents"])
 api_router.include_router(subject_router, prefix="/subjects", tags=["Subjects"])
-api_router.include_router(score_router, prefix="/scores", tags=["Scores"])
+api_router.include_router(test_router, prefix="/tests", tags=["Tests"])
 api_router.include_router(tuition_router, prefix="/tuitions", tags=["Tuitions"])
 api_router.include_router(student_class_router, prefix="/student_classes", tags=["Student Classes"])
 api_router.include_router(class_router, prefix="/classes", tags=["Classes"])
@@ -47,3 +48,4 @@ api_router.include_router(notification_router, prefix="/notifications", tags=["N
 api_router.include_router(sheet_import_user_router, prefix="/sheet_import", tags=["Sheet Import Users"])
 # --- Bao gồm các routers đăng ký chuyên biệt ---
 api_router.include_router(register_router, prefix="/register", tags=["Register"])
+api_router.include_router(auth_router, prefix="/auth", tags=["Login"])

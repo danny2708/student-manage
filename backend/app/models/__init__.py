@@ -13,7 +13,7 @@ from .evaluation_model import Evaluation
 from .notification_model import Notification
 from .payroll_model import Payroll
 from .schedule_model import Schedule
-from .score_model import Score
+from .test_model import Test
 
 # Import các bảng liên kết từ association_tables.py
 from .association_tables import user_roles, student_parent_association,student_class_association
