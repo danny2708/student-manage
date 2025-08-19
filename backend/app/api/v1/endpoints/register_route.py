@@ -1,9 +1,8 @@
-"register_route.py"
+import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, insert
 from passlib.context import CryptContext
-from typing import List, Optional
 
 # Import các models cần thiết, bao gồm cả Role, Class và bảng liên kết
 from app.api.deps import get_db
@@ -14,15 +13,15 @@ from app.models.manager_model import Manager
 from app.models.parent_model import Parent
 from app.models.class_model import Class
 from app.models.role_model import Role
-from app.models.association_tables import student_parent_association, student_class_association
+# Correct import for sqlalchemy.Table objects
+from app.models.association_tables import student_class_association
 
-# Import các schemas đã được cập nhật   
+# Import các schemas đã được cập nhật 
 from app.schemas.register_schema import (
     RegisterRequest,
     ParentAndChildrenRequest,
     RegisterStudentWithParentRequest,
 )
-from app.schemas.student_class_association_schema import StudentClassAssociationCreate,StudentClassAssociation
 
 from datetime import date
 
@@ -46,6 +45,28 @@ def get_role_object(db: Session, role_name: str) -> Role:
             detail=f"Không tìm thấy vai trò '{role_name}'."
         )
     return role
+
+def parse_date_formats(date_string: str) -> date:
+    """
+    Hàm trợ giúp để chuyển đổi chuỗi ngày tháng từ nhiều định dạng sang đối tượng date.
+    Hỗ trợ: YYYY-MM-DD, DD-MM-YYYY, MM/DD/YYYY
+    """
+    formats = [
+        "%Y-%m-%d",  # YYYY-MM-DD
+        "%d-%m-%Y",  # DD-MM-YYYY
+        "%m/%d/%Y"   # MM/DD/YYYY
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_string, fmt).date()
+        except ValueError:
+            continue
+    
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Định dạng ngày tháng '{date_string}' không hợp lệ. Vui lòng sử dụng một trong các định dạng sau: YYYY-MM-DD, DD-MM-YYYY, MM/DD/YYYY."
+    )
 
 # --- Endpoint 1: Đăng ký một người dùng duy nhất (single-user) ---
 @router.post(
@@ -93,8 +114,8 @@ def register_single_user(
         )
 
         # 4. Thêm đối tượng Role vào danh sách roles của user
-        # Bạn sẽ cần định nghĩa mối quan hệ này trong user_model.py
-        # new_user.roles.append(role_object)
+        # Dòng này đã được sửa để thêm vai trò vào người dùng
+        new_user.roles.append(role_object)
         
         db.add(new_user)
         # Flush để có được user_id trước khi commit
@@ -102,18 +123,32 @@ def register_single_user(
         
         # 5. Tạo thông tin chi tiết dựa trên vai trò
         if request.role_info:
-            role_info_data = request.role_info.model_dump(exclude_unset=True)
+            # Sửa lỗi: Kiểm tra nếu role_info là một đối tượng Pydantic có phương thức model_dump
+            if hasattr(request.role_info, 'model_dump'):
+                role_info_data = request.role_info.model_dump(exclude_unset=True)
+            else:
+                # Nếu không phải là Pydantic model (có thể là dict), dùng trực tiếp
+                role_info_data = request.role_info
         else:
             role_info_data = {}
 
         if request.user_info.role == "teacher":
-            new_teacher = Teacher(**role_info_data, user_id=new_user.user_id)
+            # Lọc các khóa không hợp lệ trước khi tạo đối tượng
+            valid_keys = [column.name for column in Teacher.__table__.columns]
+            filtered_role_info = {k: v for k, v in role_info_data.items() if k in valid_keys}
+            new_teacher = Teacher(**filtered_role_info, user_id=new_user.user_id)
             db.add(new_teacher)
         elif request.user_info.role == "manager":
-            new_manager = Manager(**role_info_data, user_id=new_user.user_id)
+            # Lọc các khóa không hợp lệ trước khi tạo đối tượng
+            valid_keys = [column.name for column in Manager.__table__.columns]
+            filtered_role_info = {k: v for k, v in role_info_data.items() if k in valid_keys}
+            new_manager = Manager(**filtered_role_info, user_id=new_user.user_id)
             db.add(new_manager)
         elif request.user_info.role == "parent":
-            new_parent = Parent(**role_info_data, user_id=new_user.user_id)
+            # Lọc các khóa không hợp lệ trước khi tạo đối tượng
+            valid_keys = [column.name for column in Parent.__table__.columns]
+            filtered_role_info = {k: v for k, v in role_info_data.items() if k in valid_keys}
+            new_parent = Parent(**filtered_role_info, user_id=new_user.user_id)
             db.add(new_parent)
 
         db.commit()
@@ -133,7 +168,6 @@ def register_single_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Đã xảy ra lỗi không mong muốn: {str(e)}"
         )
-
 
 # --- Endpoint 2: Đăng ký phụ huynh và con cùng lúc (parent-and-children) ---
 @router.post(
@@ -168,6 +202,7 @@ def register_parent_with_children(
             email=request.email,
             password=hashed_password,
             full_name=request.full_name,
+            gender=request.gender,
             date_of_birth=request.date_of_birth,
             phone_number=request.phone_number
         )
@@ -183,7 +218,7 @@ def register_parent_with_children(
             # phone_number=request.phone_number,
             user_id=new_parent_user.user_id
         )
-        db.add(new_parent)
+        db.add(new_parent)     
         db.flush()
 
         child_ids = []
@@ -200,10 +235,9 @@ def register_parent_with_children(
                     detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại."
                 )
 
-            student_email = f"{student_username}@example.com"
             new_student_user = User(
                 username=student_username,
-                email=student_email,
+                email= student_info.email,
                 password=get_password_hash("password_hoc_sinh"),
                 full_name=student_info.full_name,
                 date_of_birth=student_info.date_of_birth,
@@ -222,7 +256,8 @@ def register_parent_with_children(
             db.flush()
 
             # Tạo bản ghi liên kết student-parent
-            new_parent.students.append(new_student)
+            # Sửa từ .students thành .children
+            new_parent.children.append(new_student)
 
             # Tạo bản ghi liên kết student-class
             if student_info.class_id:
@@ -233,15 +268,16 @@ def register_parent_with_children(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Không tìm thấy Class với id {student_info.class_id}."
                     )
-
-                new_association = StudentClassAssociation(
+                
+                # Using SQLAlchemy Core's insert for the Table object
+                association_stmt = insert(student_class_association).values(
                     student_id=new_student.student_id,
                     class_id=target_class.class_id,
                     enrollment_date=date.today(),
                     status="Active"
                 )
-                db.add(new_association)
-            
+                db.execute(association_stmt)
+
             child_ids.append(new_student.student_id)
 
         db.commit()
@@ -307,10 +343,9 @@ def register_student_with_parent(
                 detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại."
             )
 
-        student_email = f"{student_username}@example.com"
         new_student_user = User(
             username=student_username,
-            email=student_email,
+            email=request.student_info.email,
             password=get_password_hash("password_hoc_sinh"),
             full_name=request.student_info.full_name,
             date_of_birth=request.student_info.date_of_birth,
@@ -339,17 +374,18 @@ def register_student_with_parent(
                     detail=f"Không tìm thấy Class với id {class_id}."
                 )
 
-            new_association = StudentClassAssociation(
+            # Using SQLAlchemy Core's insert for the Table object
+            association_stmt = insert(student_class_association).values(
                 student_id=new_student.student_id,
                 class_id=target_class.class_id,
                 enrollment_date=date.today(),
                 status="Active"
             )
-            db.add(new_association)
-
+            db.execute(association_stmt)
 
         # 4. Liên kết học sinh với phụ huynh
-        existing_parent.students.append(new_student)
+        # Sửa từ .students thành .children
+        existing_parent.children.append(new_student)
 
         db.commit()
 
