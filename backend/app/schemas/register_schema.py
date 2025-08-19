@@ -24,6 +24,7 @@ class RegisterRequest(BaseModel):
 # -----------------
 class StudentInfoInRequest(BaseModel):
     full_name: str = Field(..., example="Jane Doe")
+    email: str = Field(..., example="jane.doe@example.com") 
     date_of_birth: date = Field(..., example="2010-05-15")
     gender: Optional[str] = Field(None, example="Female")
     class_id: Optional[int] = Field(None, example=1)
@@ -35,6 +36,7 @@ class ParentAndChildrenRequest(BaseModel):
     password: str = Field(..., example="secure_password")
     full_name: Optional[str] = Field(None, example="Jane Parent")
     date_of_birth: Optional[date] = Field(None, example="1985-03-20")
+    gender: Optional[str] = Field(None, example="Female")
     phone_number: Optional[str] = Field(None, example="0912345678")
     children_info: List[StudentInfoInRequest] = Field(...)
 
