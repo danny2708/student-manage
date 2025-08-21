@@ -5,8 +5,8 @@ from typing import List, Optional
 
 # Import các CRUD operations và schemas
 from app.crud import student_class_crud
-from app.crud import student_crud # Giả định có một crud cho student
-from app.crud import class_crud # Giả định có một crud cho class
+from app.crud import student_crud
+from app.crud import class_crud
 from app.schemas.student_class_association_schema import StudentClassAssociation, StudentClassAssociationCreate, StudentClassAssociationUpdate
 from app.api import deps
 
@@ -34,7 +34,8 @@ def create_new_student_class(student_class_in: StudentClassAssociationCreate, db
         )
 
     # Bước 3: Tạo bản ghi liên kết
-    return student_class_crud.create_student_class(db=db, student_class=student_class_in)
+    # Sửa lỗi: Đổi tên đối số thành 'student_class_in' để khớp với hàm CRUD
+    return student_class_crud.create_student_class(db=db, student_class_in=student_class_in)
 
 @router.get("/", response_model=List[StudentClassAssociation])
 def get_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
