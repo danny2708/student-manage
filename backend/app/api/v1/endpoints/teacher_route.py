@@ -18,10 +18,19 @@ from app.api import deps
 
 router = APIRouter()
 
-@router.post("/", response_model=teacher_schema.Teacher, status_code=status.HTTP_201_CREATED)
-def assign_teacher(teacher_in: teacher_schema.TeacherAssign, db: Session = Depends(deps.get_db)):
+@router.post(
+    "/",
+    response_model=teacher_schema.Teacher,
+    status_code=status.HTTP_201_CREATED,
+    summary="Gán vai trò giáo viên cho một người dùng đã tồn tại"
+)
+def assign_teacher(
+    teacher_in: teacher_schema.TeacherCreate,
+    db: Session = Depends(deps.get_db)
+):
     """
-    Gán một user đã tồn tại thành giáo viên + cập nhật role 'teacher' trong user_roles.
+    Gán vai trò giáo viên cho một user đã tồn tại bằng cách tạo một bản ghi mới trong bảng teachers.
+    Các trường bắt buộc: user_id, base_salary_per_class, reward_bonus.
     """
     # 1. Kiểm tra user có tồn tại
     db_user = user_crud.get_user(db=db, user_id=teacher_in.user_id)
@@ -36,14 +45,11 @@ def assign_teacher(teacher_in: teacher_schema.TeacherAssign, db: Session = Depen
     if existing_teacher:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with id {teacher_in.user_id} is algety a teacher."
+            detail=f"User with id {teacher_in.user_id} is already a teacher."
         )
 
-    # 3. Gán teacher
-    db_teacher = teacher_crud.create_teacher(
-        db=db,
-        teacher_in=teacher_schema.TeacherCreate(user_id=teacher_in.user_id)
-    )
+    # 3. Gán teacher bằng cách sử dụng trực tiếp dữ liệu từ request
+    db_teacher = teacher_crud.create_teacher(db=db, teacher_in=teacher_in)
 
     # 4. Cập nhật user_roles nếu chưa có role "teacher"
     existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.user_id, role_name="teacher")
@@ -102,7 +108,7 @@ def delete_existing_teacher(teacher_id: int, db: Session = Depends(deps.get_db))
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nhân viên không tìm thấy."
+            detail="Không tìm thấy giáo viên."
         )
 
     deleted_teacher = teacher_crud.delete_teacher(db, teacher_id=teacher_id)

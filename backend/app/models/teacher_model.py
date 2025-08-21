@@ -13,6 +13,8 @@ class Teacher(Base):
     __tablename__ = 'teachers'
     teacher_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
+    base_salary_per_class = Column(Integer, nullable=False)
+    reward_bonus = Column(Integer, nullable=False)
 
     # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="teacher")
@@ -25,6 +27,9 @@ class Teacher(Base):
     
     # Mối quan hệ one-to-many với Test
     tests = relationship("Test", back_populates="teacher")
+
+    # Mối quan hệ one-to-one với Payroll
+    payroll = relationship("Payroll", uselist=False, back_populates="teacher")
 
     def __repr__(self):
         return f"<Teacher(user_id='{self.user_id}')>"

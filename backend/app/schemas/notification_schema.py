@@ -3,21 +3,22 @@ from typing import Optional
 from datetime import datetime
 
 class NotificationBase(BaseModel):
-    user_id: int = Field(..., example=1)
-    message: str = Field(..., example="A new class has been scheduled.")
-    is_read: bool = Field(False, example=False)
-
+    sender_id: Optional[int] = Field(None, example=1)
+    receiver_id: int = Field(..., example=2)
+    content: str = Field(..., example="Bảng lương của bạn đã được cập nhật.")
+    type: str = Field(..., example="payroll")
+    
 class NotificationCreate(NotificationBase):
-    pass
+    sent_at: datetime = Field(..., example=datetime.now())
 
-class NotificationUpdate(NotificationBase):
-    user_id: Optional[int] = None
-    message: Optional[str] = None
+class NotificationUpdate(BaseModel):
+    content: Optional[str] = None
     is_read: Optional[bool] = None
 
 class Notification(NotificationBase):
-    id: int = Field(..., example=1)
-    created_at: datetime
+    notification_id: int = Field(..., example=1)
+    sent_at: datetime
 
     class Config:
         from_attributes = True
+

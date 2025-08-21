@@ -11,7 +11,7 @@ class Evaluation(Base):
     evaluation_id = Column(Integer, primary_key=True)
     student_id = Column(Integer, ForeignKey('students.student_id'), nullable=False)
     teacher_id = Column(Integer, ForeignKey('teachers.teacher_id'), nullable=False)
-    evaluation_text = Column(Text)
+    evaluation_type = Column(Text)
     evaluation_date = Column(Date, nullable=False)
 
     # Mối quan hệ với học sinh và giáo viên (many-to-one)

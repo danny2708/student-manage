@@ -1,11 +1,9 @@
-# app/api/v1/endpoints/notification_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 # Import các CRUD operations
-from app.crud import notification_crud
-from app.crud import user_crud
+from app.crud import notification_crud, user_crud
 
 # Import các schemas cần thiết trực tiếp từ module
 from app.schemas import notification_schema
@@ -18,13 +16,14 @@ def create_new_notification(notification_in: notification_schema.NotificationCre
     """
     Tạo một thông báo mới.
     """
-    # Bước 1: Kiểm tra xem sender_id có tồn tại trong bảng users không
-    db_sender = user_crud.get_user(db, user_id=notification_in.sender_id)
-    if not db_sender:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Sender with id {notification_in.sender_id} not found."
-        )
+    # Bước 1: Kiểm tra xem sender_id (nếu có) có tồn tại không
+    if notification_in.sender_id is not None:
+        db_sender = user_crud.get_user(db, user_id=notification_in.sender_id)
+        if not db_sender:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Sender with id {notification_in.sender_id} not found."
+            )
 
     # Bước 2: Kiểm tra xem receiver_id có tồn tại trong bảng users không
     db_receiver = user_crud.get_user(db, user_id=notification_in.receiver_id)
