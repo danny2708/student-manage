@@ -113,8 +113,16 @@ def send_payroll_notification(payroll_id: int, db: Session = Depends(deps.get_db
             detail="Bảng lương không tìm thấy."
         )
     
-    # Lấy thông tin người nhận
-    receiver_id = db_payroll.user_id
+    # Bước trung gian: Truy vấn thông tin giáo viên từ teacher_id có trong bản ghi payroll
+    db_teacher = teacher_crud.get_teacher(db, teacher_id=db_payroll.teacher_id)
+    if not db_teacher:
+        # Nếu không tìm thấy giáo viên, có thể đây là một lỗi dữ liệu
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Không tìm thấy thông tin giáo viên với teacher_id {db_payroll.teacher_id}."
+        )
+
+    receiver_id = db_teacher.user_id
     
     # Tạo nội dung thông báo
     content = f"Bảng lương tháng {db_payroll.month} của bạn đã được cập nhật. Tổng lương: {db_payroll.total}"
