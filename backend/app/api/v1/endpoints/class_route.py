@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 # Import các CRUD operations
 from app.crud import class_crud
 # Import các schemas cần thiết trực tiếp từ module
@@ -72,6 +72,6 @@ def delete_existing_class(class_id: int, db: Session = Depends(deps.get_db)):
 
     return {
         "deleted_class": class_schema.Class.from_orm(deleted_class).dict(),
-        "deleted_at": datetime.utcnow().isoformat(),
+        "deleted_at": datetime.now(timezone.utc).isoformat().isoformat(),
         "status": "success"
     }

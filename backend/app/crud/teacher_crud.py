@@ -1,3 +1,4 @@
+# app/crud/teacher_crud.py
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -48,9 +49,9 @@ def get_all_teachers(db: Session, skip: int = 0, limit: int = 100) -> List[Teach
 
 def create_teacher(db: Session, teacher_in: TeacherCreate) -> Teacher:
     """
-    Tạo mới giáo viên, chỉ cần user_id. created_at sẽ được set tự động từ model.
+    Tạo mới giáo viên.
     """
-    db_teacher = Teacher(**teacher_in.model_dump(exclude_unset=True, exclude={"created_at"}))
+    db_teacher = Teacher(**teacher_in.model_dump())
     db.add(db_teacher)
     db.commit()
     db.refresh(db_teacher)
@@ -65,7 +66,7 @@ def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) 
     if not db_teacher:
         return None
 
-    update_data = teacher_update.model_dump(exclude_unset=True)
+    update_data = teacher_update.model_dump(exclude_unset=True, exclude={"user_id"})
     for key, value in update_data.items():
         setattr(db_teacher, key, value)
 
@@ -86,4 +87,3 @@ def delete_teacher(db: Session, teacher_id: int):
     db.delete(db_teacher)
     db.commit()
     return deleted_data
-
