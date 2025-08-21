@@ -1,30 +1,17 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+# app/models/teacher_review_model.py
+from sqlalchemy import DECIMAL, Column, Integer, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
-# Schema cơ sở cho TeacherReview
-class TeacherReviewBase(BaseModel):
-    teacher_id: int
-    student_id: int
-    rating: int = Field(..., ge=1, le=5, description="Số sao đánh giá từ 1 đến 5")
-    review_text: Optional[str] = Field(None, description="Nhận xét của sinh viên")
-    timestamp: datetime = Field(..., example="2023-10-26T14:30:00")
+Base = declarative_base()
 
-# Schema để tạo TeacherReview mới
-class TeacherReviewCreate(TeacherReviewBase):
-    pass
+class TeacherReview(Base):
+    __tablename__ = "teacher_reviews"
 
-# Schema để đọc/trả về TeacherReview hoàn chỉnh
-class TeacherReview(TeacherReviewBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-# Schema để cập nhật TeacherReview
-class TeacherReviewUpdate(BaseModel):
-    teacher_id: Optional[int] = None
-    student_id: Optional[int] = None
-    rating: Optional[int] = Field(None, ge=1, le=5)
-    review_text: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    # Sử dụng tên cột review_id, review_date, review_text để khớp với database
+    review_id = Column(Integer, primary_key=True, index=True)
+    teacher_id = Column(Integer, nullable=False)
+    student_id = Column(Integer, nullable=False)
+    rating = Column(DECIMAL(10, 2), nullable=False)
+    review_text = Column(String)
+    review_date = Column(DateTime, default=datetime.now)
