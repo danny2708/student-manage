@@ -1,32 +1,40 @@
+# app/crud/teacher_review_crud.py
 from sqlalchemy.orm import Session
 from app.models.teacher_review_model import TeacherReview
 from app.schemas.teacher_review_schema import TeacherReviewCreate, TeacherReviewUpdate
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
 def get_teacher_review(db: Session, review_id: int):
-    """Lấy thông tin đánh giá giáo viên theo ID."""
+    """Get teacher review by ID."""
     return db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
 
 def get_teacher_reviews_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100):
-    """Lấy danh sách đánh giá theo teacher_id."""
+    """Get a list of reviews by teacher_id."""
     return db.query(TeacherReview).filter(TeacherReview.teacher_id == teacher_id).offset(skip).limit(limit).all()
 
+def get_teacher_reviews_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
+    """Get a list of reviews by student_id."""
+    return db.query(TeacherReview).filter(TeacherReview.student_id == student_id).offset(skip).limit(limit).all()
+
 def get_all_teacher_reviews(db: Session, skip: int = 0, limit: int = 100):
-    """Lấy danh sách tất cả đánh giá giáo viên."""
+    """Get a list of all teacher reviews."""
     return db.query(TeacherReview).offset(skip).limit(limit).all()
 
 def create_teacher_review(db: Session, teacher_review: TeacherReviewCreate):
-    """Tạo mới một bản ghi đánh giá giáo viên."""
-    db_teacher_review = TeacherReview(**teacher_review.model_dump())
+    """Create a new teacher review record."""
+    teacher_review_data = teacher_review.model_dump()
+    db_teacher_review = TeacherReview(**teacher_review_data, review_date=datetime.now())
+    
     db.add(db_teacher_review)
     db.commit()
     db.refresh(db_teacher_review)
     return db_teacher_review
 
 def update_teacher_review(db: Session, review_id: int, teacher_review_update: TeacherReviewUpdate):
-    """Cập nhật thông tin đánh giá giáo viên."""
+    """Update teacher review information."""
     db_teacher_review = db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
     if db_teacher_review:
         update_data = teacher_review_update.model_dump(exclude_unset=True)
@@ -38,18 +46,26 @@ def update_teacher_review(db: Session, review_id: int, teacher_review_update: Te
     return db_teacher_review
 
 def delete_teacher_review(db: Session, review_id: int):
-    """Xóa một bản ghi đánh giá giáo viên (lưu log trước khi xóa)."""
+    """
+    Xóa một bản ghi đánh giá giáo viên và trả về tin nhắn phản hồi.
+    """
     db_teacher_review = db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
+    
     if db_teacher_review:
-        # Lưu log thông tin trước khi xóa
-        logger.info(
-            f"Deleting TeacherReview: ID={db_teacher_review.review_id}, "
-            f"TeacherID={db_teacher_review.teacher_id}, "
-            f"StudentID={db_teacher_review.student_id}, "
-            f"Rating={db_teacher_review.rating}, "
-            f"ReviewText='{db_teacher_review.review_text}', "
-            f"Timestamp={db_teacher_review.timestamp}"
-        )
+        # Xóa bản ghi
         db.delete(db_teacher_review)
         db.commit()
-    return db_teacher_review
+        # Trả về thông tin của bản ghi đã xóa
+        return {
+            "message": f"Successfully deleted review with ID: {review_id}",
+            "deleted_review": {
+                "review_id": db_teacher_review.review_id,
+                "teacher_id": db_teacher_review.teacher_id,
+                "student_id": db_teacher_review.student_id,
+                "rating": db_teacher_review.rating,
+                "review_text": db_teacher_review.review_text
+            }
+        }
+    else:
+        # Trả về lỗi nếu không tìm thấy review
+        return {"message": f"Review with ID {review_id} not found."}
