@@ -1,14 +1,45 @@
-from typing import Optional, List
+
+from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-
+from app.models.association_tables import student_parent_association
 from app.models.student_model import Student
 from app.schemas.student_schema import StudentUpdate, StudentCreate
 from app.models.association_tables import user_roles 
+from app.models.parent_model import Parent
+from app.models.user_model import User
 
 def get_student(db: Session, student_id: int) -> Optional[Student]:
     stmt = select(Student).where(Student.student_id == student_id)
     return db.execute(stmt).scalar_one_or_none()
+
+def get_student_and_user_by_id(db: Session, student_id: int) -> Optional[Tuple[Student, User]]:
+    """
+    Tìm một sinh viên và thông tin người dùng liên quan bằng ID của họ.
+    Hàm này thực hiện JOIN để lấy cả hai đối tượng.
+    """
+    # Thực hiện JOIN với bảng User để lấy cả hai đối tượng
+    stmt = select(Student, User).join(User, User.user_id == Student.user_id).where(Student.student_id == student_id)
+    # .first() sẽ trả về một tuple (Student, User) hoặc None nếu không tìm thấy
+    return db.execute(stmt).first()
+
+def get_parents_by_student_id(db: Session, student_id: int):
+    """
+    Lấy danh sách các phụ huynh liên kết với một sinh viên bằng ID của sinh viên đó.
+    Đồng thời lấy thông tin người dùng của phụ huynh để có full_name.
+    """
+    # Thực hiện truy vấn JOIN giữa bảng Student, bảng liên kết, bảng Parent và bảng User
+    # để lấy tất cả các phụ huynh và thông tin người dùng của họ.
+    stmt = select(Parent, User).join(
+        student_parent_association,
+        student_parent_association.c.parent_id == Parent.parent_id
+    ).join(
+        User, User.user_id == Parent.user_id
+    ).where(
+        student_parent_association.c.student_id == student_id
+    )
+    # .all() sẽ trả về danh sách các tuple (Parent, User)
+    return db.execute(stmt).all()
 
 def get_student_by_user_id(db: Session, user_id: int) -> Optional[Student]:
     stmt = select(Student).where(Student.user_id == user_id)
@@ -21,6 +52,23 @@ def get_students_by_class_id(db: Session, class_id: int, skip: int = 0, limit: i
 def get_all_students(db: Session, skip: int = 0, limit: int = 100) -> List[Student]:
     stmt = select(Student).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
+
+def get_parents_by_student_id(db: Session, student_id: int):
+    """
+    Lấy danh sách các phụ huynh liên kết với một sinh viên bằng ID của sinh viên đó.
+    Đồng thời lấy thông tin người dùng của phụ huynh để có full_name.
+    """
+    # Thực hiện truy vấn JOIN giữa bảng Student, bảng liên kết, bảng Parent và bảng User
+    # để lấy tất cả các phụ huynh và thông tin người dùng của họ.
+    return db.query(Parent, User).join(
+        student_parent_association,
+        student_parent_association.c.parent_id == Parent.parent_id
+    ).join(
+        User, User.user_id == Parent.user_id
+    ).filter(
+        student_parent_association.c.student_id == student_id
+    ).all()
+
 
 def create_student(db: Session, student_in: StudentCreate) -> Student:
     """

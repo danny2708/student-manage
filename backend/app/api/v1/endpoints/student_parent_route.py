@@ -1,18 +1,21 @@
 # app/api/v1/endpoints/studentparent_route.py
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
 
 # Import các CRUD operations và schemas
 from app.crud import student_parent_crud
-from app.crud import student_crud # Giả định có một crud cho student
-from app.crud import parent_crud # Giả định có một crud cho parent
+from app.crud import student_crud
+from app.crud import parent_crud
 from app.schemas import student_parent_schema
 from app.api import deps
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/student-parents",
+    tags=["Student-Parent Associations"],
+)
 
-@router.post("/", response_model=student_parent_schema.StudentParent, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=student_parent_schema.StudentParentAssociationCreate, status_code=status.HTTP_201_CREATED)
 def create_new_student_parent(student_parent_in: student_parent_schema.StudentParentAssociationCreate, db: Session = Depends(deps.get_db)):
     """
     Tạo một liên kết học sinh-phụ huynh mới.
@@ -34,6 +37,7 @@ def create_new_student_parent(student_parent_in: student_parent_schema.StudentPa
         )
 
     # Bước 3: Tạo bản ghi liên kết
+    # Hàm CRUD trả về một dict chứa student_id và parent_id, khớp với schema này.
     return student_parent_crud.create_student_parent(db=db, student_parent=student_parent_in)
 
 @router.get("/", response_model=List[student_parent_schema.StudentParent])
@@ -83,3 +87,4 @@ def delete_existing_student_parent(studentparent_id: int, db: Session = Depends(
         )
     # Trả về status code 204 mà không có nội dung, đây là chuẩn cho xóa thành công
     return
+
