@@ -1,17 +1,8 @@
 # app/schemas/evaluation_schema.py
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
-from enum import Enum
 from typing import Optional
-
-# Enum cho cột evaluation_type
-class EvaluationType(str, Enum):
-    """
-    Định nghĩa các loại đánh giá có thể có.
-    """
-    initial = "initial"
-    study = "study"
-    discipline = "discipline"
+from app.models.evaluation_model import EvaluationType
 
 # Lớp cơ sở chứa các thuộc tính chung
 class EvaluationBase(BaseModel):

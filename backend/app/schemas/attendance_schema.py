@@ -1,24 +1,38 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import date
+# app/schemas/attendance_schema.py
+from pydantic import BaseModel
+from datetime import date, time
+from typing import List, Optional
+from app.models.attendance_model import AttendanceStatus
 
-class AttendanceBase(BaseModel):
-    student_id: int = Field(..., example=1)
-    class_id: int = Field(..., example=1)
-    attendance_date: date = Field(..., example="2023-10-26")
-    status: bool = Field(..., example=True, description="True: Có mặt, False: Vắng mặt")
+class AttendanceCreate(BaseModel):
+    student_id: int
+    class_id: int
+    status: AttendanceStatus
+    checkin_time: Optional[time] = None
 
-class AttendanceCreate(AttendanceBase):
-    pass
+class AttendanceUpdate(BaseModel):
+    status: Optional[AttendanceStatus] = None
+    checkin_time: Optional[time] = None
 
-class AttendanceUpdate(AttendanceBase):
-    student_id: Optional[int] = None
-    class_id: Optional[int] = None
-    attendance_date: Optional[date] = None
-    status: Optional[bool] = None
-
-class Attendance(AttendanceBase):
-    id: int = Field(..., example=1)
+class AttendanceRead(AttendanceCreate):
+    attendance_id: int
+    attendance_date: date
 
     class Config:
         from_attributes = True
+
+class AttendanceInitialRecord(BaseModel):
+    student_id: int
+    status: AttendanceStatus
+    checkin_time: Optional[time] = None
+
+# Lớp này mô tả một bản ghi điểm danh duy nhất trong request
+class AttendanceRecordCreate(BaseModel):
+    student_id: int
+    status: AttendanceStatus
+    checkin_time: Optional[time] = None
+    
+class AttendanceBatchCreate(BaseModel):
+    class_id: int
+    attendance_date: date
+    records: List[AttendanceInitialRecord]

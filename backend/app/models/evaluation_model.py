@@ -1,8 +1,17 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text
+from enum import Enum
+from sqlalchemy import Column, Integer, Date, ForeignKey, Text
 from app.database import Base
 from sqlalchemy.orm import relationship
 
-
+# Enum cho cột evaluation_type
+class EvaluationType(str, Enum):
+    """
+    Định nghĩa các loại đánh giá có thể có.
+    """
+    initial = "initial"
+    study = "study"
+    discipline = "discipline"
+    
 class Evaluation(Base):
     """
     Model cho bảng evaluations.

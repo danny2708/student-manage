@@ -1,5 +1,6 @@
 # main.py
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.api.v1.api import api_router
@@ -12,17 +13,7 @@ import logging
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.INFO)
 
-# Tạo tất cả các bảng trong cơ sở dữ liệu
-Base.metadata.create_all(bind=engine)
-
-# Khởi tạo ứng dụng FastAPI
-app = FastAPI(
-    title="Student Management API",
-    description="API cho hệ thống quản lý học sinh.",
-    version="1.0.0",
-)
-
-# Khởi tạo scheduler
+# Tạo scheduler
 scheduler = AsyncIOScheduler()
 
 # Hàm tác vụ sẽ được lập lịch
@@ -37,31 +28,41 @@ async def run_overdue_tuitions_task():
     finally:
         db.close()
 
-# ---
-## Tích hợp Scheduler vào vòng đời ứng dụng
-
-@app.on_event("startup")
-async def startup_event():
-    # Thêm tác vụ vào scheduler. Tùy chọn này sẽ chạy tác vụ vào 0h00 mỗi ngày.
+# Hàm lifespan event handler
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Khởi động scheduler khi ứng dụng khởi động
+    # Tương tự @app.on_event("startup")
     scheduler.add_job(
         run_overdue_tuitions_task,
         trigger=CronTrigger(hour=0, minute=0),
         id="overdue_tuition_job",
         name="Update Overdue Tuitions"
     )
-
-    # Bắt đầu scheduler
     scheduler.start()
     print("Scheduler đã được khởi động.")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    # Tắt scheduler khi ứng dụng dừng
+    
+    # Tạo tất cả các bảng trong cơ sở dữ liệu
+    Base.metadata.create_all(bind=engine)
+    
+    yield # Điểm này ứng dụng sẽ chạy
+    
+    # Tắt scheduler khi ứng dụng tắt
+    # Tương tự @app.on_event("shutdown")
     scheduler.shutdown()
     print("Scheduler đã tắt.")
 
-# ---
-## Cấu hình Router và Endpoint
+# Khởi tạo ứng dụng FastAPI với lifespan handler mới
+app = FastAPI(
+    title="Student Management API",
+    description="API cho hệ thống quản lý học sinh.",
+    version="1.0.0",
+    lifespan=lifespan # Thêm dòng này để sử dụng lifespan
+)
+
 # Bao gồm router chính của API v1
 app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Student Management API! Visit /docs for API documentation."}

@@ -37,7 +37,7 @@ class Student(Base):
     enrollments = relationship("Enrollment", back_populates="student")
     attendances = relationship("Attendance", back_populates="student")
     evaluations = relationship("Evaluation", back_populates="student")
-
+    attendances = relationship("Attendance", back_populates="student")
     user = relationship("User", back_populates="student")
 
     def __repr__(self):
