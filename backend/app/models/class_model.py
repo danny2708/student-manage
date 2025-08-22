@@ -15,7 +15,8 @@ class Class(Base):
     class_name = Column(String(50), unique=True, nullable=False)
     teacher_id = Column(Integer, ForeignKey('teachers.teacher_id'), nullable=False)
     subject_id = Column(Integer, ForeignKey("subjects.subject_id"), nullable=False)
-
+    fee = Column(Integer, nullable=False)
+    
     subject = relationship("Subject", back_populates="classes")
 
     # Mối quan hệ với giáo viên (one-to-one)
