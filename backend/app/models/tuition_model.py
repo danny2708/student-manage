@@ -11,6 +11,7 @@ class Tuition(Base):
     student_id = Column(Integer, ForeignKey('students.student_id'), nullable=False)
     amount = Column(DECIMAL(10, 2), nullable=False)
     payment_date = Column(Date, nullable=False)
+    term = Column(Integer, nullable=False)
 
     # Mối quan hệ với học sinh (many-to-one)
     student = relationship("Student", back_populates="tuitions")
