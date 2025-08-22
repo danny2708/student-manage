@@ -1,21 +1,61 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+# app/schemas/evaluation_schema.py
 from datetime import date
+from pydantic import BaseModel, ConfigDict, Field
+from enum import Enum
+from typing import Optional
 
+# Enum cho cột evaluation_type
+class EvaluationType(str, Enum):
+    """
+    Định nghĩa các loại đánh giá có thể có.
+    """
+    initial = "initial"
+    study = "study"
+    discipline = "discipline"
+
+# Lớp cơ sở chứa các thuộc tính chung
 class EvaluationBase(BaseModel):
-    score_id: int = Field(..., example=1)
-    evaluation_date: date = Field(..., example="2023-10-26")
-    # Các trường khác có thể thêm vào đây
+    """
+    Schema cơ sở cho mô hình Evaluation.
+    """
+    teacher_id: int
+    student_id: int
+    study_point: int
+    discipline_point: int
+    evaluation_type: EvaluationType
+    evaluation_content: Optional[str] = None
+    evaluation_date: date = date.today()
 
+# Lớp dùng để tạo một bản ghi đánh giá mới
 class EvaluationCreate(EvaluationBase):
+    """
+    Schema để tạo một bản ghi đánh giá mới.
+    """
     pass
 
-class EvaluationUpdate(EvaluationBase):
-    score_id: Optional[int] = None
-    evaluation_date: Optional[date] = None
+# Lớp dùng để đọc/trả về dữ liệu từ cơ sở dữ liệu
+class EvaluationRead(EvaluationBase):
+    """
+    Schema để đọc dữ liệu đánh giá từ cơ sở dữ liệu.
+    Bao gồm trường evaluation_id.
+    """
+    evaluation_id: int
 
-class Evaluation(EvaluationBase):
-    id: int = Field(..., example=1)
+# Lớp chính, cấu hình để tương thích với SQLAlchemy ORM
+class Evaluation(EvaluationRead):
+    """
+    Schema chính cho mô hình Evaluation, dùng để tương tác với SQLAlchemy.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+class EvaluationSummary(BaseModel):
+    student_id: int
+    final_study_point: int = Field(..., description="Tổng điểm học tập, giới hạn ở 100.")
+    final_discipline_point: int = Field(..., description="Tổng điểm kỷ luật, giới hạn ở 100.")
+    study_plus_count: int = Field(..., description="Số lần điểm học tập được cộng.")
+    study_minus_count: int = Field(..., description="Số lần điểm học tập bị trừ.")
+    discipline_plus_count: int = Field(..., description="Số lần điểm kỷ luật được cộng.")
+    discipline_minus_count: int = Field(..., description="Số lần điểm kỷ luật bị trừ.")
 
     class Config:
         from_attributes = True
