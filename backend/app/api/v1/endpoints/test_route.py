@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from typing import List
-
+from app.services import excel_test_service
 # Import các CRUD operations và schemas đã được cập nhật
 from app.crud import test_crud
 from app.crud import student_crud
@@ -96,3 +96,19 @@ def delete_existing_test(test_id: int, db: Session = Depends(deps.get_db)):
             detail="Bài kiểm tra không tìm thấy."
         )
     return
+
+
+@router.post("/import")
+def import_tests(
+    class_id: int = Query(..., description="ID của lớp cần import bài kiểm tra"),
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+):
+    """
+    Import danh sách điểm kiểm tra từ file Excel vào DB.
+    """
+    try:
+        result = excel_test_service.import_tests_from_excel(db, file, class_id)
+        return {"message": "Import thành công", "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
