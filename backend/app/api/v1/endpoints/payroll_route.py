@@ -43,15 +43,21 @@ def get_all_payrolls(skip: int = 0, limit: int = 100, db: Session = Depends(deps
 def run_payroll(db: Session = Depends(deps.get_db)):
     """
     Chạy quá trình tính lương hàng tháng (thủ công).
+    Sau khi tạo payroll sẽ tự động gửi thông báo.
+    Trả về danh sách payroll + notification.
     """
     try:
-        payroll_service.run_monthly_payroll(db)
-        return {"message": "Monthly payroll process completed successfully."}
+        results = payroll_service.run_monthly_payroll(db)
+        return {
+            "message": "Monthly payroll process completed successfully.",
+            "processed": results
+        }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during payroll processing: {str(e)}"
         )
+
 
 @router.get("/{payroll_id}", response_model=payroll_schema.Payroll)
 def get_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):

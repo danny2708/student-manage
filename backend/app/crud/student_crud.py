@@ -23,6 +23,21 @@ def get_student_and_user_by_id(db: Session, student_id: int) -> Optional[Tuple[S
     # .first() sẽ trả về một tuple (Student, User) hoặc None nếu không tìm thấy
     return db.execute(stmt).first()
 
+def get_student_with_user(db: Session, student_id: int):
+    """
+    Lấy học sinh kèm thông tin user (full_name, email,...)
+    """
+    stmt = (
+        select(Student, User)
+        .join(User, Student.user_id == User.user_id)
+        .where(Student.student_id == student_id)
+    )
+    result = db.execute(stmt).first()
+    if result:
+        student, user = result
+        return student, user
+    return None, None
+
 def get_parents_by_student_id(db: Session, student_id: int):
     """
     Lấy danh sách các phụ huynh liên kết với một sinh viên bằng ID của sinh viên đó.

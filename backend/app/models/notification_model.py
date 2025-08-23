@@ -3,7 +3,6 @@ from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, func, Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
-from datetime import datetime
 
 class NotificationType(str, enum.Enum):
     """Định nghĩa các loại thông báo."""

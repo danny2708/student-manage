@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.api import deps
-from app.services import sheet_import_user_service
+from app.services import excel_import_user_service
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ def import_users_from_sheet(
     db: Session = Depends(deps.get_db),
 ):
     try:
-        result = sheet_import_user_service.import_users(file, db)
+        result = excel_import_user_service.import_users(file, db)
         return {"status": "success", "imported": result}
     except Exception as e:
         logging.exception("Import failed")

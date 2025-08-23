@@ -54,11 +54,8 @@ def get_all_teachers(db: Session):
 
 def get_classes_taught_by_teacher(db: Session, teacher_id: int, month: int, year: int):
     """Lấy danh sách các lớp đã dạy bởi giáo viên trong tháng và năm."""
-    # Giả định bảng Class có teacher_id và date_taught
     return db.query(Class).filter(
         Class.teacher_id == teacher_id,
-        extract('month', Class.date_taught) == month,
-        extract('year', Class.date_taught) == year
     ).all()
 
 def get_teacher_base_salary(db: Session, teacher_id: int) -> float:

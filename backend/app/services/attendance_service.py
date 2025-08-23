@@ -50,7 +50,7 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
                             notification_parent = NotificationCreate(
                                 sender_id=None,
                                 receiver_id=parent_user.user_id,
-                                content=f"Thông báo: Con của bạn ({student_user.full_name}) đã vắng mặt trong buổi học ngày {record.attendance_date}.",
+                                content=f"Thông báo: Con của bạn {student_user.full_name} đã vắng mặt trong buổi học ngày {record.attendance_date}.",
                                 type=NotificationType.warning
                             )
                             notification_crud.create_notification(db, notification=notification_parent)

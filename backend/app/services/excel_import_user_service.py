@@ -1,10 +1,9 @@
 # app/services/sheet_import_user_service.py
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from openpyxl import load_workbook
+from openpyxl import load_workbook # type: ignore
 from io import BytesIO
-
-from app.crud import sheet_import_user_crud
+from app.crud import excel_import_user_crud
 
 
 def import_users(file: UploadFile, db: Session):
@@ -23,7 +22,7 @@ def import_users(file: UploadFile, db: Session):
             if clean_row[0] and "@" in clean_row[0]:
                 student_rows.append(clean_row)
 
-        email_to_student_id = sheet_import_user_crud.import_students(db, student_rows)
+        email_to_student_id = excel_import_user_crud.import_students(db, student_rows)
 
         # --- Đọc sheet Parent ---
         if "Parent" not in workbook.sheetnames:
@@ -36,7 +35,7 @@ def import_users(file: UploadFile, db: Session):
             if clean_row[0] and "@" in clean_row[0]:
                 parent_rows.append(clean_row)
 
-        email_to_parent_id = sheet_import_user_crud.import_parents(
+        email_to_parent_id = excel_import_user_crud.import_parents(
             db, parent_rows, email_to_student_id
         )
 
