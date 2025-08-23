@@ -19,7 +19,7 @@ class UserBase(BaseModel):
 # Schema cho CRUD User
 # -------------------------------
 class UserCreate(UserBase):
-    password: str = Field(..., example="verysecretpassword")
+    password: str = Field(..., example="password")
     first_password: Optional[str] = None   # phục vụ import từ sheet
 
 

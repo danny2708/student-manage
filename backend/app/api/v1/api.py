@@ -19,7 +19,7 @@ from app.api.v1.endpoints.evaluation_route import router as evaluation_router
 from app.api.v1.endpoints.schedule_route import router as schedule_router
 from app.api.v1.endpoints.teacher_review_route import router as teacher_review_router
 from app.api.v1.endpoints.notification_route import router as notification_router
-from app.api.v1.endpoints.sheet_import_users_route import router as sheet_import_user_router
+from app.api.v1.endpoints.excel_import_users_route import router as excel_import_user_router
 # --- Import các routers đăng ký chuyên biệt ---
 # Router cho việc đăng ký một người dùng duy nhất
 from app.api.v1.endpoints.register_route import router as register_router
@@ -45,7 +45,7 @@ api_router.include_router(evaluation_router, prefix="/evaluations", tags=["Evalu
 api_router.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])
 api_router.include_router(teacher_review_router, prefix="/teacher_reviews", tags=["Teacher Reviews"])
 api_router.include_router(notification_router, prefix="/notifications", tags=["Notifications"])
-api_router.include_router(sheet_import_user_router, prefix="/sheet_import", tags=["Sheet Import Users"])
+api_router.include_router(excel_import_user_router, prefix="/excel_import", tags=["Excel Import Users"])
 # --- Bao gồm các routers đăng ký chuyên biệt ---
 api_router.include_router(register_router, prefix="/register", tags=["Register"])
 api_router.include_router(auth_router, prefix="/auth", tags=["Login"])

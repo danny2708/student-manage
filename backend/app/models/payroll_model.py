@@ -1,5 +1,5 @@
 # app/models/payroll_model.py
-from sqlalchemy import Column, Integer, ForeignKey, Date, DECIMAL
+from sqlalchemy import Column, Integer, ForeignKey, DECIMAL, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -16,7 +16,7 @@ class Payroll(Base):
     base_salary = Column(DECIMAL(10, 2), nullable=False)
     reward_bonus = Column(DECIMAL(10, 2), nullable=False)
     total = Column(DECIMAL(10, 2), nullable=False)
-    sent_date = Column(Date, nullable=False)
-    
+    sent_at = Column(DateTime, nullable=False)
+
     # Mối quan hệ với giáo viên (one-to-one)
     teacher = relationship("Teacher", back_populates="payroll")

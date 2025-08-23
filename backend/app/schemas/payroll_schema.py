@@ -1,7 +1,7 @@
 # app/schemas/payroll_schema.py
 from typing import Optional
 from pydantic import BaseModel
-from datetime import date
+from datetime import datetime
 
 class PayrollBase(BaseModel):
     teacher_id: int
@@ -9,7 +9,7 @@ class PayrollBase(BaseModel):
     base_salary: float
     reward_bonus: float
     total: float
-    sent_date: date
+    sent_at: datetime
 
 class PayrollCreate(PayrollBase):
     pass
@@ -19,7 +19,7 @@ class PayrollUpdate(BaseModel):
     base_salary: Optional[float] = None
     reward_bonus: Optional[float] = None
     total: Optional[float] = None
-    sent_date: Optional[date] = None
+    sent_at: Optional[datetime] = None
 
 class Payroll(PayrollBase):
     payroll_id: int

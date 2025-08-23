@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from app.models.student_model import Student
@@ -8,6 +8,9 @@ from app.models.association_tables import student_class_association
 from app.schemas.tuition_schema import TuitionCreate
 from app.crud import tuition_crud
 from app.models.tuition_model import Tuition, PaymentStatus
+from app.crud import notification_crud
+from app.schemas.notification_schema import NotificationCreate
+from app.crud import student_crud
 
 def calculate_tuition_for_student(db: Session, student_id: int) -> Decimal:
     """
@@ -56,51 +59,57 @@ def create_tuition_record_for_student(
 
 
 def create_tuition_for_all_students(db: Session, term: int, due_date: date):
-    """
-    Lặp qua tất cả học sinh đang hoạt động và tạo bản ghi học phí cho họ.
-    Hàm này được thiết kế để chạy dưới dạng background task.
-    """
-    # 1. Lấy danh sách ID của tất cả học sinh
-    #    Chỉ lấy ID để tiết kiệm bộ nhớ
     student_ids = db.query(Student.student_id)
 
     successful_creations = 0
     failed_creations = 0
-    
-    # 2. Lặp qua từng ID học sinh để tạo học phí
+
     for student_id_tuple in student_ids:
         student_id = student_id_tuple[0]
         try:
-            # 3. Tái sử dụng logic tạo học phí cho một học sinh
             db_tuition = create_tuition_record_for_student(
                 db, student_id=student_id, term=term, due_date=due_date
             )
-            
-            # Nếu hàm trả về một bản ghi, tức là thành công
+
             if db_tuition:
                 successful_creations += 1
-            # Nếu hàm trả về None (do học phí <= 0), ta coi là một trường hợp "bỏ qua" chứ không phải lỗi
-            
+
+                # Lấy tên học sinh
+                student, student_user = student_crud.get_student_with_user(db, student_id)
+                if not student_user:
+                    continue
+                student_name = student_user.full_name
+
+                # 🔔 Gửi thông báo cho tất cả phụ huynh
+                parents_with_users = student_crud.get_parents_by_student_id(db, student_id)
+                for parent, parent_user in parents_with_users:
+                    if parent_user:
+                        notification_in = NotificationCreate(
+                            sender_id=None,  # hệ thống
+                            receiver_id=parent_user.user_id,
+                            content=f"Học phí kỳ {term} của học sinh {student_name} "
+                                    f"là {db_tuition.amount}, hạn nộp: {due_date}.",
+                            sent_at=datetime.now(timezone.utc),
+                            type="tuition"
+                        )
+                        notification_crud.create_notification(db, notification_in)
+
         except Exception as e:
-            # 4. Ghi lại lỗi nếu có sự cố bất ngờ và rollback
             failed_creations += 1
             print(f"Lỗi khi tạo học phí cho sinh viên ID {student_id}: {e}")
-            db.rollback() # Rất quan trọng: Ngăn chặn session bị lỗi
+            db.rollback()
 
-    # 5. Commit tất cả các thay đổi thành công sau khi vòng lặp kết thúc
-    #    Lưu ý: Nếu có lỗi ở một học sinh, các học sinh trước đó vẫn được lưu
-    #    nếu bạn không rollback toàn bộ. Cách tiếp cận này linh hoạt hơn.
     try:
         db.commit()
     except Exception as e:
         print(f"Lỗi trong quá trình commit cuối cùng: {e}")
         db.rollback()
 
-    # Ghi log kết quả tổng quan
     print(f"--- KẾT QUẢ TẠO HỌC PHÍ ---")
     print(f"Thành công: {successful_creations} bản ghi")
     print(f"Thất bại/Lỗi: {failed_creations} bản ghi")
     print(f"--------------------------")
+
 
 def update_overdue_tuitions(db: Session):
     """Cập nhật trạng thái của các khoản học phí đã quá hạn."""

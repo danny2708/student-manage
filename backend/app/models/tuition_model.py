@@ -10,7 +10,7 @@ class PaymentStatus(str, enum.Enum):
     """
     unpaid = "unpaid"
     paid = "paid"
-    out_dated = "out_dated"
+    overdue = "overdue"
 
 class Tuition(Base):
     """
