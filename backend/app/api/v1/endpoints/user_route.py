@@ -2,10 +2,13 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
+import logging
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from pydantic import BaseModel
+from app.api import deps
+from app.services import excel_import_user_service
 from app.api.deps import get_db
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
-from app.schemas.sheet_import_user_schema import SheetUserImportRequest  # ✅ schema cho import
 from app.crud import user_crud
 
 router = APIRouter()
@@ -88,3 +91,18 @@ def delete_user_info(user_id: int, db: Session = Depends(get_db)):
         )
     return deleted_user
 
+class ImportUsersResponse(BaseModel):
+    status: str
+    imported: dict   # vì service trả về {"students": {...}, "parents": {...}}
+
+@router.post("/import-users", response_model=ImportUsersResponse)
+def import_users_from_sheet(
+    file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
+):
+    try:
+        result = excel_import_user_service.import_users(file, db)
+        return {"status": "success", "imported": result}
+    except Exception as e:
+        logging.exception("Import failed")
+        raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
