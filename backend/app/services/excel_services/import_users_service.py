@@ -3,10 +3,8 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from openpyxl import load_workbook # type: ignore
 from io import BytesIO
-from app.services import excel_import_user_service
 from sqlalchemy.orm import Session
-from datetime import datetime
-from . import service_helper
+from .. import service_helper
 from app.schemas.user_schema import UserCreate
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas.student_schema import StudentCreate
@@ -35,7 +33,7 @@ def import_users(file: UploadFile, db: Session):
             if clean_row[0] and "@" in clean_row[0]:
                 student_rows.append(clean_row)
 
-        email_to_student_id = excel_import_user_service.import_students(db, student_rows)
+        email_to_student_id = import_students(db, student_rows)
 
         # --- Đọc sheet Parent ---
         if "Parent" not in workbook.sheetnames:
@@ -48,7 +46,7 @@ def import_users(file: UploadFile, db: Session):
             if clean_row[0] and "@" in clean_row[0]:
                 parent_rows.append(clean_row)
 
-        email_to_parent_id = excel_import_user_service.import_parents(
+        email_to_parent_id = import_parents(
             db, parent_rows, email_to_student_id
         )
 

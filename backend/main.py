@@ -1,8 +1,8 @@
 # main.py
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
+from apscheduler.triggers.cron import CronTrigger # type: ignore
 from app.api.v1.api import api_router
 from app.database import Base, engine, SessionLocal
 from app.models import *

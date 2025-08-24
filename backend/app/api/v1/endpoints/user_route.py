@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from app.api import deps
-from app.services import excel_import_user_service
+from app.services.excel_services import import_users_service
 from app.api.deps import get_db
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.crud import user_crud
@@ -101,7 +101,7 @@ def import_users_from_sheet(
     db: Session = Depends(deps.get_db),
 ):
     try:
-        result = excel_import_user_service.import_users(file, db)
+        result = import_users_service.import_users(file, db)
         return {"status": "success", "imported": result}
     except Exception as e:
         logging.exception("Import failed")

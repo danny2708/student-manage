@@ -20,17 +20,14 @@ def parse_date_safe(d):
     # Nếu là string
     if isinstance(d, str):
         d = d.strip()
-        # Thử parse dạng ISO có time: "1969-09-06 00:00:00"
         try:
             return datetime.strptime(d, "%Y-%m-%d %H:%M:%S").date()
         except Exception:
             pass
-        # Thử parse dạng ISO chỉ có ngày: "1969-09-06"
         try:
             return datetime.strptime(d, "%Y-%m-%d").date()
         except Exception:
             pass
-        # Thử parse dạng Việt Nam: "14/03/2012"
         for fmt in ("%d/%m/%Y", "%d-%m-%Y"):
             try:
                 return datetime.strptime(d, fmt).date()
