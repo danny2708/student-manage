@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from typing import List
-from app.services.excel_services import import_tests_service
+from app.services.excel_services import import_tests
 # Import các CRUD operations và schemas đã được cập nhật
 from app.crud import test_crud
 from app.crud import student_crud
@@ -108,7 +108,7 @@ def import_tests(
     Import danh sách điểm kiểm tra từ file Excel vào DB.
     """
     try:
-        result = import_tests_service.import_tests_from_excel(db, file, class_id)
+        result = import_tests.import_tests_from_excel(db, file, class_id)
         return {"message": "Import thành công", "result": result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
