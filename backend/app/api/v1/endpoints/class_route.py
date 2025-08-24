@@ -8,6 +8,8 @@ from app.crud import class_crud
 from app.schemas import class_schema
 from app.api import deps
 
+from app.services.excel_services.export_class import export_class
+
 router = APIRouter()
 
 @router.post("/", response_model=class_schema.Class, status_code=status.HTTP_201_CREATED)
@@ -75,3 +77,7 @@ def delete_existing_class(class_id: int, db: Session = Depends(deps.get_db)):
         "deleted_at": datetime.now(timezone.utc).isoformat().isoformat(),
         "status": "success"
     }
+
+@router.get("/export/{class_id}")
+def export_class_excel(class_id: int, db: Session = Depends(deps.get_db)):
+    return export_class(db, class_id)
