@@ -6,7 +6,7 @@ from io import BytesIO
 from app.models.class_model import Class
 from app.schemas.test_schema import TestCreate
 from app.crud import test_crud
-from . import service_helper
+from .. import service_helper
 
 def import_tests_from_excel(db: Session, file: UploadFile, class_id: int):
     try:
