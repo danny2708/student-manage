@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import date, time
 from app.api import deps
-from app.schemas.attendance_schema import AttendanceRead, AttendanceBatchCreate, AttendanceRecordCreate
+from app.schemas.attendance_schema import AttendanceRead, AttendanceBatchCreate, AttendanceUpdateLate
 from app.services import attendance_service
 
 router = APIRouter()
@@ -21,11 +21,12 @@ def create_attendance_records_for_class(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+
 @router.patch("/{student_id}/{class_id}", response_model=AttendanceRead)
 def update_student_late_attendance(
     student_id: int,
     class_id: int,
-    update_data: AttendanceRecordCreate,
+    update_data: AttendanceUpdateLate,
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -36,8 +37,7 @@ def update_student_late_attendance(
         db, 
         student_id=student_id, 
         class_id=class_id, 
-        checkin_time=update_data.checkin_time, 
-        attendance_date=update_data.attendance_date
+        checkin_time=update_data.checkin_time # Bỏ 'attendance_date' ở đây
     )
     if not updated_record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bản ghi điểm danh để cập nhật.")

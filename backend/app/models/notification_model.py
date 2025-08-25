@@ -19,7 +19,7 @@ class Notification(Base):
     """
     __tablename__ = 'notifications'
     notification_id = Column(Integer, primary_key=True)
-    sender_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    sender_id = Column(Integer, ForeignKey('users.user_id'))
     receiver_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     content = Column(Text, nullable=False)
     sent_at = Column(DateTime, default=func.now())

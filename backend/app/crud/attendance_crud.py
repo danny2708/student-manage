@@ -1,10 +1,11 @@
 # app/crud/attendance_crud.py
+from datetime import time
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import insert, and_, select
 from sqlalchemy.exc import IntegrityError
 from app.models.student_model import Student
-from app.models.attendance_model import Attendance
+from app.models.attendance_model import Attendance, AttendanceStatus
 from app.schemas.attendance_schema import AttendanceBatchCreate, AttendanceRecordCreate
 from datetime import datetime
 
@@ -60,7 +61,20 @@ def get_attendance_record_by_student_and_date(db: Session, student_id: int, clas
     result = db.execute(stmt).scalar_one_or_none()
     return result
 
-def update_attendance_record(db: Session, student_id: int, class_id: int, date: str, update_data: AttendanceRecordCreate):
+def update_attendance_status(db: Session, db_record: Attendance, new_status: AttendanceStatus, checkin_time: Optional[time] = None) -> Optional[Attendance]:
+    """
+    Cập nhật trạng thái và thời gian check-in của một bản ghi điểm danh.
+    """
+    if db_record:
+        db_record.status = new_status
+        db_record.checkin_time = checkin_time
+        
+        db.commit()
+        db.refresh(db_record)
+        return db_record
+    return None
+
+def update_attendance_record(db: Session, student_id: int, class_id: int, date: str, update_data: AttendanceRecordCreate) -> Optional[Attendance]:
     """
     Cập nhật bản ghi điểm danh.
     """
@@ -68,9 +82,23 @@ def update_attendance_record(db: Session, student_id: int, class_id: int, date: 
     if not db_record:
         return None
     
-    db_record.status = update_data.status.value
-    db_record.checkin_time = update_data.checkin_time
+    # Sử dụng hàm update_attendance_status để cập nhật
+    return update_attendance_status(
+        db, 
+        db_record=db_record, 
+        new_status=update_data.status, 
+        checkin_time=update_data.checkin_time
+    )
 
-    db.commit()
-    db.refresh(db_record)
-    return db_record
+def get_absent_attendance_for_student_in_class(db: Session, student_id: int, class_id: int) -> Optional[Attendance]:
+    """
+    Tìm bản ghi điểm danh bị đánh dấu là 'absent' của một học sinh trong một lớp.
+    """
+    stmt = select(Attendance).where(
+        and_(
+            Attendance.student_id == student_id,
+            Attendance.class_id == class_id,
+            Attendance.status == AttendanceStatus.absent
+        )
+    )
+    return db.execute(stmt).scalar_one_or_none()

@@ -31,6 +31,11 @@ class AttendanceRecordCreate(BaseModel):
     student_id: int
     status: AttendanceStatus
     checkin_time: Optional[time] = None
+    attendance_date: date
+    
+class AttendanceUpdateLate(BaseModel):
+    checkin_time: time
+    attendance_date: date
     
 class AttendanceBatchCreate(BaseModel):
     class_id: int
