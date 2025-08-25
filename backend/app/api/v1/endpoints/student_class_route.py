@@ -1,86 +1,91 @@
-# app/api/v1/endpoints/studentclass_route.py
-from fastapi import APIRouter, Depends, HTTPException, status
+# app/api/v1/endpoints/student_class_route.py
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
-
-# Import các CRUD operations và schemas
-from app.crud import student_class_crud
-from app.crud import student_crud
-from app.crud import class_crud
-from app.schemas.student_class_association_schema import StudentClassAssociation, StudentClassAssociationCreate, StudentClassAssociationUpdate
-from app.api import deps
+from app.api.deps import get_db
+from app.schemas.student_class_association_schema import (
+    StudentClassAssociationCreate,
+    StudentClassAssociation
+)
+from app.crud.student_class_crud import (
+    get_enrollment,
+    create_enrollment,
+    set_enrollment_inactive,
+    get_enrollments_by_student_id,
+    get_enrollments_by_class_id,
+    get_all_enrollments
+)
 
 router = APIRouter()
 
-@router.post("/", response_model=StudentClassAssociation, status_code=status.HTTP_201_CREATED)
-def create_new_student_class(student_class_in: StudentClassAssociationCreate, db: Session = Depends(deps.get_db)):
+@router.post("/", response_model=StudentClassAssociation, status_code=201)
+def create_new_student_enrollment(
+    student_class_in: StudentClassAssociationCreate,
+    db: Session = Depends(get_db)
+):
     """
-    Tạo một liên kết học sinh-lớp học mới.
+    Tạo một bản ghi enrollment mới cho một sinh viên vào một lớp học.
     """
-    # Bước 1: Kiểm tra xem student_id có tồn tại không
-    db_student = student_crud.get_student(db, student_id=student_class_in.student_id)
-    if not db_student:
+    # Kiểm tra xem sinh viên đã được ghi danh vào lớp này chưa
+    existing_enrollment = get_enrollment(
+        db, 
+        student_id=student_class_in.student_id,
+        class_id=student_class_in.class_id
+    )
+    if existing_enrollment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_class_in.student_id} not found."
+            status_code=400,
+            detail="Student is already enrolled in this class."
         )
     
-    # Bước 2: Kiểm tra xem class_id có tồn tại không
-    db_class = class_crud.get_class(db, class_id=student_class_in.class_id)
-    if not db_class:
+    # Tạo bản ghi enrollment mới
+    new_enrollment = create_enrollment(db=db, student_class_in=student_class_in)
+    
+    # Trả về đối tượng Pydantic hoàn chỉnh
+    return StudentClassAssociation(
+        student_id=new_enrollment.student_id,
+        class_id=new_enrollment.class_id,
+        # Sử dụng trường enrollment_date từ model SQLAlchemy
+        enrollment_date=new_enrollment.enrollment_date,  
+        # Lấy giá trị chuỗi từ enum
+        status=new_enrollment.enrollment_status.value
+    )
+
+@router.delete("/{student_id}/{class_id}", status_code=204)
+def remove_student_enrollment(
+    student_id: int,
+    class_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'
+    và xóa bản ghi liên kết.
+    """
+    # Gọi hàm set_enrollment_inactive để thực hiện logic
+    removed_enrollment = set_enrollment_inactive(
+        db=db, student_id=student_id, class_id=class_id
+    )
+    if not removed_enrollment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Class with id {student_class_in.class_id} not found."
+            status_code=404, 
+            detail="Enrollment record not found."
         )
-
-    # Bước 3: Tạo bản ghi liên kết
-    # Sửa lỗi: Đổi tên đối số thành 'student_class_in' để khớp với hàm CRUD
-    return student_class_crud.create_student_class(db=db, student_class_in=student_class_in)
-
-@router.get("/", response_model=List[StudentClassAssociation])
-def get_all_student_classes(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
-    """
-    Lấy danh sách tất cả các liên kết học sinh-lớp học.
-    """
-    student_classes = student_class_crud.get_all_student_classes(db, skip=skip, limit=limit)
-    return student_classes
-
-@router.get("/{studentclass_id}", response_model=StudentClassAssociation)
-def get_student_class(studentclass_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Lấy thông tin của một liên kết học sinh-lớp học cụ thể bằng ID.
-    """
-    db_student_class = student_class_crud.get_student_class(db, studentclass_id=studentclass_id)
-    if db_student_class is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Liên kết học sinh-lớp học không tìm thấy."
-        )
-    return db_student_class
-
-@router.put("/{studentclass_id}", response_model=StudentClassAssociation)
-def update_existing_student_class(studentclass_id: int, student_class_update: StudentClassAssociationUpdate, db: Session = Depends(deps.get_db)):
-    """
-    Cập nhật thông tin của một liên kết học sinh-lớp học cụ thể bằng ID.
-    """
-    db_student_class = student_class_crud.update_student_class(db, studentclass_id=studentclass_id, student_class_update=student_class_update)
-    if db_student_class is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Liên kết học sinh-lớp học không tìm thấy."
-        )
-    return db_student_class
-
-@router.delete("/{studentclass_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_existing_student_class(studentclass_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một liên kết học sinh-lớp học cụ thể bằng ID.
-    """
-    db_student_class = student_class_crud.delete_student_class(db, studentclass_id=studentclass_id)
-    if db_student_class is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Liên kết học sinh-lớp học không tìm thấy."
-        )
-    # Trả về status code 204 mà không có nội dung, đây là chuẩn cho xóa thành công
+    
+    # Không cần trả về nội dung cho status_code 204
     return
+
+@router.get("/student/{student_id}", response_model=list[StudentClassAssociation])
+def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
+    """Lấy danh sách các lớp học mà một sinh viên đã đăng ký."""
+    enrollments = get_enrollments_by_student_id(db, student_id)
+    if not enrollments:
+        raise HTTPException(status_code=404, detail="Enrollments not found for this student.")
+    
+    # Chuyển đổi từ model SQLAlchemy sang schema Pydantic
+    return [
+        StudentClassAssociation(
+            student_id=e.student_id,
+            class_id=e.class_id,
+            enrollment_date=e.enrollment_date,
+            status=e.enrollment_status.value
+        ) for e in enrollments
+    ]

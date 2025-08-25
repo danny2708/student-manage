@@ -107,45 +107,6 @@ def delete_existing_payroll(payroll_id: int, db: Session = Depends(deps.get_db))
         "status": "success"
     }
 
-@router.post("/send_payroll_notification", status_code=status.HTTP_201_CREATED)
-def send_payroll_notification(payroll_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Gửi thông báo bảng lương cho giáo viên.
-    """
-    db_payroll = payroll_crud.get_payroll(db, payroll_id=payroll_id)
-    if not db_payroll:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bảng lương không tìm thấy."
-        )
-    
-    # Bước trung gian: Truy vấn thông tin giáo viên từ teacher_id có trong bản ghi payroll
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=db_payroll.teacher_id)
-    if not db_teacher:
-        # Nếu không tìm thấy giáo viên, có thể đây là một lỗi dữ liệu
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Không tìm thấy thông tin giáo viên với teacher_id {db_payroll.teacher_id}."
-        )
-
-    receiver_id = db_teacher.user_id
-    
-    # Tạo nội dung thông báo
-    content = f"Bảng lương tháng {db_payroll.month} của bạn đã được cập nhật. Tổng lương: {db_payroll.total}"
-    
-    # Tạo bản ghi thông báo
-    notification_in = NotificationCreate(
-        sender_id=None, # Hoặc một user_id của admin/hệ thống
-        receiver_id=receiver_id,
-        content=content,
-        sent_at=datetime.now(timezone.utc),
-        type="payroll"
-    )
-    
-    # Gửi thông báo
-    notification_crud.create_notification(db, notification_in)
-    
-    return {"message": "Notification sent successfully."}
 
 @router.get("/teacher/{teacher_id}", response_model=List[payroll_schema.Payroll])
 def get_teacher_payrolls(teacher_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):

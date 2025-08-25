@@ -1,5 +1,5 @@
 # app/services/attendance_service.py
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.crud import attendance_crud, notification_crud, evaluation_crud, student_crud, class_crud
 from app.schemas.attendance_schema import AttendanceBatchCreate
@@ -68,14 +68,24 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
     
     return db_records
 
-def update_late_attendance(db: Session, student_id: int, class_id: int, checkin_time: time, attendance_date: date):
+# app/services/attendance_service.py
+
+# ... (Các import và hàm khác)
+
+def update_late_attendance(db: Session, student_id: int, class_id: int, checkin_time: time) -> Optional[Attendance]:
     """
     Cập nhật trạng thái điểm danh từ 'absent' thành 'late'.
     """
-    attendance_record = attendance_crud.get_absent_attendance_for_student_in_class(db, student_id, class_id, attendance_date)
+    attendance_record = attendance_crud.get_absent_attendance_for_student_in_class(db, student_id, class_id)
     
     if attendance_record:
-        updated_record = attendance_crud.update_attendance_status(db, attendance_record, AttendanceStatus.late, checkin_time)
+        # Sử dụng hàm update_attendance_status để cập nhật
+        updated_record = attendance_crud.update_attendance_status(
+            db, 
+            db_record=attendance_record, 
+            new_status=AttendanceStatus.late, 
+            checkin_time=checkin_time
+        )
         return updated_record
         
     return None

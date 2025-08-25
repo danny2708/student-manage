@@ -1,6 +1,5 @@
 # backend/app/models/association_tables.py
-from datetime import date
-from sqlalchemy import Table, Column, Integer, ForeignKey, Enum, Date, String
+from sqlalchemy import Table, Column, Integer, ForeignKey
 from app.database import Base
 import enum
 
@@ -24,15 +23,10 @@ student_parent_association = Table(
 class EnrollmentStatus(enum.Enum):
     Active = "Active"
     Inactive = "Inactive"
-    OnLeave = "OnLeave"
-    Transferred = "Transferred"
-    Graduated = "Graduated"
 
 student_class_association = Table(
     "student_class_association",
     Base.metadata,
     Column("student_id", Integer, ForeignKey("students.student_id"), primary_key=True),
     Column("class_id", Integer, ForeignKey("classes.class_id"), primary_key=True),
-    Column("enrollment_date", Date, default=date.today),
-    Column("status", Enum(EnrollmentStatus), nullable=False, default=EnrollmentStatus.Active),
 )

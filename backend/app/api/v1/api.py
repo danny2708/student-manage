@@ -8,7 +8,6 @@ from app.api.v1.endpoints.payroll_route import router as payroll_router
 from app.api.v1.endpoints.teacher_route import router as teacher_router
 from app.api.v1.endpoints.parent_route import router as parent_router
 from app.api.v1.endpoints.student_route import router as student_router
-from app.api.v1.endpoints.student_parent_route import router as student_parent_router
 from app.api.v1.endpoints.subject_route import router as subject_router
 from app.api.v1.endpoints.test_route import router as test_router
 from app.api.v1.endpoints.tuition_route import router as tuition_router
@@ -33,7 +32,6 @@ api_router.include_router(payroll_router, prefix="/payrolls", tags=["Payrolls"])
 api_router.include_router(teacher_router, prefix="/teachers", tags=["Teachers"])
 api_router.include_router(parent_router, prefix="/parents", tags=["Parents"])
 api_router.include_router(student_router, prefix="/students", tags=["Students"])
-api_router.include_router(student_parent_router, prefix="/student_parents", tags=["Student-Parents"])
 api_router.include_router(subject_router, prefix="/subjects", tags=["Subjects"])
 api_router.include_router(test_router, prefix="/tests", tags=["Tests"])
 api_router.include_router(tuition_router, prefix="/tuitions", tags=["Tuitions"])
