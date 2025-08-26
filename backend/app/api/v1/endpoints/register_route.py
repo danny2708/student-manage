@@ -16,7 +16,7 @@ router = APIRouter()
 @router.post(
     "/single-user",
     status_code=status.HTTP_201_CREATED,
-    summary="Đăng ký một người dùng duy nhất (teacher, manager, parent)"
+    summary="Đăng ký một người dùng duy nhất (teacher,...)"
 )
 def register_single_user(
     request: RegisterRequest,
@@ -24,7 +24,13 @@ def register_single_user(
 ):
     """
     Xử lý đăng ký một người dùng duy nhất dựa trên vai trò.
+    Người dùng không được phép tự đăng ký với vai trò 'manager'.
     """
+    if request.role == "manager":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Không được phép tự đăng ký với vai trò 'manager'."
+        )
     return registration_service.register_single_user_service(db, request)
 
 @router.post(

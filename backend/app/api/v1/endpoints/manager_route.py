@@ -10,10 +10,21 @@ from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import manager_schema 
 from app.api import deps
 
+# Import dependency phân quyền cho vai trò manager
+from app.api.auth.auth import get_current_manager
+
 router = APIRouter()
 
-@router.post("/", response_model=manager_schema.Manager, status_code=status.HTTP_201_CREATED)
-def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depends(deps.get_db)):
+@router.post(
+    "/",
+    response_model=manager_schema.Manager,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager gán role manager
+)
+def assign_manager(
+    manager_in: manager_schema.ManagerAssign,
+    db: Session = Depends(deps.get_db)
+):
     """
     Gán một user đã tồn tại thành manager + cập nhật role 'manager' trong user_roles.
     """
@@ -54,8 +65,16 @@ def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depen
     return db_manager
 
 
-@router.get("/", response_model=List[manager_schema.Manager])
-def get_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/",
+    response_model=List[manager_schema.Manager],
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem danh sách
+)
+def get_all_managers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(deps.get_db)
+):
     """
     Lấy danh sách tất cả quản lý.
     """
@@ -63,8 +82,15 @@ def get_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(deps
     return managers
 
 
-@router.get("/{manager_id}", response_model=manager_schema.Manager)
-def get_manager(manager_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/{manager_id}",
+    response_model=manager_schema.Manager,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem chi tiết
+)
+def get_manager(
+    manager_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Lấy thông tin của một quản lý cụ thể bằng ID.
     """
@@ -77,8 +103,16 @@ def get_manager(manager_id: int, db: Session = Depends(deps.get_db)):
     return db_manager
 
 
-@router.put("/{manager_id}", response_model=manager_schema.Manager)
-def update_existing_manager(manager_id: int, manager: manager_schema.ManagerUpdate, db: Session = Depends(deps.get_db)):
+@router.put(
+    "/{manager_id}",
+    response_model=manager_schema.Manager,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager cập nhật thông tin
+)
+def update_existing_manager(
+    manager_id: int,
+    manager: manager_schema.ManagerUpdate,
+    db: Session = Depends(deps.get_db)
+):
     """
     Cập nhật thông tin của một quản lý cụ thể bằng ID.
     """
@@ -91,8 +125,15 @@ def update_existing_manager(manager_id: int, manager: manager_schema.ManagerUpda
     return db_manager
 
 
-@router.delete("/{manager_id}", response_model=dict)
-def delete_existing_manager(manager_id: int, db: Session = Depends(deps.get_db)):
+@router.delete(
+    "/{manager_id}",
+    response_model=dict,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa
+)
+def delete_existing_manager(
+    manager_id: int,
+    db: Session = Depends(deps.get_db)
+):
     db_manager = manager_crud.get_manager(db, manager_id=manager_id)
     if db_manager is None:
         raise HTTPException(
@@ -107,4 +148,3 @@ def delete_existing_manager(manager_id: int, db: Session = Depends(deps.get_db))
         "deleted_at": datetime.utcnow().isoformat(),
         "status": "success"
     }
-
