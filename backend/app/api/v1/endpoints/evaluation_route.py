@@ -1,7 +1,9 @@
-# app/api/v1/endpoints/teacher_review_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+
+# Import các dependency cần thiết từ auth.py
+from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
 
 # Sử dụng đúng tên crud và schema của bạn
 from app.crud import evaluation_crud
@@ -13,13 +15,19 @@ from app.services import evaluation_service
 
 router = APIRouter()
 
-@router.post("/", response_model=evaluation_schema.Evaluation, status_code=status.HTTP_201_CREATED)
-def create_new_evaluation_record(evaluation_in: evaluation_schema.EvaluationCreate, db: Session = Depends(deps.get_db)):
+@router.post(
+    "/",
+    response_model=evaluation_schema.Evaluation,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_manager_or_teacher)]
+)
+def create_new_evaluation_record(
+    evaluation_in: evaluation_schema.EvaluationCreate,
+    db: Session = Depends(deps.get_db)
+):
     """
     Tạo một bản ghi đánh giá mới với điểm delta (thay đổi).
-    
-    Điểm số thực tế sẽ được lưu vào cơ sở dữ liệu.
-    Nội dung đánh giá cũng được lưu kèm theo.
+    Chỉ cho phép manager và Giáo viên tạo đánh giá.
     """
     # Bước 1 & 2: Kiểm tra sự tồn tại của teacher_id và student_id
     db_teacher = teacher_crud.get_teacher(db, teacher_id=evaluation_in.teacher_id)
@@ -37,17 +45,20 @@ def create_new_evaluation_record(evaluation_in: evaluation_schema.EvaluationCrea
         )
         
     # Bước 3: Tạo bản ghi đánh giá chi tiết
-    # Endpoint này chỉ đơn giản là lưu bản ghi mới, không tính toán điểm tổng.
-    # Điểm tổng sẽ được tính sau khi cần hiển thị.
     return evaluation_crud.create_evaluation(db=db, evaluation=evaluation_in)
 
 
-@router.get("/total_score/{student_id}")
-def get_total_score_by_student(student_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/total_score/{student_id}",
+    dependencies=[Depends(get_current_manager_or_teacher)]
+)
+def get_total_score_by_student(
+    student_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Tính và trả về điểm tổng hiện tại của một học sinh.
-    
-    Điểm tổng được tính bằng cách cộng tất cả các bản ghi delta.
+    Chỉ manager và Giáo viên mới có thể xem.
     """
     # Kiểm tra sự tồn tại của student_id
     db_student = student_crud.get_student(db, student_id=student_id)
@@ -59,7 +70,7 @@ def get_total_score_by_student(student_id: int, db: Session = Depends(deps.get_d
         
     total_points = evaluation_service.calculate_total_points_for_student(db, student_id=student_id)
     
-    if not total_points:
+    if total_points is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No evaluation record found for student {student_id}"
@@ -68,10 +79,18 @@ def get_total_score_by_student(student_id: int, db: Session = Depends(deps.get_d
     return total_points
 
 
-@router.get("/summary_and_counts/{student_id}", response_model=evaluation_schema.EvaluationSummary)
-def get_summary_and_counts(student_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/summary_and_counts/{student_id}",
+    response_model=evaluation_schema.EvaluationSummary,
+    dependencies=[Depends(get_current_manager_or_teacher)]
+)
+def get_summary_and_counts(
+    student_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Lấy điểm tổng (giới hạn 100) và số lần cộng/trừ điểm của một học sinh.
+    Chỉ manager và Giáo viên mới có thể xem.
     """
     # Kiểm tra sự tồn tại của student_id
     db_student = student_crud.get_student(db, student_id=student_id)
@@ -85,10 +104,18 @@ def get_summary_and_counts(student_id: int, db: Session = Depends(deps.get_db)):
     return summary_data
 
 
-@router.get("/{evaluation_id}", response_model=evaluation_schema.EvaluationRead)
-def get_evaluation_record(evaluation_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/{evaluation_id}",
+    response_model=evaluation_schema.EvaluationRead,
+    dependencies=[Depends(get_current_manager_or_teacher)]
+)
+def get_evaluation_record(
+    evaluation_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Lấy thông tin một đánh giá chi tiết (delta) theo ID.
+    Chỉ manager và Giáo viên mới có thể xem.
     """
     db_evaluation = evaluation_crud.get_evaluation(db, evaluation_id=evaluation_id)
     if db_evaluation is None:
@@ -99,10 +126,18 @@ def get_evaluation_record(evaluation_id: int, db: Session = Depends(deps.get_db)
     return db_evaluation
 
 
-@router.get("/by_student/{student_id}", response_model=List[evaluation_schema.EvaluationRead])
-def get_evaluations_by_student(student_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/by_student/{student_id}",
+    response_model=List[evaluation_schema.EvaluationRead],
+    dependencies=[Depends(get_current_manager_or_teacher)]
+)
+def get_evaluations_by_student(
+    student_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Lấy tất cả các bản ghi đánh giá chi tiết của một học sinh theo student_id.
+    Chỉ manager và Giáo viên mới có thể xem.
     """
     db_student = student_crud.get_student(db, student_id=student_id)
     if not db_student:
@@ -115,10 +150,18 @@ def get_evaluations_by_student(student_id: int, db: Session = Depends(deps.get_d
     return evaluations
 
 
-@router.delete("/{evaluation_id}", status_code=status.HTTP_200_OK)
-def delete_evaluation_api(evaluation_id: int, db: Session = Depends(deps.get_db)):
+@router.delete(
+    "/{evaluation_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_manager)]
+)
+def delete_evaluation_api(
+    evaluation_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
     Xóa một bản ghi đánh giá chi tiết theo ID.
+    Chỉ có manager mới có quyền thực hiện.
     """
     result = evaluation_crud.delete_evaluation(db, evaluation_id)
     

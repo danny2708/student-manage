@@ -1,10 +1,10 @@
+#register_schema
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date
 
 # Thêm các trường dữ liệu mới cho người dùng
 class UserInfo(BaseModel):
-    username: str = Field(..., example="john_doe")
     email: Optional[str] = Field(None, example="john.doe@example.com")
     password: str = Field(..., example="verysecretpassword")
     role: str = Field(..., example="teacher")
@@ -17,7 +17,7 @@ class UserInfo(BaseModel):
 
 class RegisterRequest(BaseModel):
     user_info: UserInfo
-    role_info: Optional[dict] = Field(None)
+    role: Optional[dict] = Field(None)
 
 # -----------------
 # Schema cho Endpoint "parent-and-children"

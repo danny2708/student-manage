@@ -1,7 +1,7 @@
 # app/api/deps.py
 from typing import Generator
 from sqlalchemy.orm import Session
-from app.database import SessionLocal # Import SessionLocal từ database.py
+from app.database import SessionLocal
 
 def get_db() -> Generator[Session, None, None]:
     """Dependency để lấy phiên cơ sở dữ liệu."""
@@ -10,4 +10,6 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
 

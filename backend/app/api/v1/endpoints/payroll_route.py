@@ -12,13 +12,25 @@ from app.schemas import payroll_schema
 from app.schemas.notification_schema import NotificationCreate
 from app.api import deps
 from app.services import payroll_service
+from app.crud import user_crud
+
+# Import dependencies phân quyền từ đường dẫn chính xác
+from app.api.auth.auth import get_current_user, get_current_manager
 
 router = APIRouter()
 
-@router.post("/", response_model=payroll_schema.Payroll, status_code=status.HTTP_201_CREATED)
-def create_new_payroll(payroll_in: payroll_schema.PayrollCreate, db: Session = Depends(deps.get_db)):
+@router.post(
+    "/",
+    response_model=payroll_schema.Payroll,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager tạo bản ghi
+)
+def create_new_payroll(
+    payroll_in: payroll_schema.PayrollCreate,
+    db: Session = Depends(deps.get_db)
+):
     """
-    Tạo một bản ghi bảng lương mới.
+    Tạo một bản ghi bảng lương mới. Chỉ có manager mới có quyền.
     """
     # Bước 1: Kiểm tra xem teacher_id có tồn tại trong bảng teachers không
     db_teacher = teacher_crud.get_teacher(db, teacher_id=payroll_in.teacher_id)
@@ -31,16 +43,30 @@ def create_new_payroll(payroll_in: payroll_schema.PayrollCreate, db: Session = D
     # Bước 2: Tạo bản ghi bảng lương
     return payroll_crud.create_payroll_record(db=db, payroll=payroll_in)
 
-@router.get("/", response_model=List[payroll_schema.Payroll])
-def get_all_payrolls(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/",
+    response_model=List[payroll_schema.Payroll],
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem tất cả
+)
+def get_all_payrolls(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(deps.get_db)
+):
     """
-    Lấy danh sách tất cả các bản ghi bảng lương.
+    Lấy danh sách tất cả các bản ghi bảng lương. Chỉ có manager mới có quyền.
     """
     payrolls = payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
     return payrolls
 
-@router.get("/run_payroll", status_code=status.HTTP_200_OK)
-def run_payroll(db: Session = Depends(deps.get_db)):
+@router.get(
+    "/run_payroll",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager chạy quá trình này
+)
+def run_payroll(
+    db: Session = Depends(deps.get_db)
+):
     """
     Chạy quá trình tính lương hàng tháng (thủ công).
     Sau khi tạo payroll sẽ tự động gửi thông báo.
@@ -59,10 +85,18 @@ def run_payroll(db: Session = Depends(deps.get_db)):
         )
 
 
-@router.get("/{payroll_id}", response_model=payroll_schema.Payroll)
-def get_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/{payroll_id}",
+    response_model=payroll_schema.Payroll
+)
+def get_payroll(
+    payroll_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: user_crud.User = Depends(get_current_user)
+):
     """
     Lấy thông tin của một bản ghi bảng lương cụ thể bằng ID.
+    Giáo viên chỉ có thể xem bảng lương của chính họ. Manager có thể xem bất kỳ.
     """
     db_payroll = payroll_crud.get_payroll(db, payroll_id=payroll_id)
     if db_payroll is None:
@@ -70,12 +104,30 @@ def get_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Bảng lương không tìm thấy."
         )
+    
+    # Kiểm tra quyền: Người dùng hiện tại là manager HOẶC là giáo viên của bảng lương này
+    if not current_user.is_manager:
+        db_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=current_user.id)
+        if not db_teacher or db_payroll.teacher_id != db_teacher.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền xem bảng lương này."
+            )
+
     return db_payroll
 
-@router.put("/{payroll_id}", response_model=payroll_schema.Payroll)
-def update_existing_payroll(payroll_id: int, payroll_update: payroll_schema.PayrollUpdate, db: Session = Depends(deps.get_db)):
+@router.put(
+    "/{payroll_id}",
+    response_model=payroll_schema.Payroll,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager cập nhật
+)
+def update_existing_payroll(
+    payroll_id: int,
+    payroll_update: payroll_schema.PayrollUpdate,
+    db: Session = Depends(deps.get_db)
+):
     """
-    Cập nhật thông tin của một bản ghi bảng lương cụ thể bằng ID.
+    Cập nhật thông tin của một bản ghi bảng lương cụ thể bằng ID. Chỉ có manager mới có quyền.
     """
     db_payroll = payroll_crud.update_payroll(db, payroll_id=payroll_id, payroll_update=payroll_update)
     if db_payroll is None:
@@ -85,10 +137,17 @@ def update_existing_payroll(payroll_id: int, payroll_update: payroll_schema.Payr
         )
     return db_payroll
 
-@router.delete("/{payroll_id}", response_model=dict)
-def delete_existing_payroll(payroll_id: int, db: Session = Depends(deps.get_db)):
+@router.delete(
+    "/{payroll_id}",
+    response_model=dict,
+    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa
+)
+def delete_existing_payroll(
+    payroll_id: int,
+    db: Session = Depends(deps.get_db)
+):
     """
-    Xóa một bản ghi bảng lương và trả về nội dung của bản ghi đã xóa.
+    Xóa một bản ghi bảng lương. Chỉ có manager mới có quyền.
     """
     db_payroll = payroll_crud.get_payroll(db, payroll_id=payroll_id)
     if db_payroll is None:
@@ -97,8 +156,6 @@ def delete_existing_payroll(payroll_id: int, db: Session = Depends(deps.get_db))
             detail="Không tìm thấy bảng lương !"
         )
 
-    # Đã xóa `status_code=status.HTTP_204_NO_CONTENT` để cho phép body phản hồi.
-    # Sử dụng `deleted_payroll` để trả về nội dung của bản ghi đã xóa.
     deleted_payroll = payroll_crud.delete_payroll(db, payroll_id=payroll_id)
 
     return {
@@ -108,11 +165,30 @@ def delete_existing_payroll(payroll_id: int, db: Session = Depends(deps.get_db))
     }
 
 
-@router.get("/teacher/{teacher_id}", response_model=List[payroll_schema.Payroll])
-def get_teacher_payrolls(teacher_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+@router.get(
+    "/teacher/{teacher_id}",
+    response_model=List[payroll_schema.Payroll]
+)
+def get_teacher_payrolls(
+    teacher_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(deps.get_db),
+    current_user: user_crud.User = Depends(get_current_user)
+):
     """
-    Lấy danh sách các bản ghi bảng lương của một người dùng cụ thể.
+    Lấy danh sách các bản ghi bảng lương của một giáo viên cụ thể.
+    Giáo viên chỉ có thể xem bảng lương của chính họ. Manager có thể xem bất kỳ.
     """
+    # Kiểm tra quyền: Người dùng hiện tại là manager HOẶC là giáo viên này
+    if not current_user.is_manager:
+        db_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=current_user.id)
+        if not db_teacher or teacher_id != db_teacher.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền xem bảng lương của giáo viên khác."
+            )
+
     payrolls = payroll_crud.get_payrolls_by_teacher_id(db, teacher_id=teacher_id, skip=skip, limit=limit)
     if not payrolls:
         raise HTTPException(
