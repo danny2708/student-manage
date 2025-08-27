@@ -15,7 +15,7 @@ from app.services import payroll_service
 from app.crud import user_crud
 
 # Import dependencies phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_user, get_current_manager
+from app.api.auth.auth import get_current_active_user, get_current_manager
 
 router = APIRouter()
 
@@ -92,7 +92,7 @@ def run_payroll(
 def get_payroll(
     payroll_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Lấy thông tin của một bản ghi bảng lương cụ thể bằng ID.
@@ -174,7 +174,7 @@ def get_teacher_payrolls(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Lấy danh sách các bản ghi bảng lương của một giáo viên cụ thể.

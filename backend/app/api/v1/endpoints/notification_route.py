@@ -10,7 +10,7 @@ from app.schemas import notification_schema
 from app.api import deps
 
 # Import dependencies phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_user, get_current_manager
+from app.api.auth.auth import get_current_active_user, get_current_manager
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ router = APIRouter()
 def create_new_notification(
     notification_in: notification_schema.NotificationCreate,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user) # Lấy thông tin người dùng hiện tại
+    current_user: user_crud.User = Depends(get_current_active_user) # Lấy thông tin người dùng hiện tại
 ):
     """
     Tạo một thông báo mới.
@@ -66,7 +66,7 @@ def get_all_notifications(
 def get_notification(
     notification_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Lấy thông tin của một thông báo cụ thể bằng ID.
@@ -93,7 +93,7 @@ def update_existing_notification(
     notification_id: int,
     notification_update: notification_schema.NotificationUpdate,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Cập nhật thông tin của một thông báo cụ thể bằng ID.

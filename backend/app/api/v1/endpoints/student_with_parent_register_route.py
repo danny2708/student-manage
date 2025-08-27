@@ -8,6 +8,8 @@ from app.schemas import student_schema, parent_schema
 # Import CRUD operations từ các file tương ứng
 from app.crud import parent_crud, student_crud
 from app.api import deps
+# Import các dependencies cần thiết từ auth.py
+from app.api.auth.auth import get_current_manager_or_teacher
 
 router = APIRouter()
 
@@ -21,7 +23,9 @@ class StudentWithParentRegisterRequest(student_schema.StudentCreate):
 # --- Endpoint API mới ---
 @router.post("/register-student-with-parent/",
              response_model=student_schema.Student,
-             status_code=status.HTTP_201_CREATED)
+             status_code=status.HTTP_201_CREATED,
+             summary="Đăng ký một học sinh mới và liên kết với một phụ huynh đã tồn tại.",
+             dependencies=[Depends(get_current_manager_or_teacher)]) # Chỉ manager hoặc teacher mới có quyền
 def register_student_with_parent(
     request_data: StudentWithParentRegisterRequest,
     db: Session = Depends(deps.get_db)
@@ -31,6 +35,8 @@ def register_student_with_parent(
     
     - **Bước 1**: Kiểm tra xem parent_id có tồn tại hay không.
     - **Bước 2**: Tạo học sinh mới và liên kết với phụ huynh đó.
+    
+    Quyền truy cập: **manager**, **teacher**
     """
     # Bước 1: Kiểm tra xem parent_id có tồn tại không
     db_parent = parent_crud.get_parent(db, parent_id=request_data.parent_id)
@@ -42,6 +48,7 @@ def register_student_with_parent(
     
     # Bước 2: Tạo học sinh mới
     # Tạo một StudentCreate schema từ dữ liệu request
+    # Lưu ý: Các trường 'first_name', 'last_name', 'email' được lấy từ StudentCreate
     student_in = student_schema.StudentCreate(
         user_id=request_data.user_id,
         parent_id=request_data.parent_id,
@@ -50,7 +57,6 @@ def register_student_with_parent(
         email=request_data.email
     )
     
-    # Giả định rằng hàm create_student sẽ kiểm tra user_id đã tồn tại chưa
     try:
         db_student = student_crud.create_student(db=db, student=student_in)
     except Exception as e:
