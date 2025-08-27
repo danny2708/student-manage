@@ -1,9 +1,10 @@
+# app/api/auth/auth.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from passlib.context import CryptContext
-from datetime import timedelta, datetime, timezone # Import thêm datetime và timezone
-from jose import JWTError, jwt
+from passlib.context import CryptContext # type: ignore
+from datetime import timedelta, datetime, timezone
+from jose import JWTError, jwt # type: ignore
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -71,8 +72,11 @@ def login(
         )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    # Thêm user_id (dưới dạng chuỗi) và username vào payload token để truy xuất sau này.
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": str(user.user_id), "username": user.username}, 
+        expires_delta=access_token_expires
     )
         
     return {

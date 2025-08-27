@@ -11,7 +11,7 @@ from app.schemas import parent_schema
 from app.api import deps
 
 # Import các dependency phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_user, get_current_manager
+from app.api.auth.auth import get_current_active_user, get_current_manager
 
 router = APIRouter()
 
@@ -89,7 +89,7 @@ def get_all_parents(
 def get_parent(
     parent_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Lấy thông tin của một phụ huynh cụ thể bằng ID.
@@ -119,7 +119,7 @@ def update_existing_parent(
     parent_id: int,
     parent_update: parent_schema.ParentUpdate,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_user)
+    current_user: user_crud.User = Depends(get_current_active_user)
 ):
     """
     Cập nhật thông tin của một phụ huynh cụ thể bằng ID.

@@ -1,6 +1,11 @@
 # app/api/v1/endpoints/student_class_route.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
+
+# Import các dependency từ file auth của bạn
+from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
+
 from app.api.deps import get_db
 from app.schemas.student_class_association_schema import (
     StudentClassAssociationCreate,
@@ -17,15 +22,24 @@ from app.crud.student_class_crud import (
 
 router = APIRouter()
 
-@router.post("/", response_model=StudentClassAssociation, status_code=201)
+# --- Các endpoint chỉ dành cho Manager ---
+# Manager có thể tạo, xóa, và xem tất cả các bản ghi enrollment
+@router.post(
+    "/", 
+    response_model=StudentClassAssociation, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo một bản ghi enrollment mới cho một sinh viên vào một lớp học",
+    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền tạo
+)
 def create_new_student_enrollment(
     student_class_in: StudentClassAssociationCreate,
     db: Session = Depends(get_db)
 ):
     """
-    Tạo một bản ghi enrollment mới cho một sinh viên vào một lớp học.
+    Tạo một bản ghi enrollment mới.
+    
+    Quyền truy cập: **manager**
     """
-    # Kiểm tra xem sinh viên đã được ghi danh vào lớp này chưa
     existing_enrollment = get_enrollment(
         db, 
         student_id=student_class_in.student_id,
@@ -33,54 +47,114 @@ def create_new_student_enrollment(
     )
     if existing_enrollment:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Student is already enrolled in this class."
         )
     
-    # Tạo bản ghi enrollment mới
     new_enrollment = create_enrollment(db=db, student_class_in=student_class_in)
     
-    # Trả về đối tượng Pydantic hoàn chỉnh
     return StudentClassAssociation(
         student_id=new_enrollment.student_id,
         class_id=new_enrollment.class_id,
-        # Sử dụng trường enrollment_date từ model SQLAlchemy
         enrollment_date=new_enrollment.enrollment_date,  
-        # Lấy giá trị chuỗi từ enum
         status=new_enrollment.enrollment_status.value
     )
 
-@router.delete("/{student_id}/{class_id}", status_code=204)
+@router.delete(
+    "/{student_id}/{class_id}", 
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'",
+    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền xóa
+)
 def remove_student_enrollment(
     student_id: int,
     class_id: int,
     db: Session = Depends(get_db)
 ):
     """
-    Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'
-    và xóa bản ghi liên kết.
+    Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'.
+    
+    Quyền truy cập: **manager**
     """
-    # Gọi hàm set_enrollment_inactive để thực hiện logic
     removed_enrollment = set_enrollment_inactive(
         db=db, student_id=student_id, class_id=class_id
     )
     if not removed_enrollment:
         raise HTTPException(
-            status_code=404, 
+            status_code=status.HTTP_404_NOT_FOUND, 
             detail="Enrollment record not found."
         )
     
-    # Không cần trả về nội dung cho status_code 204
     return
 
-@router.get("/student/{student_id}", response_model=list[StudentClassAssociation])
+# --- Các endpoint dành cho cả Manager và Teacher ---
+# Cả hai vai trò này đều có thể xem thông tin enrollment
+@router.get(
+    "/student/{student_id}", 
+    response_model=List[StudentClassAssociation],
+    summary="Lấy danh sách các lớp học mà một sinh viên đã đăng ký",
+    dependencies=[Depends(get_current_manager_or_teacher)] # Manager hoặc Teacher đều có thể xem
+)
 def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
-    """Lấy danh sách các lớp học mà một sinh viên đã đăng ký."""
+    """
+    Lấy danh sách các lớp học mà một sinh viên đã đăng ký.
+    
+    Quyền truy cập: **manager**, **teacher**
+    """
     enrollments = get_enrollments_by_student_id(db, student_id)
     if not enrollments:
-        raise HTTPException(status_code=404, detail="Enrollments not found for this student.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollments not found for this student.")
     
-    # Chuyển đổi từ model SQLAlchemy sang schema Pydantic
+    return [
+        StudentClassAssociation(
+            student_id=e.student_id,
+            class_id=e.class_id,
+            enrollment_date=e.enrollment_date,
+            status=e.enrollment_status.value
+        ) for e in enrollments
+    ]
+
+@router.get(
+    "/class/{class_id}",
+    response_model=List[StudentClassAssociation],
+    summary="Lấy danh sách các sinh viên đã đăng ký vào một lớp học",
+    dependencies=[Depends(get_current_manager_or_teacher)] # Manager hoặc Teacher đều có thể xem
+)
+def get_enrollments_for_class(class_id: int, db: Session = Depends(get_db)):
+    """
+    Lấy danh sách các sinh viên đã đăng ký vào một lớp học.
+    
+    Quyền truy cập: **manager**, **teacher**
+    """
+    enrollments = get_enrollments_by_class_id(db, class_id)
+    if not enrollments:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollments not found for this class.")
+    
+    return [
+        StudentClassAssociation(
+            student_id=e.student_id,
+            class_id=e.class_id,
+            enrollment_date=e.enrollment_date,
+            status=e.enrollment_status.value
+        ) for e in enrollments
+    ]
+    
+@router.get(
+    "/",
+    response_model=List[StudentClassAssociation],
+    summary="Lấy tất cả các bản ghi enrollment",
+    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền xem toàn bộ
+)
+def get_all_student_enrollments(db: Session = Depends(get_db)):
+    """
+    Lấy tất cả các bản ghi enrollment.
+    
+    Quyền truy cập: **manager**
+    """
+    enrollments = get_all_enrollments(db)
+    if not enrollments:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No enrollments found.")
+    
     return [
         StudentClassAssociation(
             student_id=e.student_id,

@@ -1,7 +1,7 @@
 # app/api/auth/auth.py
 import os
 from datetime import datetime, timedelta, timezone # Import timezone
-from typing import Optional, Dict
+from typing import List, Optional, Dict
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,6 +13,8 @@ from app.models.user_model import User # Import model User của bạn
 from app.schemas.auth_schema import TokenData, AuthenticatedUser
 # Thêm dòng này để load các biến môi trường từ file .env
 from dotenv import load_dotenv
+from app.schemas.user_schema import UserOut
+
 load_dotenv()
 
 # Cấu hình JWT
@@ -58,14 +60,24 @@ def verify_token(token: str) -> TokenData:
     
     return token_data
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> AuthenticatedUser:
+class AuthenticatedUser(UserOut):
+    roles: List[str]
+
+def get_current_active_user(
+    token: str = Depends(oauth2_scheme), 
+    db: Session = Depends(get_db)
+) -> AuthenticatedUser:
     """
     Dependency để lấy thông tin người dùng hiện tại từ token.
     """
-    token_data = verify_token(token)
-    
+    # Lấy token data từ token JWT
+    token_data: TokenData = verify_token(token)
+    user_id = token_data.user_id
+
     # Truy vấn người dùng từ cơ sở dữ liệu dựa trên user_id từ token
-    user = db.query(User).filter(User.id == token_data.user_id).first()
+    # SQLAlchemy sẽ tự động tải các mối quan hệ đã được thiết lập,
+    # bao gồm cả roles thông qua bảng trung gian.
+    user = db.query(User).filter(User.user_id == user_id).first()
     
     # Kiểm tra xem người dùng có tồn tại không
     if not user:
@@ -81,23 +93,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             detail="Người dùng không hoạt động"
         )
 
-    # Chuyển đổi đối tượng SQLAlchemy thành Pydantic model
+    # Lấy danh sách tên vai trò từ mối quan hệ roles
+    roles = [role.name for role in user.roles]
+    
     return AuthenticatedUser(
-        id=user.id,
+        user_id=user.user_id,
         username=user.username,
-        role=user.role,
-        is_active=user.is_active,
+        email=user.email,
         full_name=user.full_name,
-        email=user.email
+        date_of_birth=user.date_of_birth,
+        gender=user.gender,
+        phone_number=user.phone_number,
+        roles=roles,  # Thêm trường roles đã lấy vào schema
     )
-
-def get_current_active_user(current_user: AuthenticatedUser = Depends(get_current_user)):
-    """
-    Dependency để lấy người dùng đang hoạt động.
-    """
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Người dùng không hoạt động")
-    return current_user
 
 def get_current_manager_or_teacher(
     current_user: AuthenticatedUser = Depends(get_current_active_user),
@@ -123,5 +131,31 @@ def get_current_manager(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Chỉ quản lý mới có quyền truy cập",
+        )
+    return current_user
+
+def get_current_student_user(
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
+):
+    """
+    Dependency: Chỉ cho phép truy cập nếu user có vai trò là student.
+    """
+    if "student" not in current_user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ học sinh mới có quyền truy cập",
+        )
+    return current_user
+
+def get_current_parent_user(
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
+):
+    """
+    Dependency: Chỉ cho phép truy cập nếu user có vai trò là parent.
+    """
+    if "parent" not in current_user.roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ phụ huynh mới có quyền truy cập",
         )
     return current_user

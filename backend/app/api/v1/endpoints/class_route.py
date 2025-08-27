@@ -1,18 +1,22 @@
+# app/api/endpoints/class.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 from app.api.deps import get_db
-from app.api.auth.auth import AuthenticatedUser, get_current_manager_or_teacher, get_current_manager
+from app.api.auth.auth import AuthenticatedUser, get_current_manager, get_current_manager_or_teacher
 from app.crud import class_crud
 from app.schemas import class_schema
 from app.services.excel_services.export_class import export_class
 
 router = APIRouter()
 
-# --- Các endpoint yêu cầu quyền manager ---
-# Chỉ manager mới có thể tạo, cập nhật hoặc xóa lớp học
+# --- Endpoint nhóm theo vai trò ---
 
+# Các endpoints chỉ dành cho Manager
+# Lưu ý: Mỗi endpoint có thể có dependency riêng, nhưng để gọn, ta có thể nhóm lại
+
+# Tạo lớp học mới
 @router.post(
     "/",
     response_model=class_schema.Class,
@@ -38,6 +42,7 @@ def create_new_class(
         )
     return class_crud.create_class(db=db, class_data=class_in)
 
+# Cập nhật thông tin lớp học
 @router.put(
     "/{class_id}",
     response_model=class_schema.Class,
@@ -63,6 +68,7 @@ def update_existing_class(
         )
     return db_class
 
+# Xóa lớp học
 @router.delete(
     "/{class_id}",
     response_model=dict,
@@ -92,9 +98,8 @@ def delete_existing_class(
         "status": "success"
     }
 
-# --- Các endpoint yêu cầu quyền manager hoặc Teacher ---
-# Cả manager và Teacher đều có thể xem danh sách lớp học và xuất file Excel
-
+# Các endpoints dành cho cả Manager và Teacher
+# Sử dụng router.get với dependency chung
 @router.get(
     "/",
     response_model=List[class_schema.Class],
