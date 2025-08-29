@@ -1,3 +1,4 @@
+# app/api/endpoints/manager_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,16 +11,19 @@ from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import manager_schema 
 from app.api import deps
 
-# Import dependency phân quyền cho vai trò manager
-from app.api.auth.auth import get_current_manager
+# Import dependency factory
+from app.api.auth.auth import has_roles, AuthenticatedUser
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
     "/",
     response_model=manager_schema.Manager,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager gán role manager
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager gán role manager
 )
 def assign_manager(
     manager_in: manager_schema.ManagerAssign,
@@ -68,7 +72,7 @@ def assign_manager(
 @router.get(
     "/",
     response_model=List[manager_schema.Manager],
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem danh sách
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager xem danh sách
 )
 def get_all_managers(
     skip: int = 0,
@@ -85,7 +89,7 @@ def get_all_managers(
 @router.get(
     "/{manager_id}",
     response_model=manager_schema.Manager,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem chi tiết
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager xem chi tiết
 )
 def get_manager(
     manager_id: int,
@@ -106,7 +110,7 @@ def get_manager(
 @router.put(
     "/{manager_id}",
     response_model=manager_schema.Manager,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager cập nhật thông tin
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager cập nhật thông tin
 )
 def update_existing_manager(
     manager_id: int,
@@ -128,7 +132,7 @@ def update_existing_manager(
 @router.delete(
     "/{manager_id}",
     response_model=dict,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager xóa
 )
 def delete_existing_manager(
     manager_id: int,

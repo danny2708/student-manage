@@ -1,3 +1,6 @@
+# app/api/v1/endpoints/schedule_route.py
+
+from app.models.schedule_model import DayOfWeekEnum, ScheduleTypeEnum
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -7,15 +10,17 @@ from datetime import date as dt_date
 from app.crud import schedule_crud
 from app.schemas import schedule_schema
 from app.api import deps
-from app.api.auth.auth import AuthenticatedUser, get_current_active_user
-from app.models.schedule_model import DayOfWeekEnum, ScheduleTypeEnum
+from app.api.auth.auth import AuthenticatedUser, get_current_active_user, has_roles
 
 # Import service layer
 from app.services import schedule_service
 
 router = APIRouter()
 
-@router.post("/schedules/", response_model=schedule_schema.Schedule, status_code=status.HTTP_201_CREATED)
+# Dependency cho quyền truy cập của Quản lý hoặc Giáo viên
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
+@router.post("/schedules/", response_model=schedule_schema.Schedule, status_code=status.HTTP_201_CREATED, dependencies=[Depends(MANAGER_OR_TEACHER)])
 def create_schedule_route(
     schedule_in: schedule_schema.ScheduleCreate, 
     db: Session = Depends(deps.get_db),
@@ -25,13 +30,6 @@ def create_schedule_route(
     Tạo một lịch trình mới sau khi kiểm tra xung đột và quyền.
     Chỉ Quản lý và Giáo viên được phép.
     """
-    # Kiểm tra quyền truy cập của người dùng
-    if "manager" not in current_user.roles and "teacher" not in current_user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bạn không có quyền tạo lịch trình."
-        )
-
     # Gọi service layer để xử lý logic tạo lịch, bao gồm cả kiểm tra xung đột và quyền của giáo viên
     try:
         db_schedule = schedule_service.create_schedule_with_validation(
@@ -123,7 +121,7 @@ def update_existing_schedule_route(
     updated_schedule = schedule_crud.update_schedule(db, schedule=db_schedule, schedule_in=schedule_update)
     return updated_schedule
 
-@router.delete("/schedules/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/schedules/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(has_roles(["manager"]))])
 def delete_existing_schedule_route(
     schedule_id: int, 
     db: Session = Depends(deps.get_db),
@@ -138,13 +136,6 @@ def delete_existing_schedule_route(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lịch trình không tìm thấy."
-        )
-    
-    # Chỉ Quản lý mới có quyền xóa
-    if "manager" not in current_user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bạn không có quyền xóa lịch trình."
         )
     
     schedule_crud.delete_schedule(db, schedule=db_schedule)

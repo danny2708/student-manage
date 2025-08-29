@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler # type: ignore
 from apscheduler.triggers.cron import CronTrigger # type: ignore
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.database import Base, engine, SessionLocal
 from app.models import *
@@ -58,6 +59,15 @@ app = FastAPI(
     description="API cho hệ thống quản lý học sinh.",
     version="1.0.0",
     lifespan=lifespan # Thêm dòng này để sử dụng lifespan
+)
+
+# Cấu hình CORS để cho phép các domain khác truy cập API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Bao gồm router chính của API v1

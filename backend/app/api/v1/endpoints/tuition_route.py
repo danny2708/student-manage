@@ -9,16 +9,30 @@ from app.schemas.tuition_schema import TuitionCreate, TuitionUpdate, TuitionRead
 from app.models.tuition_model import PaymentStatus
 from app.crud import tuition_crud
 from app.services import tuition_service
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher, get_current_student_user, get_current_parent_user
+# Import dependency factory
+from app.api.auth.auth import has_roles, get_current_active_user
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
+# Dependency cho quyền truy cập của Student
+STUDENT_ONLY = has_roles(["student"])
+
+# Dependency cho quyền truy cập của Parent
+PARENT_ONLY = has_roles(["parent"])
+
 
 @router.post(
     "/",
     response_model=TuitionRead,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi học phí mới",
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def create_tuition(
     tuition_in: TuitionCreate, 
@@ -35,7 +49,7 @@ def create_tuition(
     "/{tuition_id}",
     response_model=TuitionRead,
     summary="Lấy thông tin của một bản ghi học phí cụ thể bằng ID",
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_tuition(
     tuition_id: int, 
@@ -55,7 +69,7 @@ def get_tuition(
     "/",
     response_model=List[TuitionRead],
     summary="Lấy danh sách tất cả các bản ghi học phí",
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def list_tuitions(
     skip: int = 0, 
@@ -84,38 +98,35 @@ def list_tuitions(
     "/by_student/{student_id}",
     response_model=List[TuitionRead],
     summary="Lấy danh sách học phí của một học sinh",
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher có quyền xem học phí của học sinh khác
 )
 def get_tuitions_by_student_id(
-    student_id: int, 
-    db: Session = Depends(deps.get_db),
-    payment_status: Optional[PaymentStatus] = Query(None, description="Lọc theo trạng thái thanh toán")
+    student_id: int,
+    db: Session = Depends(deps.get_db)
 ):
     """
-    Lấy danh sách học phí của một học sinh.
-
-    Tùy chọn lọc theo trạng thái thanh toán.
-
+    Lấy danh sách các bài kiểm tra của một học sinh cụ thể.
+    
     Quyền truy cập: **manager**, **teacher**
     """
     tuitions = tuition_crud.get_tuitions_by_student_id(
         db, 
-        student_id=student_id,
-        payment_status=payment_status
+        student_id=student_id
     )
     if not tuitions:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy học phí cho học sinh này.")
     return tuitions
 
+
 @router.get(
     "/my_tuitions",
     response_model=List[TuitionRead],
-    summary="Lấy danh sách học phí của người dùng hiện tại (học sinh hoặc phụ huynh)",
-    dependencies=[Depends(get_current_student_user)]
+    summary="Lấy danh sách học phí của người dùng hiện tại (học sinh)",
+    dependencies=[Depends(STUDENT_ONLY)]
 )
 def get_my_tuitions(
     db: Session = Depends(deps.get_db),
-    student: dict = Depends(get_current_student_user),
+    current_user: dict = Depends(get_current_active_user),
     payment_status: Optional[PaymentStatus] = Query(None, description="Lọc theo trạng thái thanh toán")
 ):
     """
@@ -125,7 +136,7 @@ def get_my_tuitions(
     
     Quyền truy cập: **student**
     """
-    student_id = student.get("id")
+    student_id = current_user.get("id")
     if not student_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không thể xác định học sinh.")
     
@@ -140,11 +151,11 @@ def get_my_tuitions(
     "/by_parent",
     response_model=List[TuitionRead],
     summary="Lấy danh sách học phí của tất cả học sinh thuộc một phụ huynh",
-    dependencies=[Depends(get_current_parent_user)]
+    dependencies=[Depends(PARENT_ONLY)]
 )
 def get_tuitions_by_parent(
     db: Session = Depends(deps.get_db),
-    parent: dict = Depends(get_current_parent_user),
+    current_user: dict = Depends(get_current_active_user),
     payment_status: Optional[PaymentStatus] = Query(None, description="Lọc theo trạng thái thanh toán")
 ):
     """
@@ -154,7 +165,7 @@ def get_tuitions_by_parent(
     
     Quyền truy cập: **parent**
     """
-    parent_id = parent.get("id")
+    parent_id = current_user.get("id")
     if not parent_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không thể xác định phụ huynh.")
     
@@ -170,7 +181,7 @@ def get_tuitions_by_parent(
     "/{tuition_id}",
     response_model=TuitionRead,
     summary="Cập nhật các thông tin chi tiết của học phí",
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def update_tuition_details(
     tuition_id: int,
@@ -196,7 +207,7 @@ def update_tuition_details(
     "/{tuition_id}/status",
     response_model=TuitionRead,
     summary="Cập nhật trạng thái thanh toán của học phí",
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def update_tuition_payment_status(
     tuition_id: int,
@@ -218,7 +229,7 @@ def update_tuition_payment_status(
 @router.delete(
     "/{tuition_id}",
     summary="Xóa một bản ghi học phí",
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def delete_tuition(
     tuition_id: int, 
@@ -245,7 +256,7 @@ def delete_tuition(
     "/generate-all",
     status_code=status.HTTP_202_ACCEPTED,
     summary="Kích hoạt quá trình tạo học phí cho tất cả học sinh",
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def generate_tuition_for_all_students(
     background_tasks: BackgroundTasks,

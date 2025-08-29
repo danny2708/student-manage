@@ -4,17 +4,20 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 from app.api.deps import get_db
-from app.api.auth.auth import AuthenticatedUser, get_current_manager, get_current_manager_or_teacher
+from app.api.auth.auth import AuthenticatedUser, has_roles
 from app.crud import class_crud
 from app.schemas import class_schema
 from app.services.excel_services.export_class import export_class
 
 router = APIRouter()
 
-# --- Endpoint nhóm theo vai trò ---
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
 
-# Các endpoints chỉ dành cho Manager
-# Lưu ý: Mỗi endpoint có thể có dependency riêng, nhưng để gọn, ta có thể nhóm lại
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
+# --- Endpoint nhóm theo vai trò ---
 
 # Tạo lớp học mới
 @router.post(
@@ -26,8 +29,7 @@ router = APIRouter()
 def create_new_class(
     class_in: class_schema.ClassCreate,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager)
+    current_user: AuthenticatedUser = Depends(MANAGER_ONLY)
 ):
     """
     Tạo một lớp học mới.
@@ -52,8 +54,7 @@ def update_existing_class(
     class_id: int,
     class_update: class_schema.ClassUpdate,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager)
+    current_user: AuthenticatedUser = Depends(MANAGER_ONLY)
 ):
     """
     Cập nhật thông tin của một lớp học cụ thể bằng ID.
@@ -77,8 +78,7 @@ def update_existing_class(
 def delete_existing_class(
     class_id: int,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager)
+    current_user: AuthenticatedUser = Depends(MANAGER_ONLY)
 ):
     """
     Xóa một lớp học cụ thể bằng ID.
@@ -98,8 +98,7 @@ def delete_existing_class(
         "status": "success"
     }
 
-# Các endpoints dành cho cả Manager và Teacher
-# Sử dụng router.get với dependency chung
+# Lấy danh sách tất cả các lớp học
 @router.get(
     "/",
     response_model=List[class_schema.Class],
@@ -109,17 +108,17 @@ def get_all_classes(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager hoặc Teacher mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager_or_teacher)
+    current_user: AuthenticatedUser = Depends(MANAGER_OR_TEACHER)
 ):
     """
     Lấy danh sách tất cả các lớp học.
     
-    Quyền truy cập: **manager**, **Teacher**
+    Quyền truy cập: **manager**, **teacher**
     """
     classes = class_crud.get_all_classes(db, skip=skip, limit=limit)
     return classes
 
+# Lấy thông tin của một lớp học
 @router.get(
     "/{class_id}",
     response_model=class_schema.Class,
@@ -128,13 +127,12 @@ def get_all_classes(
 def get_class(
     class_id: int,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager hoặc Teacher mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager_or_teacher)
+    current_user: AuthenticatedUser = Depends(MANAGER_OR_TEACHER)
 ):
     """
     Lấy thông tin của một lớp học cụ thể bằng ID.
     
-    Quyền truy cập: **manager**, **Teacher**
+    Quyền truy cập: **manager**, **teacher**
     """
     db_class = class_crud.get_class(db, class_id=class_id)
     if db_class is None:
@@ -144,6 +142,7 @@ def get_class(
         )
     return db_class
 
+# Xuất danh sách lớp học ra file Excel
 @router.get(
     "/export/{class_id}",
     summary="Xuất danh sách lớp học ra file Excel"
@@ -151,12 +150,11 @@ def get_class(
 def export_class_excel(
     class_id: int,
     db: Session = Depends(get_db),
-    # Dependency để đảm bảo chỉ manager hoặc Teacher mới có thể truy cập
-    current_user: AuthenticatedUser = Depends(get_current_manager_or_teacher)
+    current_user: AuthenticatedUser = Depends(MANAGER_OR_TEACHER)
 ):
     """
     Xuất danh sách sinh viên của một lớp học ra file Excel.
     
-    Quyền truy cập: **manager**, **Teacher**
+    Quyền truy cập: **manager**, **teacher**
     """
     return export_class(db, class_id)

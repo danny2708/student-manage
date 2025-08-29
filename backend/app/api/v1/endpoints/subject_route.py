@@ -1,11 +1,11 @@
 # app/api/v1/endpoints/subject_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
-# Import các dependencies cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
+# Import dependency factory
+from app.api.auth.auth import has_roles
 
 from app.crud import subject_crud
 from app.schemas import subject_schema
@@ -13,12 +13,18 @@ from app.api import deps
 
 router = APIRouter()
 
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
 @router.post(
     "/", 
     response_model=subject_schema.Subject, 
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một môn học mới",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền tạo
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền tạo
 )
 def create_new_subject(
     subject_in: subject_schema.SubjectCreate, 
@@ -43,7 +49,7 @@ def create_new_subject(
     "/", 
     response_model=List[subject_schema.Subject],
     summary="Lấy danh sách tất cả môn học",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_all_subjects(
     skip: int = 0, 
@@ -62,7 +68,7 @@ def get_all_subjects(
     "/{subject_id}", 
     response_model=subject_schema.Subject,
     summary="Lấy thông tin của một môn học cụ thể bằng ID",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_subject(
     subject_id: int, 
@@ -85,7 +91,7 @@ def get_subject(
     "/{subject_id}", 
     response_model=subject_schema.Subject,
     summary="Cập nhật thông tin của một môn học",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền cập nhật
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_existing_subject(
     subject_id: int, 
@@ -111,7 +117,7 @@ def update_existing_subject(
     "/{subject_id}", 
     response_model=dict,
     summary="Xóa một môn học",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_existing_subject(
     subject_id: int, 

@@ -1,17 +1,20 @@
 # app/api/v1/endpoints/student_with_parent_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+
+# Import dependency factory
+from app.api.auth.auth import has_roles
 
 # Import schemas từ các file tương ứng
-from app.schemas import student_schema, parent_schema
+from app.schemas import student_schema
 # Import CRUD operations từ các file tương ứng
 from app.crud import parent_crud, student_crud
 from app.api import deps
-# Import các dependencies cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager_or_teacher
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
 # --- Định nghĩa Schema cho Request Body ---
 class StudentWithParentRegisterRequest(student_schema.StudentCreate):
@@ -25,7 +28,7 @@ class StudentWithParentRegisterRequest(student_schema.StudentCreate):
              response_model=student_schema.Student,
              status_code=status.HTTP_201_CREATED,
              summary="Đăng ký một học sinh mới và liên kết với một phụ huynh đã tồn tại.",
-             dependencies=[Depends(get_current_manager_or_teacher)]) # Chỉ manager hoặc teacher mới có quyền
+             dependencies=[Depends(MANAGER_OR_TEACHER)]) # Chỉ manager hoặc teacher mới có quyền
 def register_student_with_parent(
     request_data: StudentWithParentRegisterRequest,
     db: Session = Depends(deps.get_db)

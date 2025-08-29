@@ -1,25 +1,29 @@
+# app/api/endpoints/evaluation_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 # Import các dependency cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
-
-# Sử dụng đúng tên crud và schema của bạn
-from app.crud import evaluation_crud
-from app.crud import teacher_crud
-from app.crud import student_crud
+from app.api.auth.auth import has_roles, AuthenticatedUser
+from app.crud import evaluation_crud, teacher_crud, student_crud
 from app.schemas import evaluation_schema
 from app.api import deps
 from app.services import evaluation_service 
 
 router = APIRouter()
 
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
+
 @router.post(
     "/",
     response_model=evaluation_schema.Evaluation,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def create_new_evaluation_record(
     evaluation_in: evaluation_schema.EvaluationCreate,
@@ -50,7 +54,7 @@ def create_new_evaluation_record(
 
 @router.get(
     "/total_score/{student_id}",
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_total_score_by_student(
     student_id: int,
@@ -82,7 +86,7 @@ def get_total_score_by_student(
 @router.get(
     "/summary_and_counts/{student_id}",
     response_model=evaluation_schema.EvaluationSummary,
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_summary_and_counts(
     student_id: int,
@@ -107,7 +111,7 @@ def get_summary_and_counts(
 @router.get(
     "/{evaluation_id}",
     response_model=evaluation_schema.EvaluationRead,
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_evaluation_record(
     evaluation_id: int,
@@ -129,7 +133,7 @@ def get_evaluation_record(
 @router.get(
     "/by_student/{student_id}",
     response_model=List[evaluation_schema.EvaluationRead],
-    dependencies=[Depends(get_current_manager_or_teacher)]
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_evaluations_by_student(
     student_id: int,
@@ -153,7 +157,7 @@ def get_evaluations_by_student(
 @router.delete(
     "/{evaluation_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def delete_evaluation_api(
     evaluation_id: int,

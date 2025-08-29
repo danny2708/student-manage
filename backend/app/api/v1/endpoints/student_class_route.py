@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-# Import các dependency từ file auth của bạn
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
+# Import dependency factory
+from app.api.auth.auth import has_roles
 
 from app.api.deps import get_db
 from app.schemas.student_class_association_schema import (
@@ -22,6 +22,12 @@ from app.crud.student_class_crud import (
 
 router = APIRouter()
 
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
 # --- Các endpoint chỉ dành cho Manager ---
 # Manager có thể tạo, xóa, và xem tất cả các bản ghi enrollment
 @router.post(
@@ -29,7 +35,7 @@ router = APIRouter()
     response_model=StudentClassAssociation, 
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi enrollment mới cho một sinh viên vào một lớp học",
-    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền tạo
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền tạo
 )
 def create_new_student_enrollment(
     student_class_in: StudentClassAssociationCreate,
@@ -64,7 +70,7 @@ def create_new_student_enrollment(
     "/{student_id}/{class_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'",
-    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền xóa
 )
 def remove_student_enrollment(
     student_id: int,
@@ -93,7 +99,7 @@ def remove_student_enrollment(
     "/student/{student_id}", 
     response_model=List[StudentClassAssociation],
     summary="Lấy danh sách các lớp học mà một sinh viên đã đăng ký",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager hoặc Teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager hoặc Teacher đều có thể xem
 )
 def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
     """
@@ -118,7 +124,7 @@ def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
     "/class/{class_id}",
     response_model=List[StudentClassAssociation],
     summary="Lấy danh sách các sinh viên đã đăng ký vào một lớp học",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager hoặc Teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager hoặc Teacher đều có thể xem
 )
 def get_enrollments_for_class(class_id: int, db: Session = Depends(get_db)):
     """
@@ -143,7 +149,7 @@ def get_enrollments_for_class(class_id: int, db: Session = Depends(get_db)):
     "/",
     response_model=List[StudentClassAssociation],
     summary="Lấy tất cả các bản ghi enrollment",
-    dependencies=[Depends(get_current_manager)] # Chỉ Manager mới có quyền xem toàn bộ
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền xem toàn bộ
 )
 def get_all_student_enrollments(db: Session = Depends(get_db)):
     """
