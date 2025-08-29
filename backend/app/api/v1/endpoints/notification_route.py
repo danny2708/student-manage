@@ -1,3 +1,4 @@
+# app/api/endpoints/notification_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -9,10 +10,13 @@ from app.crud import notification_crud, user_crud
 from app.schemas import notification_schema
 from app.api import deps
 
-# Import dependencies phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_active_user, get_current_manager
+# Import dependency factory
+from app.api.auth.auth import get_current_active_user, has_roles
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
     "/",
@@ -22,7 +26,7 @@ router = APIRouter()
 def create_new_notification(
     notification_in: notification_schema.NotificationCreate,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_active_user) # Lấy thông tin người dùng hiện tại
+    current_user: user_crud.User = Depends(get_current_active_user) # Sử dụng get_current_active_user vì endpoint này không yêu cầu vai trò cụ thể
 ):
     """
     Tạo một thông báo mới.
@@ -49,7 +53,7 @@ def create_new_notification(
 @router.get(
     "/",
     response_model=List[notification_schema.Notification],
-    dependencies=[Depends(get_current_manager)]
+    dependencies=[Depends(MANAGER_ONLY)] # Sử dụng has_roles để kiểm tra vai trò manager
 )
 def get_all_notifications(
     skip: int = 0,
@@ -119,7 +123,7 @@ def update_existing_notification(
 @router.delete(
     "/{notification_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa thông báo
+    dependencies=[Depends(MANAGER_ONLY)] # Sử dụng has_roles để kiểm tra vai trò manager
 )
 def delete_existing_notification(
     notification_id: int,

@@ -1,10 +1,11 @@
+# app/api/v1/endpoints/student_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
-# Import các dependency cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher, get_current_active_user
+# Import dependency factory
+from app.api.auth.auth import has_roles
 
 # Import các CRUD operations
 from app.crud import student_crud
@@ -18,12 +19,18 @@ from app.api import deps
 
 router = APIRouter()
 
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
 @router.post(
     "/", 
     response_model=student_schema.Student, 
     status_code=status.HTTP_201_CREATED,
     summary="Gán một user đã tồn tại thành student",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền gán
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền gán
 )
 def assign_student(
     student_in: student_schema.StudentAssign, 
@@ -74,7 +81,7 @@ def assign_student(
     "/", 
     response_model=List[student_schema.Student],
     summary="Lấy danh sách tất cả học sinh",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher đều có thể xem
 )
 def get_all_students(
     skip: int = 0, 
@@ -93,7 +100,7 @@ def get_all_students(
     "/{student_id}", 
     response_model=student_schema.Student,
     summary="Lấy thông tin của một học sinh cụ thể bằng ID",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher đều có thể xem
 )
 def get_student(
     student_id: int, 
@@ -116,7 +123,7 @@ def get_student(
     "/{student_id}", 
     response_model=student_schema.Student,
     summary="Cập nhật thông tin của một học sinh cụ thể",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền cập nhật
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_existing_student(
     student_id: int, 
@@ -140,7 +147,7 @@ def update_existing_student(
     "/{student_id}", 
     response_model=dict,
     summary="Xóa một học sinh",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_existing_student(
     student_id: int, 
@@ -165,4 +172,3 @@ def delete_existing_student(
         "deleted_at": datetime.utcnow().isoformat(),
         "status": "success"
     }
-

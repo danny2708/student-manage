@@ -16,17 +16,24 @@ from pydantic import BaseModel
 
 # Dependencies
 from app.api import deps
-# Import các dependencies cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
+# Import dependency factory
+from app.api.auth.auth import has_roles
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
 
 @router.post(
     "/",
     response_model=teacher_schema.Teacher,
     status_code=status.HTTP_201_CREATED,
     summary="Gán vai trò giáo viên cho một người dùng đã tồn tại",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền gán vai trò
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền gán vai trò
 )
 def assign_teacher(
     teacher_in: teacher_schema.TeacherCreate,
@@ -76,7 +83,7 @@ def assign_teacher(
     "/", 
     response_model=List[teacher_schema.Teacher],
     summary="Lấy danh sách tất cả giáo viên",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_all_teachers(
     skip: int = 0, 
@@ -95,7 +102,7 @@ def get_all_teachers(
     "/{teacher_id}", 
     response_model=teacher_schema.Teacher,
     summary="Lấy thông tin một giáo viên theo ID",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Manager và teacher có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_teacher(
     teacher_id: int, 
@@ -119,7 +126,7 @@ def get_teacher(
     "/{teacher_id}", 
     response_model=teacher_schema.Teacher,
     summary="Cập nhật thông tin giáo viên theo ID",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền cập nhật
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_existing_teacher(
     teacher_id: int, 
@@ -146,7 +153,7 @@ def update_existing_teacher(
     "/{teacher_id}", 
     response_model=dict,
     summary="Xóa một giáo viên",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_existing_teacher(
     teacher_id: int, 

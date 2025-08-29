@@ -1,24 +1,21 @@
-# app/api/auth/auth.py
 import os
-from datetime import datetime, timedelta, timezone # Import timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt # type: ignore
-from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
-from app.models.user_model import User # Import model User của bạn
+from app.models.user_model import User
 from app.schemas.auth_schema import TokenData, AuthenticatedUser
-# Thêm dòng này để load các biến môi trường từ file .env
 from dotenv import load_dotenv
-from app.schemas.user_schema import UserOut
 
+# Tải các biến môi trường
 load_dotenv()
 
 # Cấu hình JWT
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-from-env") 
+SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-from-env")
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY environment variable is not set. Please set it in your .env file.")
 
@@ -29,7 +26,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None):
     """
-    Tạo một JWT token mới.
+    Tạo một JWT token mới với thời gian hết hạn tùy chọn.
     """
     to_encode = data.copy()
     if expires_delta:
@@ -42,7 +39,7 @@ def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None):
 
 def verify_token(token: str) -> TokenData:
     """
-    Xác minh và giải mã một JWT token.
+    Xác minh và giải mã một JWT token, trả về dữ liệu payload nếu hợp lệ.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,33 +57,25 @@ def verify_token(token: str) -> TokenData:
     
     return token_data
 
-class AuthenticatedUser(UserOut):
-    roles: List[str]
-
 def get_current_active_user(
     token: str = Depends(oauth2_scheme), 
     db: Session = Depends(get_db)
 ) -> AuthenticatedUser:
     """
-    Dependency để lấy thông tin người dùng hiện tại từ token.
+    Dependency để lấy thông tin người dùng hiện tại từ token, bao gồm cả vai trò của họ.
     """
-    # Lấy token data từ token JWT
     token_data: TokenData = verify_token(token)
     user_id = token_data.user_id
 
-    # Truy vấn người dùng từ cơ sở dữ liệu dựa trên user_id từ token
-    # SQLAlchemy sẽ tự động tải các mối quan hệ đã được thiết lập,
-    # bao gồm cả roles thông qua bảng trung gian.
+    # Truy vấn người dùng từ cơ sở dữ liệu
     user = db.query(User).filter(User.user_id == user_id).first()
     
-    # Kiểm tra xem người dùng có tồn tại không
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Người dùng không tìm thấy"
         )
     
-    # Kiểm tra xem tài khoản có đang hoạt động không
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,58 +93,20 @@ def get_current_active_user(
         date_of_birth=user.date_of_birth,
         gender=user.gender,
         phone_number=user.phone_number,
-        roles=roles,  # Thêm trường roles đã lấy vào schema
+        roles=roles,
     )
 
-def get_current_manager_or_teacher(
-    current_user: AuthenticatedUser = Depends(get_current_active_user),
-):
+def has_roles(required_roles: List[str]):
     """
-    Dependency: Chỉ cho phép truy cập nếu user có vai trò là manager hoặc teacher.
+    Dependency factory để kiểm tra quyền truy cập dựa trên vai trò.
+    Hàm này trả về một dependency mới dựa trên danh sách vai trò yêu cầu.
     """
-    if current_user.role not in ["manager", "teacher"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ quản lý hoặc giáo viên mới có quyền truy cập",
-        )
-    return current_user
-
-
-def get_current_manager(
-    current_user: AuthenticatedUser = Depends(get_current_active_user),
-):
-    """
-    Dependency: Chỉ cho phép truy cập nếu user có vai trò là manager.
-    """
-    if current_user.role != "manager":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ quản lý mới có quyền truy cập",
-        )
-    return current_user
-
-def get_current_student_user(
-    current_user: AuthenticatedUser = Depends(get_current_active_user),
-):
-    """
-    Dependency: Chỉ cho phép truy cập nếu user có vai trò là student.
-    """
-    if "student" not in current_user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ học sinh mới có quyền truy cập",
-        )
-    return current_user
-
-def get_current_parent_user(
-    current_user: AuthenticatedUser = Depends(get_current_active_user),
-):
-    """
-    Dependency: Chỉ cho phép truy cập nếu user có vai trò là parent.
-    """
-    if "parent" not in current_user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ phụ huynh mới có quyền truy cập",
-        )
-    return current_user
+    def role_checker(current_user: AuthenticatedUser = Depends(get_current_active_user)):
+        # Kiểm tra xem người dùng có ít nhất một trong các vai trò yêu cầu không
+        if not any(role in required_roles for role in current_user.roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền để thực hiện hành động này."
+            )
+        return current_user
+    return role_checker

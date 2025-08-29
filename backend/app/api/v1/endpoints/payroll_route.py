@@ -1,3 +1,4 @@
+# app/api/v1/endpoints/payroll_route.py
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -14,16 +15,19 @@ from app.api import deps
 from app.services import payroll_service
 from app.crud import user_crud
 
-# Import dependencies phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_active_user, get_current_manager
+# Import dependency factory
+from app.api.auth.auth import get_current_active_user, has_roles
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
     "/",
     response_model=payroll_schema.Payroll,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager tạo bản ghi
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager tạo bản ghi
 )
 def create_new_payroll(
     payroll_in: payroll_schema.PayrollCreate,
@@ -46,7 +50,7 @@ def create_new_payroll(
 @router.get(
     "/",
     response_model=List[payroll_schema.Payroll],
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem tất cả
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager xem tất cả
 )
 def get_all_payrolls(
     skip: int = 0,
@@ -62,7 +66,7 @@ def get_all_payrolls(
 @router.get(
     "/run_payroll",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager chạy quá trình này
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager chạy quá trình này
 )
 def run_payroll(
     db: Session = Depends(deps.get_db)
@@ -119,7 +123,7 @@ def get_payroll(
 @router.put(
     "/{payroll_id}",
     response_model=payroll_schema.Payroll,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager cập nhật
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager cập nhật
 )
 def update_existing_payroll(
     payroll_id: int,
@@ -140,7 +144,7 @@ def update_existing_payroll(
 @router.delete(
     "/{payroll_id}",
     response_model=dict,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager xóa
 )
 def delete_existing_payroll(
     payroll_id: int,
@@ -153,7 +157,7 @@ def delete_existing_payroll(
     if db_payroll is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy bảng lương !"
+            detail="Không tìm thấy bảng lương nào!"
         )
 
     deleted_payroll = payroll_crud.delete_payroll(db, payroll_id=payroll_id)

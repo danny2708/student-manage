@@ -8,18 +8,26 @@ from pydantic import BaseModel
 
 from app.api import deps
 from app.services.excel_services import import_users
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher
+# Import dependency factory
+from app.api.auth.auth import has_roles
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.crud import user_crud
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+
 
 @router.post(
     "/",
     response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một người dùng mới",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền tạo
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền tạo
 )
 def create_user_info(user: UserCreate, db: Session = Depends(deps.get_db)):
     """
@@ -34,7 +42,7 @@ def create_user_info(user: UserCreate, db: Session = Depends(deps.get_db)):
     "/",
     response_model=List[UserOut],
     summary="Lấy danh sách tất cả người dùng",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager và teacher có quyền xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager và teacher có quyền xem
 )
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
@@ -49,7 +57,7 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db
     "/{user_id}",
     response_model=UserOut,
     summary="Lấy thông tin một người dùng bằng ID",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager và teacher có quyền xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager và teacher có quyền xem
 )
 def get_user(user_id: int, db: Session = Depends(deps.get_db)):
     """
@@ -70,7 +78,7 @@ def get_user(user_id: int, db: Session = Depends(deps.get_db)):
     "/{user_id}",
     response_model=UserOut,
     summary="Cập nhật thông tin người dùng",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền cập nhật
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depends(deps.get_db)):
     """
@@ -91,7 +99,7 @@ def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depend
     "/{user_id}",
     response_model=UserOut,
     summary="Xóa một người dùng",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_user_info(user_id: int, db: Session = Depends(deps.get_db)):
     """
@@ -115,7 +123,7 @@ class ImportUsersResponse(BaseModel):
     "/import-users",
     response_model=ImportUsersResponse,
     summary="Import người dùng từ file Excel",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền import
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền import
 )
 def import_users_from_sheet(
     file: UploadFile = File(...),
