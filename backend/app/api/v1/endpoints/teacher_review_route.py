@@ -1,5 +1,5 @@
 # app/api/v1/endpoints/teacher_review_route.py
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,16 +9,22 @@ from app.crud import student_crud
 from app.schemas import teacher_review_schema
 from app.api import deps
 # Import các dependencies cần thiết từ auth.py
-from app.api.auth.auth import get_current_active_user, get_current_manager, get_current_student_or_parent, get_current_manager_or_teacher
+from app.api.auth.auth import get_current_active_user, has_roles
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Student hoặc Parent
+STUDENT_OR_PARENT = has_roles(["student", "parent"])
 
 @router.post(
     "/", 
     response_model=teacher_review_schema.TeacherReview, 
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi đánh giá giáo viên mới",
-    dependencies=[Depends(get_current_student_or_parent)] # Chỉ student hoặc parent mới có quyền tạo review
+    dependencies=[Depends(STUDENT_OR_PARENT)] # Chỉ student hoặc parent mới có quyền tạo review
 )
 def create_new_teacher_review(
     teacher_review_in: teacher_review_schema.TeacherReviewCreate, 
@@ -125,7 +131,7 @@ def get_reviews_by_student(
     "/{review_id}", 
     response_model=teacher_review_schema.TeacherReview,
     summary="Cập nhật thông tin một đánh giá giáo viên theo ID",
-    dependencies=[Depends(get_current_student_or_parent)] # Chỉ student hoặc parent có quyền cập nhật review của họ
+    dependencies=[Depends(STUDENT_OR_PARENT)] # Chỉ student hoặc parent mới có quyền cập nhật
 )
 def update_existing_teacher_review(
     review_id: int, 
@@ -143,15 +149,7 @@ def update_existing_teacher_review(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Đánh giá giáo viên không tìm thấy."
         )
-
-    # Thêm logic để đảm bảo chỉ người tạo review mới có thể cập nhật
-    # current_user = Depends(get_current_student_or_parent)
-    # if current_user.id != db_teacher_review.student_id:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Bạn không có quyền cập nhật đánh giá này."
-    #     )
-        
+    
     updated_review = teacher_review_crud.update_teacher_review(
         db=db, 
         db_obj=db_teacher_review, 
@@ -164,7 +162,7 @@ def update_existing_teacher_review(
     "/{review_id}", 
     status_code=status.HTTP_200_OK,
     summary="Xóa một đánh giá giáo viên theo ID",
-    dependencies=[Depends(get_current_manager)] # Chỉ manager mới có quyền xóa review
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa review
 )
 def delete_teacher_review_api(
     review_id: int, 

@@ -4,6 +4,11 @@ from sqlalchemy.orm import Session
 from typing import List
 
 # Import các CRUD operations và schemas đã được cập nhật
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, status
+from sqlalchemy.orm import Session
+from typing import List
+
+# Import các CRUD operations và schemas đã được cập nhật
 from app.crud import test_crud
 from app.crud import student_crud
 from app.crud import subject_crud
@@ -11,18 +16,24 @@ from app.crud import class_crud
 from app.crud import teacher_crud
 from app.schemas import test_schema
 from app.api import deps
-# Import các dependencies cần thiết từ auth.py
-from app.api.auth.auth import get_current_manager, get_current_manager_or_teacher, get_current_active_user
+# Import dependency factory
+from app.api.auth.auth import has_roles, get_current_active_user
 from app.services.excel_services.import_tests import import_tests_from_excel
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
 @router.post(
     "/", 
     response_model=test_schema.Test, 
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi bài kiểm tra mới",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager hoặc teacher mới có quyền tạo test
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher mới có quyền tạo test
 )
 def create_new_test(
     test_in: test_schema.TestCreate, 
@@ -69,7 +80,7 @@ def create_new_test(
     "/", 
     response_model=List[test_schema.Test],
     summary="Lấy danh sách tất cả các bài kiểm tra",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager hoặc teacher có quyền xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher có quyền xem
 )
 def get_all_tests(
     skip: int = 0, 
@@ -135,7 +146,7 @@ def get_test(
     "/{test_id}", 
     response_model=test_schema.Test,
     summary="Cập nhật thông tin của một bản ghi bài kiểm tra cụ thể bằng ID",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager hoặc teacher có quyền cập nhật
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher có quyền cập nhật
 )
 def update_existing_test(
     test_id: int, 
@@ -161,7 +172,7 @@ def update_existing_test(
     "/{test_id}", 
     summary="Xóa một bản ghi bài kiểm tra cụ thể bằng ID",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(get_current_manager)] # Chỉ manager có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager có quyền xóa
 )
 def delete_existing_test(
     test_id: int, 
@@ -189,7 +200,7 @@ def delete_existing_test(
 @router.post(
     "/import",
     summary="Import danh sách điểm kiểm tra từ file Excel vào DB",
-    dependencies=[Depends(get_current_manager_or_teacher)] # Chỉ manager hoặc teacher có quyền import
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher có quyền import
 )
 def import_tests_endpoint(
     class_id: int = Query(..., description="ID của lớp cần import bài kiểm tra"),

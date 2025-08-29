@@ -10,16 +10,19 @@ from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import parent_schema
 from app.api import deps
 
-# Import các dependency phân quyền từ đường dẫn chính xác
-from app.api.auth.auth import get_current_active_user, get_current_manager
+# Import các dependency factory từ đường dẫn chính xác
+from app.api.auth.auth import get_current_active_user, has_roles
 
 router = APIRouter()
+
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
     "/",
     response_model=parent_schema.Parent,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager gán role parent
+    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager gán role parent
 )
 def assign_parent(
     parent_in: parent_schema.ParentAssign,
@@ -68,7 +71,7 @@ def assign_parent(
 @router.get(
     "/",
     response_model=List[parent_schema.Parent],
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xem danh sách
+    dependencies=[Depends(MANAGER_ONLY)] # Sử dụng has_roles để kiểm tra vai trò manager
 )
 def get_all_parents(
     skip: int = 0,
@@ -144,7 +147,7 @@ def update_existing_parent(
 @router.delete(
     "/{parent_id}",
     response_model=dict,
-    dependencies=[Depends(get_current_manager)] # Chỉ cho phép manager xóa
+    dependencies=[Depends(MANAGER_ONLY)] # Sử dụng has_roles để kiểm tra vai trò manager
 )
 def delete_existing_parent(
     parent_id: int,
