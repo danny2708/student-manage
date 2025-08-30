@@ -19,10 +19,6 @@ student_parent_association = Table(
     Column("parent_id", Integer, ForeignKey("parents.parent_id"), primary_key=True),
 )
 
-# ---- Student-Class association ----
-class EnrollmentStatus(enum.Enum):
-    Active = "Active"
-    Inactive = "Inactive"
 
 student_class_association = Table(
     "student_class_association",

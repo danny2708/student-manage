@@ -86,3 +86,16 @@ def get_class_ids_for_student(db: Session, student_id: int) -> List[int]:
     )
     result = db.execute(stmt).scalars().all()
     return result
+
+def get_schedules_by_class_ids(db: Session, class_ids: List[int]) -> List[Schedule]:
+    """
+    Lấy tất cả các lịch trình thuộc danh sách class_id.
+    """
+    return db.query(Schedule).filter(Schedule.class_id.in_(class_ids)).all()
+
+def get_classes_by_teacher_id(db: Session, teacher_id: int) -> List[Class]:
+    """
+    Lấy danh sách các lớp học của một giáo viên cụ thể.
+    Đồng bộ tên hàm với service.
+    """
+    return db.query(Class).filter(Class.teacher_id == teacher_id).all()
