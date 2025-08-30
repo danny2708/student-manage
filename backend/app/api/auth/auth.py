@@ -1,3 +1,4 @@
+#app/api/auth/auth.py
 import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict
@@ -48,7 +49,7 @@ def verify_token(token: str) -> TokenData:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("user_id")
+        user_id: int = payload.get("sub")
         if user_id is None:
             raise credentials_exception
         token_data = TokenData(user_id=user_id)
@@ -74,12 +75,6 @@ def get_current_active_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Người dùng không tìm thấy"
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Người dùng không hoạt động"
         )
 
     # Lấy danh sách tên vai trò từ mối quan hệ roles
