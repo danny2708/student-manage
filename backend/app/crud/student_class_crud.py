@@ -2,9 +2,9 @@
 from typing import List, Optional
 from sqlalchemy import select, insert, update
 from sqlalchemy.orm import Session
-from app.models.association_tables import student_class_association, EnrollmentStatus
+from app.models.association_tables import student_class_association
 from app.schemas.student_class_association_schema import StudentClassAssociationCreate
-from app.models.enrollment_model import Enrollment
+from app.models.enrollment_model import Enrollment, EnrollmentStatus
 from datetime import datetime
 
 # Các hàm CRUD sẽ được cập nhật để làm việc với bảng 'enrollments'
