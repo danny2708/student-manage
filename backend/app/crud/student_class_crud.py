@@ -1,6 +1,6 @@
 # backend/app/crud/student_class_rud.py
 from typing import List, Optional
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert
 from sqlalchemy.orm import Session
 from app.models.association_tables import student_class_association
 from app.schemas.student_class_association_schema import StudentClassAssociationCreate

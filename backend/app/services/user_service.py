@@ -1,7 +1,7 @@
 # app/services/user_service.py
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from app.models import Teacher, Manager, Student, Parent
 
 # Mapping giữa entity string và model + id field
@@ -31,3 +31,5 @@ def get_user_id(db: Session, entity: str, entity_id: int) -> Optional[int]:
     model, id_column = ENTITY_MODEL_MAP[entity]
     stmt = select(model.user_id).where(id_column == entity_id)
     return db.execute(stmt).scalar_one_or_none()
+
+

@@ -1,4 +1,3 @@
-from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.notification_model import Notification
 from app.schemas.notification_schema import NotificationCreate, NotificationUpdate

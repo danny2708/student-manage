@@ -4,25 +4,36 @@ from sqlalchemy import select
 
 from app.models.parent_model import Parent
 from app.schemas.parent_schema import ParentCreate, ParentUpdate
-from app.models.association_tables import user_roles 
+from app.models.association_tables import user_roles
+from app.models.role_model import Role 
 
-def get_parent(db: Session, parent_id: int) -> Optional[Parent]:
-    stmt = select(Parent).where(Parent.parent_id == parent_id)
+def get_parent(
+    db: Session,
+    parent_id: Optional[int] = None,
+    user_id: Optional[int] = None
+) -> Optional[Parent]:
+    stmt = select(Parent)
+    if parent_id is not None:
+        stmt = stmt.where(Parent.parent_id == parent_id)
+    if user_id is not None:
+        stmt = stmt.where(Parent.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 def get_parent_by_user_id(db: Session, user_id: int) -> Optional[Parent]:
+    """
+    Lấy thông tin phụ huynh theo user_id.
+    """
     stmt = select(Parent).where(Parent.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 def get_parent_by_email(db: Session, email: str) -> Optional[Parent]:
     from app.models.user_model import User
-    stmt_user = select(User).where(User.email == email)
-    user_with_email = db.execute(stmt_user).scalar_one_or_none()
-
-    if user_with_email:
-        stmt_parent = select(Parent).where(Parent.user_id == user_with_email.user_id)
-        return db.execute(stmt_parent).scalar_one_or_none()
-    return None
+    stmt = (
+        select(Parent)
+        .join(User, User.user_id == Parent.user_id)
+        .where(User.email == email)
+    )
+    return db.execute(stmt).scalar_one_or_none()
 
 def get_all_parents(db: Session, skip: int = 0, limit: int = 100) -> List[Parent]:
     stmt = select(Parent).offset(skip).limit(limit)
@@ -39,26 +50,35 @@ def create_parent(db: Session, parent_in: ParentCreate) -> Parent:
     return db_parent
 
 def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate) -> Optional[Parent]:
-    db_parent = get_parent(db, parent_id)
+    db_parent = get_parent(db, parent_id=parent_id)
     if db_parent:
-        update_data = parent_update.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
+        for key, value in parent_update.model_dump(exclude_unset=True).items():
             setattr(db_parent, key, value)
-        db.add(db_parent)
         db.commit()
         db.refresh(db_parent)
     return db_parent
 
+
 def delete_parent(db: Session, parent_id: int):
-    db_parent = db.query(Parent).filter(Parent.parent_id == parent_id).first()
+    db_parent = get_parent(db, parent_id=parent_id)
     if not db_parent:
         return None
-    # Lưu dữ liệu trước khi xóa
-    deleted_data = db_parent
+
+    # Lấy role "parent"
+    parent_role = db.query(Role).filter(Role.name == "parent").first()
+    if not parent_role:
+        return None
+
+    # Xóa chỉ role "parent" cho user này
     db.execute(
-        user_roles.delete().where(user_roles.c.user_id == db_parent.user_id)
+        user_roles.delete()
+        .where(user_roles.c.user_id == db_parent.user_id)
+        .where(user_roles.c.role_id == parent_role.role_id)
     )
+
     db.delete(db_parent)
     db.commit()
-    return deleted_data
+    return db_parent
+
+
 

@@ -2,7 +2,7 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-
+from app.models.role_model import Role 
 from app.models.teacher_model import Teacher
 from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
 from app.models.association_tables import user_roles 
@@ -14,6 +14,8 @@ def get_teacher(db: Session, teacher_id: int) -> Optional[Teacher]:
     stmt = select(Teacher).where(Teacher.teacher_id == teacher_id)
     return db.execute(stmt).scalar_one_or_none()
 
+def get_teacher_by_teacher_id(db: Session, teacher_id: int) -> Teacher | None:
+    return db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
 
 def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
     """
@@ -74,16 +76,24 @@ def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) 
     db.refresh(db_teacher)
     return db_teacher
 
-
 def delete_teacher(db: Session, teacher_id: int):
-    db_teacher = db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
+    db_teacher = get_teacher(db, teacher_id=teacher_id)
     if not db_teacher:
         return None
-    # Lưu dữ liệu trước khi xóa
-    deleted_data = db_teacher
+
+    # Lấy role "teacher"
+    teacher_role = db.query(Role).filter(Role.name == "teacher").first()
+    if not teacher_role:
+        return None
+
+    # Xóa chỉ role "teacher" cho user này
     db.execute(
-        user_roles.delete().where(user_roles.c.user_id == db_teacher.user_id)
+        user_roles.delete()
+        .where(user_roles.c.user_id == db_teacher.user_id)
+        .where(user_roles.c.role_id == teacher_role.role_id)
     )
+
     db.delete(db_teacher)
     db.commit()
-    return deleted_data
+    return db_teacher
+

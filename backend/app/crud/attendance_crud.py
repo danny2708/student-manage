@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from app.models.student_model import Student
 from app.models.attendance_model import Attendance, AttendanceStatus
 from app.schemas.attendance_schema import AttendanceBatchCreate, AttendanceRecordCreate
-from datetime import datetime
 
 def create_initial_attendance_records(db: Session, attendance_data: AttendanceBatchCreate) -> List[Attendance]:
     """
