@@ -4,48 +4,38 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
-
 # Import các CRUD operations và schemas trực tiếp
 from app.crud import payroll_crud
 from app.crud import teacher_crud
-from app.crud import notification_crud
 from app.schemas import payroll_schema
-from app.schemas.notification_schema import NotificationCreate
 from app.api import deps
 from app.services import payroll_service
 from app.crud import user_crud
 
 # Import dependency factory
 from app.api.auth.auth import get_current_active_user, has_roles
+from app.models.teacher_model import Teacher
 
 router = APIRouter()
 
 # Dependency cho quyền truy cập của Manager
 MANAGER_ONLY = has_roles(["manager"])
 
-@router.post(
-    "/",
-    response_model=payroll_schema.Payroll,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager tạo bản ghi
-)
+router = APIRouter(prefix="/payrolls", tags=["Payrolls"])
+
+@router.post("/", response_model=payroll_schema.PayrollOut, dependencies=[Depends(MANAGER_ONLY)])
 def create_new_payroll(
     payroll_in: payroll_schema.PayrollCreate,
     db: Session = Depends(deps.get_db)
 ):
-    """
-    Tạo một bản ghi bảng lương mới. Chỉ có manager mới có quyền.
-    """
-    # Bước 1: Kiểm tra xem teacher_id có tồn tại trong bảng teachers không
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=payroll_in.teacher_id)
-    if not db_teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Teacher with teacher_id {payroll_in.teacher_id} not found."
-        )
+    teacher = db.query(Teacher).filter(Teacher.teacher_id == payroll_in.teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
 
-    # Bước 2: Tạo bản ghi bảng lương
-    return payroll_crud.create_payroll_record(db=db, payroll=payroll_in)
+    # Chỉ gọi service, notification được tạo bên trong service
+    result = payroll_service.create_payroll(db, teacher, payroll_in)
+    return result
+
 
 @router.get(
     "/",
@@ -64,7 +54,7 @@ def get_all_payrolls(
     return payrolls
 
 @router.get(
-    "/run_payroll",
+    "/run_payrolls",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager chạy quá trình này
 )
@@ -96,21 +86,21 @@ def run_payroll(
 def get_payroll(
     payroll_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_active_user)
+    current_user: user_crud.User = Depends(get_current_active_user),
+    _: user_crud.User = Depends(MANAGER_ONLY)  # Nếu là manager, bỏ qua quyền khác
 ):
-    """
-    Lấy thông tin của một bản ghi bảng lương cụ thể bằng ID.
-    Giáo viên chỉ có thể xem bảng lương của chính họ. Manager có thể xem bất kỳ.
-    """
     db_payroll = payroll_crud.get_payroll(db, payroll_id=payroll_id)
     if db_payroll is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Bảng lương không tìm thấy."
         )
-    
-    # Kiểm tra quyền: Người dùng hiện tại là manager HOẶC là giáo viên của bảng lương này
-    if not current_user.is_manager:
+
+    # Nếu không phải manager, kiểm tra giáo viên
+    try:
+        # Nếu người dùng có role manager, dependency đã pass, không vào except
+        pass
+    except HTTPException:
         db_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=current_user.id)
         if not db_teacher or db_payroll.teacher_id != db_teacher.id:
             raise HTTPException(
@@ -120,26 +110,18 @@ def get_payroll(
 
     return db_payroll
 
-@router.put(
-    "/{payroll_id}",
-    response_model=payroll_schema.Payroll,
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager cập nhật
-)
-def update_existing_payroll(
+# endpoint
+@router.put("/{payroll_id}", response_model=payroll_schema.PayrollOut, dependencies=[Depends(MANAGER_ONLY)])
+def update_payroll_endpoint(
     payroll_id: int,
     payroll_update: payroll_schema.PayrollUpdate,
     db: Session = Depends(deps.get_db)
 ):
-    """
-    Cập nhật thông tin của một bản ghi bảng lương cụ thể bằng ID. Chỉ có manager mới có quyền.
-    """
-    db_payroll = payroll_crud.update_payroll(db, payroll_id=payroll_id, payroll_update=payroll_update)
-    if db_payroll is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bảng lương không tìm thấy."
-        )
-    return db_payroll
+    result = payroll_service.update_payroll_with_notification(db, payroll_id, payroll_update)
+    if not result:
+        raise HTTPException(status_code=404, detail="Bảng lương không tìm thấy")
+    return result
+
 
 @router.delete(
     "/{payroll_id}",
@@ -178,25 +160,30 @@ def get_teacher_payrolls(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db),
-    current_user: user_crud.User = Depends(get_current_active_user)
+    current_user=Depends(get_current_active_user)
 ):
-    """
-    Lấy danh sách các bản ghi bảng lương của một giáo viên cụ thể.
-    Giáo viên chỉ có thể xem bảng lương của chính họ. Manager có thể xem bất kỳ.
-    """
-    # Kiểm tra quyền: Người dùng hiện tại là manager HOẶC là giáo viên này
-    if not current_user.is_manager:
-        db_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=current_user.id)
-        if not db_teacher or teacher_id != db_teacher.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Bạn không có quyền xem bảng lương của giáo viên khác."
-            )
+    # Lấy thông tin giáo viên
+    db_teacher = teacher_crud.get_teacher_by_teacher_id(db, teacher_id=teacher_id)
+    if not db_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy giáo viên."
+        )
 
-    payrolls = payroll_crud.get_payrolls_by_teacher_id(db, teacher_id=teacher_id, skip=skip, limit=limit)
+    # Chỉ cho phép manager hoặc chính giáo viên đó xem
+    if "manager" not in current_user.roles and current_user.id != db_teacher.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xem bảng lương của giáo viên khác."
+        )
+
+    payrolls = payroll_crud.get_payrolls_by_teacher_id(
+        db, teacher_id=teacher_id, skip=skip, limit=limit
+    )
     if not payrolls:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy bảng lương nào cho người dùng này."
+            detail="Không tìm thấy bảng lương nào cho giáo viên này."
         )
+
     return payrolls
