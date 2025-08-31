@@ -53,7 +53,7 @@ def get_all_payrolls(
     payrolls = payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
     return payrolls
 
-@router.get(
+@router.post(
     "/run_payrolls",
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ cho phép manager chạy quá trình này

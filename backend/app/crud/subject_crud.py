@@ -26,26 +26,19 @@ def create_subject(db: Session, subject: SubjectCreate):
     db.refresh(db_subject)
     return db_subject
 
-def update_subject(db: Session, subject_id: int, subject_update: SubjectUpdate):
-    """Cập nhật thông tin môn học."""
-    db_subject = db.query(Subject).filter(Subject.subject_id == subject_id).first()
-    if db_subject:
-        update_data = subject_update.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(db_subject, key, value)
-        db.add(db_subject)
-        db.commit()
-        db.refresh(db_subject)
-    return db_subject
-
-def delete_subject(db: Session, subject_id: int):
-    """Xóa một môn học."""
-    db_subject = db.query(Subject).filter(Subject.subject_id == subject_id).first()
-    if not db_subject:
-        return None
-    # Lưu dữ liệu trước khi xóa
-    deleted_data = db_subject
-    db.delete(db_subject)
+def update_subject(db: Session, db_obj: Subject, obj_in: SubjectUpdate):
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_obj, key, value)
+    db.add(db_obj)
     db.commit()
-    return deleted_data
+    db.refresh(db_obj)
+    return db_obj
+
+
+def delete_subject(db: Session, db_obj: Subject):
+    db.delete(db_obj)
+    db.commit()
+    return db_obj
+
 

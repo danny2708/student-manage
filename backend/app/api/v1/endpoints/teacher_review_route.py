@@ -10,6 +10,7 @@ from app.schemas import teacher_review_schema
 from app.api import deps
 # Import các dependencies cần thiết từ auth.py
 from app.api.auth.auth import get_current_active_user, has_roles
+from app.models.user_model import User
 
 router = APIRouter()
 
@@ -17,14 +18,16 @@ router = APIRouter()
 MANAGER_ONLY = has_roles(["manager"])
 
 # Dependency cho quyền truy cập của Student hoặc Parent
-STUDENT_OR_PARENT = has_roles(["student", "parent"])
+STUDENT_ONLY = has_roles(["student"])
+
+MANAGER_AND_STUDENT = has_roles(["manager", "student"])
 
 @router.post(
     "/", 
     response_model=teacher_review_schema.TeacherReview, 
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi đánh giá giáo viên mới",
-    dependencies=[Depends(STUDENT_OR_PARENT)] # Chỉ student hoặc parent mới có quyền tạo review
+    dependencies=[Depends(STUDENT_ONLY)] # Chỉ student hoặc parent mới có quyền tạo review
 )
 def create_new_teacher_review(
     teacher_review_in: teacher_review_schema.TeacherReviewCreate, 
@@ -127,29 +130,30 @@ def get_reviews_by_student(
     reviews = teacher_review_crud.get_teacher_reviews_by_student_id(db, student_id=student_id)
     return reviews
 
+# PUT: Chỉ student sửa review của chính mình
 @router.put(
     "/{review_id}", 
     response_model=teacher_review_schema.TeacherReview,
     summary="Cập nhật thông tin một đánh giá giáo viên theo ID",
-    dependencies=[Depends(STUDENT_OR_PARENT)] # Chỉ student hoặc parent mới có quyền cập nhật
+    dependencies=[Depends(STUDENT_ONLY)]
 )
 def update_existing_teacher_review(
     review_id: int, 
     teacher_review_update: teacher_review_schema.TeacherReviewUpdate, 
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
-    """
-    Cập nhật thông tin một đánh giá giáo viên theo ID.
-    
-    Quyền truy cập: **student**, **parent** (người tạo ra review đó)
-    """
     db_teacher_review = teacher_review_crud.get_teacher_review(db, review_id=review_id)
-    if db_teacher_review is None:
+    if not db_teacher_review:
+        raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
+
+    # Chỉ student sửa review của chính mình
+    if db_teacher_review.student_id != current_user.student.id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Đánh giá giáo viên không tìm thấy."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền sửa đánh giá này."
         )
-    
+
     updated_review = teacher_review_crud.update_teacher_review(
         db=db, 
         db_obj=db_teacher_review, 
@@ -157,32 +161,33 @@ def update_existing_teacher_review(
     )
     return updated_review
 
-# Đã sửa lại endpoint DELETE để khớp với các endpoint khác
+
+# DELETE: Manager hoặc student xóa
 @router.delete(
     "/{review_id}", 
     status_code=status.HTTP_200_OK,
     summary="Xóa một đánh giá giáo viên theo ID",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa review
+    dependencies=[Depends(MANAGER_AND_STUDENT)]
 )
 def delete_teacher_review_api(
     review_id: int, 
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
-    """
-    Xóa một đánh giá giáo viên theo ID và trả về kết quả.
-    
-    Quyền truy cập: **manager**
-    """
     db_teacher_review = teacher_review_crud.get_teacher_review(db, review_id=review_id)
-    if db_teacher_review is None:
+    if not db_teacher_review:
+        raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
+
+    # Nếu student, chỉ được xóa review của chính mình
+    if "student" in current_user.roles and db_teacher_review.student_id != current_user.student.id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Đánh giá giáo viên không tìm thấy."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xóa đánh giá này."
         )
-    
+
     deleted_review = teacher_review_crud.delete_teacher_review(db=db, db_obj=db_teacher_review)
     return {
         "message": "Đánh giá giáo viên đã được xóa thành công.",
-        "deleted_review_id": deleted_review.id,
+        "deleted_review_id": deleted_review.review_id,
         "status": "success"
     }

@@ -43,8 +43,6 @@ def import_tests_from_excel(db: Session, file: UploadFile, class_id: int):
                 test_name=r["test_name"],
                 student_id=r["student_id"],
                 class_id=class_id,
-                subject_id=db_class.subject_id,
-                teacher_id=db_class.teacher_id,
                 score=r["score"],
                 exam_date=r["exam_date"],
             )

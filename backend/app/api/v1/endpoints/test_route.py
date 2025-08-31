@@ -29,52 +29,30 @@ MANAGER_ONLY = has_roles(["manager"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
 @router.post(
-    "/", 
-    response_model=test_schema.Test, 
+    "/",
+    response_model=test_schema.Test,
     status_code=status.HTTP_201_CREATED,
-    summary="Tạo một bản ghi bài kiểm tra mới",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher mới có quyền tạo test
+    summary="Tạo một bài kiểm tra mới",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def create_new_test(
-    test_in: test_schema.TestCreate, 
+    test_in: test_schema.TestCreate,
     db: Session = Depends(deps.get_db)
 ):
-    """
-    Tạo một bản ghi bài kiểm tra mới.
-    
-    Quyền truy cập: **manager**, **teacher**
-    """
-    # Bước 1: Kiểm tra sự tồn tại của các khóa ngoại
     db_student = student_crud.get_student(db, student_id=test_in.student_id)
     if not db_student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {test_in.student_id} not found."
-        )
+        raise HTTPException(status_code=404, detail=f"Student with id {test_in.student_id} not found.")
 
     db_class = class_crud.get_class(db, class_id=test_in.class_id)
     if not db_class:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Class with id {test_in.class_id} not found."
-        )
+        raise HTTPException(status_code=404, detail=f"Class with id {test_in.class_id} not found.")
 
-    db_subject = subject_crud.get_subject(db, subject_id=test_in.subject_id)
-    if not db_subject:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Subject with id {test_in.subject_id} not found."
-        )
-    
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=test_in.teacher_id)
-    if not db_teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Teacher with id {test_in.teacher_id} not found."
-        )
+    # Tạo test, tự động lấy subject_id và teacher_id từ class
+    db_test = test_crud.create_test(db, test_in)
+    if not db_test:
+        raise HTTPException(status_code=400, detail="Không thể tạo bài kiểm tra.")
 
-    # Bước 2: Tạo bản ghi bài kiểm tra
-    return test_crud.create_test(db=db, test=test_in)
+    return db_test
 
 @router.get(
     "/", 
@@ -143,29 +121,25 @@ def get_test(
     return db_test
 
 @router.put(
-    "/{test_id}", 
+    "/{test_id}",
     response_model=test_schema.Test,
-    summary="Cập nhật thông tin của một bản ghi bài kiểm tra cụ thể bằng ID",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager hoặc teacher có quyền cập nhật
+    summary="Cập nhật một bài kiểm tra",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def update_existing_test(
-    test_id: int, 
-    test_update: test_schema.TestUpdate, 
+    test_id: int,
+    test_update: test_schema.TestUpdate,
     db: Session = Depends(deps.get_db)
 ):
-    """
-    Cập nhật thông tin của một bản ghi bài kiểm tra cụ thể bằng ID.
-    
-    Quyền truy cập: **manager**, **teacher**
-    """
     db_test = test_crud.get_test(db, test_id=test_id)
-    if db_test is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bài kiểm tra không tìm thấy."
-        )
-    
-    updated_test = test_crud.update_test(db, db_obj=db_test, obj_in=test_update)
+    if not db_test:
+        raise HTTPException(status_code=404, detail="Bài kiểm tra không tìm thấy.")
+
+    # Cập nhật test, nếu class_id thay đổi sẽ tự lấy subject_id và teacher_id mới
+    updated_test = test_crud.update_test(db, test_id, test_update)
+    if not updated_test:
+        raise HTTPException(status_code=400, detail="Không thể cập nhật bài kiểm tra.")
+
     return updated_test
 
 @router.delete(
@@ -193,7 +167,7 @@ def delete_existing_test(
     deleted_test = test_crud.delete_test(db, db_obj=db_test)
     return {
         "message": "Bài kiểm tra đã được xóa thành công.",
-        "deleted_test_id": deleted_test.id,
+        "deleted_test_id": deleted_test.test_id,
         "status": "success"
     }
 

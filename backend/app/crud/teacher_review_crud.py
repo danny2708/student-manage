@@ -33,39 +33,17 @@ def create_teacher_review(db: Session, teacher_review: TeacherReviewCreate):
     db.refresh(db_teacher_review)
     return db_teacher_review
 
-def update_teacher_review(db: Session, review_id: int, teacher_review_update: TeacherReviewUpdate):
-    """Update teacher review information."""
-    db_teacher_review = db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
-    if db_teacher_review:
-        update_data = teacher_review_update.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(db_teacher_review, key, value)
-        db.add(db_teacher_review)
-        db.commit()
-        db.refresh(db_teacher_review)
-    return db_teacher_review
+def update_teacher_review(db: Session, db_obj: TeacherReview, obj_in: TeacherReviewUpdate):
+    """Cập nhật thông tin review dựa trên db_obj."""
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_obj, key, value)
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
 
-def delete_teacher_review(db: Session, review_id: int):
-    """
-    Xóa một bản ghi đánh giá giáo viên và trả về tin nhắn phản hồi.
-    """
-    db_teacher_review = db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
-    
-    if db_teacher_review:
-        # Xóa bản ghi
-        db.delete(db_teacher_review)
-        db.commit()
-        # Trả về thông tin của bản ghi đã xóa
-        return {
-            "message": f"Successfully deleted review with ID: {review_id}",
-            "deleted_review": {
-                "review_id": db_teacher_review.review_id,
-                "teacher_id": db_teacher_review.teacher_id,
-                "student_id": db_teacher_review.student_id,
-                "rating": db_teacher_review.rating,
-                "review_text": db_teacher_review.review_text
-            }
-        }
-    else:
-        # Trả về lỗi nếu không tìm thấy review
-        return {"message": f"Review with ID {review_id} not found."}
+def delete_teacher_review(db: Session, db_obj: TeacherReview):
+    db.delete(db_obj)
+    db.commit()
+    return db_obj
