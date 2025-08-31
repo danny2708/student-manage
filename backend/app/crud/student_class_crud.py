@@ -1,11 +1,10 @@
 # backend/app/crud/student_class_rud.py
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy import select, insert
 from sqlalchemy.orm import Session
 from app.models.association_tables import student_class_association
 from app.schemas.student_class_association_schema import StudentClassAssociationCreate
 from app.models.enrollment_model import Enrollment, EnrollmentStatus
-from datetime import datetime
 
 # Các hàm CRUD sẽ được cập nhật để làm việc với bảng 'enrollments'
 # và bảng 'student_class_association'
@@ -35,17 +34,26 @@ def get_enrollments_by_student_id(
     )
     return db.execute(stmt).scalars().all()
 
-def get_enrollments_by_class_id(
-    db: Session, class_id: int, skip: int = 0, limit: int = 100
+def get_active_enrollments_by_class_id(
+    db: Session, 
+    class_id: int, 
+    skip: int = 0, 
+    limit: int = 100
 ) -> List[Enrollment]:
-    """Lấy danh sách enrollments theo class_id."""
+    """
+    Lấy danh sách enrollments đang active theo class_id.
+    """
     stmt = (
         select(Enrollment)
-        .where(Enrollment.class_id == class_id)
+        .where(
+            Enrollment.class_id == class_id,
+            Enrollment.enrollment_status == EnrollmentStatus.Active  # chỉ lấy học sinh đang học
+        )
         .offset(skip)
         .limit(limit)
     )
     return db.execute(stmt).scalars().all()
+
 
 def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[Enrollment]:
     """Lấy danh sách tất cả các enrollments."""

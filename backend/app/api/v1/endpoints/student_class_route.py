@@ -16,7 +16,7 @@ from app.crud.student_class_crud import (
     create_enrollment,
     set_enrollment_inactive,
     get_enrollments_by_student_id,
-    get_enrollments_by_class_id,
+    get_active_enrollments_by_class_id,
     get_all_enrollments
 )
 
@@ -126,13 +126,13 @@ def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
     summary="Lấy danh sách các sinh viên đã đăng ký vào một lớp học",
     dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager hoặc Teacher đều có thể xem
 )
-def get_enrollments_for_class(class_id: int, db: Session = Depends(get_db)):
+def get_active_enrollments_by_class(class_id: int, db: Session = Depends(get_db)):
     """
     Lấy danh sách các sinh viên đã đăng ký vào một lớp học.
     
     Quyền truy cập: **manager**, **teacher**
     """
-    enrollments = get_enrollments_by_class_id(db, class_id)
+    enrollments = get_active_enrollments_by_class_id(db, class_id)
     if not enrollments:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollments not found for this class.")
     

@@ -4,7 +4,15 @@ from app.schemas.payroll_schema import PayrollCreate, PayrollUpdate
 from app.models.class_model import Class
 
 def create_payroll_record(db: Session, payroll_in: PayrollCreate):
-    db_payroll = Payroll(**payroll_in.model_dump())
+    total = payroll_in.total or (payroll_in.base_salary + payroll_in.reward_bonus)
+    db_payroll = Payroll(
+        teacher_id=payroll_in.teacher_id,
+        month=payroll_in.month,
+        base_salary=payroll_in.base_salary,
+        reward_bonus=payroll_in.reward_bonus,
+        total=total,
+        sent_at=payroll_in.sent_at,
+    )
     db.add(db_payroll)
     db.commit()
     db.refresh(db_payroll)

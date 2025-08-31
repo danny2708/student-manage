@@ -5,28 +5,8 @@ from app.crud import payroll_crud, notification_crud
 from app.schemas.payroll_schema import PayrollCreate, PayrollOut, PayrollUpdate
 from app.schemas.notification_schema import NotificationCreate
 from app.models.teacher_model import Teacher
-
-def send_payroll_notification(db: Session, teacher, payroll):
-    if not teacher.user_id:
-        return None
-    now = datetime.now(timezone.utc)
-    content = f"Lương tháng {payroll.month}/{now.year} của bạn đã được tính. Tổng lương: {payroll.total:.2f}"
-
-    notification_in = NotificationCreate(
-    sender_id=None,
-    receiver_id=teacher.user_id,
-    content=content,
-    type="payroll",
-    )
-    db_notification = notification_crud.create_notification(db, notification_in)
-
-    db_notification = notification_crud.create_notification(db, notification_in)
-    return {
-        "notification_id": db_notification.notification_id,
-        "receiver_id": teacher.user_id,
-        "content": content,
-        "sent_at": db_notification.sent_at,
-    }
+from app.models.notification_model import NotificationType
+from app.services.notification_service import send_notification
 
 def create_payroll(db: Session, teacher: Teacher, payroll_in: PayrollCreate):
     today = datetime.now(timezone.utc)

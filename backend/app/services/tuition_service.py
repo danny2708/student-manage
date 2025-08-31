@@ -1,17 +1,35 @@
-# app/services/tuition_service.py
 from sqlalchemy.orm import Session
 from datetime import datetime, date
+from decimal import Decimal
+
 from app.models.tuition_model import Tuition, PaymentStatus
-from app.models.notification_model import NotificationType
 from app.schemas.tuition_schema import TuitionCreate
-from app.services.notification_service import send_notification
+from app.schemas.notification_schema import NotificationCreate
+from app.crud.notification_crud import create_notification
 from app.crud.student_crud import get_student_with_user
 from app.models.user_model import User
 from app.models.student_model import Student
+from app.models.parent_model import Parent
 from app.models.class_model import Class
 from app.models.association_tables import student_class_association
-from decimal import Decimal
-from app.database import SessionLocal
+
+
+def _send_tuition_notification(
+    db: Session, parent_user_id: int, student_name: str, amount: Decimal, due_date: date
+):
+    month_str = due_date.strftime("%m/%Y")
+    content = (
+        f"Học phí tháng {month_str} của học sinh {student_name} là "
+        f"{amount} VND. Hạn thanh toán {due_date.strftime('%d/%m/%Y')}."
+    )
+    notif_in = NotificationCreate(
+        sender_id=None,
+        receiver_id=parent_user_id,
+        content=content,
+        type="tuition",
+        sent_at=datetime.utcnow()
+    )
+    create_notification(db, notif_in)
 
 
 def create_tuition_record(db: Session, tuition_in: TuitionCreate):
@@ -19,12 +37,14 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
     if not student or not student_user:
         raise ValueError("Student not found")
 
-    # lookup phụ huynh
-    parent = db.query(User).filter(User.user_id == student.parent_id).first()
+    parent = db.query(Parent).filter(Parent.parent_id == student.parent_id).first()
     if not parent:
         raise ValueError("Parent not found")
 
-    # tạo record học phí
+    parent_user = db.query(User).filter(User.user_id == parent.user_id).first()
+    if not parent_user:
+        raise ValueError("Parent user not found")
+
     tuition_record = Tuition(
         student_id=tuition_in.student_id,
         amount=tuition_in.amount,
@@ -38,18 +58,8 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
     db.commit()
     db.refresh(tuition_record)
 
-    # gửi thông báo
-    month_str = tuition_in.due_date.strftime("%m/%Y")
-    content = (
-        f"Học phí tháng {month_str} của học sinh {student_user.full_name} là "
-        f"{tuition_in.amount} VND. Hạn thanh toán {tuition_in.due_date.strftime('%d/%m/%Y')}."
-    )
-    send_notification(
-        db=db,
-        sender_id=None,  # hệ thống gửi
-        receiver_id=parent.user_id,
-        content=content,
-        notif_type=NotificationType.tuition,
+    _send_tuition_notification(
+        db, parent_user.user_id, student_user.full_name, tuition_in.amount, tuition_in.due_date
     )
 
     return tuition_record
@@ -89,21 +99,15 @@ def create_tuition_for_all_students(db: Session, term: int, due_date: date):
         db.add(tuition_record)
         created_records.append(tuition_record)
 
-        # gửi thông báo
-        parent = db.query(User).filter(User.user_id == student.parent_id).first()
+        parent = db.query(Parent).filter(Parent.parent_id == student.parent_id).first()
+        if not parent:
+            continue
+
+        parent_user = db.query(User).filter(User.user_id == parent.user_id).first()
         student_user = db.query(User).filter(User.user_id == student.user_id).first()
-        if parent and student_user:
-            month_str = due_date.strftime("%m/%Y")
-            content = (
-                f"Học phí tháng {month_str} của học sinh {student_user.full_name} là "
-                f"{amount} VND. Hạn thanh toán {due_date.strftime('%d/%m/%Y')}."
-            )
-            send_notification(
-                db=db,
-                sender_id=None,
-                receiver_id=parent.user_id,
-                content=content,
-                notif_type=NotificationType.tuition,
+        if parent_user and student_user:
+            _send_tuition_notification(
+                db, parent_user.user_id, student_user.full_name, amount, due_date
             )
 
     db.commit()

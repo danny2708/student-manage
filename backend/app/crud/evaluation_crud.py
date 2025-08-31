@@ -1,4 +1,5 @@
 # app/crud/evaluation_crud.py
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.evaluation_model import Evaluation
 from app.schemas.evaluation_schema import EvaluationCreate
@@ -46,3 +47,33 @@ def delete_evaluation(db: Session, evaluation_id: int):
         db.commit()
         return {"message": "Đã xóa thành công."}
     return {"message": "Đánh giá không tìm thấy."}
+
+def update_late_evaluation(
+    db: Session,
+    student_id: int,
+    teacher_id: int,
+    new_content: str,
+    study_point_penalty: int = 0,
+    discipline_point_penalty: int = 0,
+    evaluation_type: str = "discipline"
+) -> Optional[Evaluation]:
+    """
+    Cập nhật evaluation khi sinh viên đến muộn:
+      - Thay đổi nội dung
+      - Trừ study_point và discipline_point
+    """
+    evaluation_record = db.query(Evaluation).filter(
+        Evaluation.student_id == student_id,
+        Evaluation.teacher_id == teacher_id,
+        Evaluation.evaluation_type == evaluation_type
+    ).first()
+
+    if evaluation_record:
+        evaluation_record.evaluation_content = new_content
+        evaluation_record.study_point = study_point_penalty
+        evaluation_record.discipline_point = discipline_point_penalty
+        db.commit()
+        db.refresh(evaluation_record)
+        return evaluation_record
+
+    return None
