@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/schedule_route.py
 from app.models.schedule_model import DayOfWeekEnum, ScheduleTypeEnum
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -6,7 +5,7 @@ from typing import List, Optional
 from datetime import date as dt_date
 
 # CRUD & Schemas
-from app.crud import schedule_crud
+from app.crud import schedule_crud, student_crud
 from app.schemas import schedule_schema
 
 # Deps & Auth
@@ -14,7 +13,7 @@ from app.api import deps
 from app.api.auth.auth import AuthenticatedUser, get_current_active_user, has_roles
 
 # Services
-from app.services import schedule_service, student_parent_service, user_service
+from app.services import schedule_service, user_service
 
 router = APIRouter()
 
@@ -83,16 +82,13 @@ def get_schedule_route(
     if not db_schedule:
         raise HTTPException(status_code=404, detail="Lịch trình không tìm thấy.")
 
-    # Nếu là Manager hoặc Teacher thì cho phép
     if "manager" in current_user.roles or "teacher" in current_user.roles:
         return db_schedule
 
-    # Nếu là Student → check xem có thuộc lớp này không
     if "student" in current_user.roles:
         if any(student.user_id == current_user.user_id for student in db_schedule.class_.students):
             return db_schedule
 
-    # Ngược lại cấm
     raise HTTPException(status_code=403, detail="Bạn không có quyền xem lịch này.")
 
 
@@ -168,10 +164,13 @@ def get_student_schedules_route(
     Manager, phụ huynh hoặc chính học sinh đó mới được xem.
     """
     student_user_id = user_service.get_user_id(db, "student", student_id)
+    db_student = student_crud.get_student(db, student_id)
 
     is_manager = "manager" in current_user.roles
     is_student_self = current_user.user_id == student_user_id
-    is_parent_of_student = student_parent_service.is_parent_of_student(db, current_user.user_id, student_user_id)
+    is_parent_of_student = (
+        db_student and db_student.parent and db_student.parent.user_id == current_user.user_id
+    )
 
     if not (is_manager or is_student_self or is_parent_of_student):
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem lịch học sinh này.")

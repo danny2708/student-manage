@@ -1,25 +1,23 @@
-# app/services/sheet_import_user_service.py
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from openpyxl import load_workbook # type: ignore
+from openpyxl import load_workbook  # type: ignore
 from io import BytesIO
-from sqlalchemy.orm import Session
+
 from .. import service_helper
 from app.schemas.user_schema import UserCreate
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas.student_schema import StudentCreate
 from app.schemas.parent_schema import ParentCreate
-from app.schemas.student_parent_schema import StudentParentAssociationCreate
 
 from app.crud.user_crud import create_user
 from app.crud.user_role_crud import create_user_role
-from app.crud.student_crud import create_student
+from app.crud.student_crud import create_student, get_student
 from app.crud.parent_crud import create_parent
-from app.crud.student_parent_crud import create_student_parent
+
 
 def import_users(file: UploadFile, db: Session):
     try:
-        contents = file.file.read()  # đọc sync
+        contents = file.file.read()
         workbook = load_workbook(filename=BytesIO(contents), data_only=True)
 
         # --- Đọc sheet Student ---
@@ -46,9 +44,7 @@ def import_users(file: UploadFile, db: Session):
             if clean_row[0] and "@" in clean_row[0]:
                 parent_rows.append(clean_row)
 
-        email_to_parent_id = import_parents(
-            db, parent_rows, email_to_student_id
-        )
+        email_to_parent_id = import_parents(db, parent_rows, email_to_student_id)
 
         return {
             "students": email_to_student_id,
@@ -57,29 +53,27 @@ def import_users(file: UploadFile, db: Session):
 
     except Exception as e:
         raise RuntimeError(f"Import failed: {str(e)}")
-    
+
 
 def import_students(db: Session, student_rows: list) -> dict:
     """
-    Import học sinh từ sheet (đã cắt cột A ở service).
-    Trả về dict mapping email(lower) -> student_id.
-    Cột sau khi cắt: 0:B(email), 1:C(full_name), 2:D(dob), 3:E(gender), 4:F(phone).
+    Import học sinh từ sheet (đã cắt cột A).
+    Trả về dict email -> student_id.
+    Cột: 0:B(email), 1:C(full_name), 2:D(dob), 3:E(gender), 4:F(phone).
     """
     email_to_student_id = {}
 
     for row in student_rows:
         if not row:
             continue
-        # Bảo đảm đủ độ dài tối thiểu
         row = list(row) + [""] * (5 - len(row))
 
         email        = (row[0] or "").strip().lower()
         full_name    = (row[1] or "").strip()
-        dob = row[2]
+        dob          = row[2]
         gender       = (row[3] or "").strip()
         phone_number = (row[4] or "").strip()
 
-        # validate email
         if not email or "@" not in email:
             continue
 
@@ -102,7 +96,7 @@ def import_students(db: Session, student_rows: list) -> dict:
         # Gán role student
         create_user_role(db, UserRoleCreate(user_id=db_user.user_id, role_name="student"))
 
-        # Tạo student record
+        # Tạo student
         student_in = StudentCreate(user_id=db_user.user_id)
         db_student = create_student(db, student_in)
 
@@ -113,29 +107,26 @@ def import_students(db: Session, student_rows: list) -> dict:
 
 def import_parents(db: Session, parent_rows: list, email_to_student_id: dict) -> dict:
     """
-    Import phụ huynh từ sheet (đã cắt cột A ở service).
-    Trả về dict mapping email(lower) -> parent_id.
-    Đồng thời gắn quan hệ Parent–Student nếu có child_email (cột I).
-    Cột sau khi cắt: 0:B(email), 1:C(full_name), 2:D(dob), 3:E(gender),
-                     4:F(phone), 5:G(...), 6:H(...), 7:I(child_email)
+    Import phụ huynh từ sheet (đã cắt cột A).
+    Trả về dict email -> parent_id.
+    Đồng thời gán parent_id cho student nếu có child_email.
+    Cột: 0:B(email), 1:C(full_name), 2:D(dob), 3:E(gender),
+         4:F(phone), 5:G(...), 6:H(...), 7:I(child_email)
     """
     email_to_parent_id = {}
 
     for row in parent_rows:
         if not row:
             continue
-        # Đảm bảo đủ độ dài để truy cập tới cột I (index 7)
         row = list(row) + [""] * (8 - len(row))
 
-        email        = (row[0] or "").strip().lower()   # B
-        full_name    = (row[1] or "").strip()           # C
-        dob          =  row[2]                          # D
-        gender       = (row[3] or "").strip()           # E
-        phone_number = (row[4] or "").strip()           # F
-        # row[5], row[6] có thể là các cột phụ, không dùng
-        child_email  = (row[7] or "").strip().lower()   # I
+        email        = (row[0] or "").strip().lower()
+        full_name    = (row[1] or "").strip()
+        dob          = row[2]
+        gender       = (row[3] or "").strip()
+        phone_number = (row[4] or "").strip()
+        child_email  = (row[7] or "").strip().lower()
 
-        # validate email phụ huynh
         if not email or "@" not in email:
             continue
 
@@ -158,19 +149,19 @@ def import_parents(db: Session, parent_rows: list, email_to_student_id: dict) ->
         # Gán role parent
         create_user_role(db, UserRoleCreate(user_id=db_user.user_id, role_name="parent"))
 
-        # Tạo parent record
+        # Tạo parent
         parent_in = ParentCreate(user_id=db_user.user_id)
         db_parent = create_parent(db, parent_in)
         email_to_parent_id[email] = db_parent.parent_id
 
-        # Liên kết parent–student (nếu có child_email hợp lệ & đã import ở students)
-        if child_email and "@" in child_email:
-            student_id = email_to_student_id.get(child_email)
-            if student_id:
-                sp_in = StudentParentAssociationCreate(
-                    student_id=student_id,
-                    parent_id=db_parent.parent_id
-                )
-                create_student_parent(db, sp_in)
+        # Nếu có child_email hợp lệ -> update student.parent_id
+        if child_email and child_email in email_to_student_id:
+            student_id = email_to_student_id[child_email]
+            student = get_student(db, student_id)
+            if student:
+                student.parent_id = db_parent.parent_id
+                db.add(student)
+                db.commit()
+                db.refresh(student)
 
     return email_to_parent_id

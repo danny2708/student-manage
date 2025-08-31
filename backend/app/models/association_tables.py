@@ -11,15 +11,6 @@ user_roles = Table(
     Column("role_id", Integer, ForeignKey("roles.role_id"), primary_key=True),
 )
 
-# ---- Student-Parent association (pure table) ----
-student_parent_association = Table(
-    "student_parent_association",
-    Base.metadata,
-    Column("student_id", Integer, ForeignKey("students.student_id"), primary_key=True),
-    Column("parent_id", Integer, ForeignKey("parents.parent_id"), primary_key=True),
-)
-
-
 student_class_association = Table(
     "student_class_association",
     Base.metadata,
