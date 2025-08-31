@@ -14,7 +14,8 @@ class Student(Base):
 
     student_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
-
+    parent_id = Column(Integer, ForeignKey("parents.parent_id"), nullable=True)
+    
     # One-to-many with Parent
     parent = relationship("Parent", back_populates="children")
 
