@@ -1,12 +1,13 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
-from app.models.association_tables import student_parent_association, user_roles
 from app.models.student_model import Student
 from app.schemas.student_schema import StudentUpdate, StudentCreate
 from app.models.parent_model import Parent
 from app.models.user_model import User
-from app.models.role_model import Role 
+from app.models.role_model import Role
+from app.models.association_tables import user_roles
+
 
 def get_student(db: Session, student_id: int) -> Optional[Student]:
     return db.execute(
@@ -26,16 +27,16 @@ def get_student_with_user(db: Session, student_id: int) -> Optional[Tuple[Studen
     return result if result else (None, None)
 
 
-def get_parents_by_student_id(db: Session, student_id: int) -> List[Tuple[Parent, User]]:
+def get_parent_by_student_id(db: Session, student_id: int) -> Optional[Tuple[Parent, User]]:
     """
-    Lấy danh sách phụ huynh và user liên kết với 1 student.
+    Lấy phụ huynh duy nhất (1-n) của học sinh.
     """
     return db.execute(
         select(Parent, User)
-        .join(student_parent_association, student_parent_association.c.parent_id == Parent.parent_id)
-        .join(User, User.user_id == Parent.user_id)
-        .where(student_parent_association.c.student_id == student_id)
-    ).all()
+        .join(User, Parent.user_id == User.user_id)
+        .join(Student, Student.parent_id == Parent.parent_id)
+        .where(Student.student_id == student_id)
+    ).first()
 
 
 def get_student_by_user_id(db: Session, user_id: int) -> Optional[Student]:
@@ -45,8 +46,16 @@ def get_student_by_user_id(db: Session, user_id: int) -> Optional[Student]:
 
 
 def get_students_by_class_id(db: Session, class_id: int, skip: int = 0, limit: int = 100) -> List[Student]:
+    """
+    Lấy danh sách học sinh trong 1 lớp.
+    Vì Student–Class là many-to-many nên cần join qua relationship.
+    """
     return db.execute(
-        select(Student).where(Student.class_id == class_id).offset(skip).limit(limit)
+        select(Student)
+        .join(Student.classes)   # join qua relationship
+        .where(Student.classes.any(class_id=class_id))
+        .offset(skip)
+        .limit(limit)
     ).scalars().all()
 
 
@@ -85,7 +94,7 @@ def delete_student(db: Session, student_id: int):
     if not student_role:
         return None
 
-    # Xóa chỉ role "student" cho user này
+    # Xóa chỉ role "student" cho user này (không ảnh hưởng role khác)
     db.execute(
         user_roles.delete()
         .where(user_roles.c.user_id == db_student.user_id)
@@ -95,4 +104,3 @@ def delete_student(db: Session, student_id: int):
     db.delete(db_student)
     db.commit()
     return db_student
-

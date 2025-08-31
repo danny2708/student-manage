@@ -2,7 +2,7 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
-from app.models.association_tables import student_parent_association, student_class_association
+from app.models.association_tables import student_class_association
 # Import mô hình Test để thiết lập mối quan hệ
 from app.models.test_model import Test
 
@@ -15,12 +15,8 @@ class Student(Base):
     student_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), unique=True, nullable=False)
 
-    # Many-to-many with Parent
-    parents = relationship(
-        "Parent",
-        secondary=student_parent_association,
-        back_populates="children"
-    )
+    # One-to-many with Parent
+    parent = relationship("Parent", back_populates="children")
 
     # Many-to-many with Class
     classes = relationship(

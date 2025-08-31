@@ -119,35 +119,6 @@ def get_tuitions_by_student_id(
 
 
 @router.get(
-    "/my_tuitions",
-    response_model=List[TuitionRead],
-    summary="Lấy danh sách học phí của người dùng hiện tại (học sinh)",
-    dependencies=[Depends(STUDENT_ONLY)]
-)
-def get_my_tuitions(
-    db: Session = Depends(deps.get_db),
-    current_user: dict = Depends(get_current_active_user),
-    payment_status: Optional[PaymentStatus] = Query(None, description="Lọc theo trạng thái thanh toán")
-):
-    """
-    Lấy danh sách học phí của học sinh đã đăng nhập.
-    
-    Tùy chọn lọc theo trạng thái thanh toán.
-    
-    Quyền truy cập: **student**
-    """
-    student_id = current_user.get("id")
-    if not student_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không thể xác định học sinh.")
-    
-    tuitions = tuition_crud.get_tuitions_by_student_id(
-        db, 
-        student_id=student_id,
-        payment_status=payment_status
-    )
-    return tuitions
-
-@router.get(
     "/by_parent",
     response_model=List[TuitionRead],
     summary="Lấy danh sách học phí của tất cả học sinh thuộc một phụ huynh",

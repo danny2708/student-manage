@@ -5,7 +5,6 @@ from . import payroll_crud
 from . import teacher_crud
 from . import parent_crud
 from . import student_crud
-from . import student_parent_crud
 from . import subject_crud
 from . import test_crud
 from . import tuition_crud

@@ -9,6 +9,19 @@ def get_tuition(db: Session, tuition_id: int):
 def get_tuitions_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
     return db.query(Tuition).filter(Tuition.student_id == student_id).offset(skip).limit(limit).all()
 
+def get_tuitions_by_parent_id(db: Session, parent_id: int, skip: int = 0, limit: int = 100):
+    """
+    Lấy tất cả học phí của các học sinh thuộc về một phụ huynh.
+    """
+    return (
+        db.query(Tuition)
+        .join(Tuition.student)  # dùng quan hệ Tuition → Student
+        .filter(Tuition.student.has(parent_id=parent_id))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
 def get_all_tuitions(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Tuition).offset(skip).limit(limit).all()
 
