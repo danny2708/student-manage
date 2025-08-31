@@ -1,132 +1,112 @@
+# app/services/tuition_service.py
 from sqlalchemy.orm import Session
-from datetime import date, datetime, timezone
-from decimal import Decimal
-
+from datetime import datetime, date
+from app.models.tuition_model import Tuition, PaymentStatus
+from app.models.notification_model import NotificationType
+from app.schemas.tuition_schema import TuitionCreate
+from app.services.notification_service import send_notification
+from app.crud.student_crud import get_student_with_user
+from app.models.user_model import User
 from app.models.student_model import Student
 from app.models.class_model import Class
 from app.models.association_tables import student_class_association
-from app.schemas.tuition_schema import TuitionCreate
-from app.crud import tuition_crud
-from app.models.tuition_model import Tuition, PaymentStatus
-from app.crud import notification_crud
-from app.schemas.notification_schema import NotificationCreate
-from app.crud import student_crud
+from decimal import Decimal
+from app.database import SessionLocal
+
+
+def create_tuition_record(db: Session, tuition_in: TuitionCreate):
+    student, student_user = get_student_with_user(db, tuition_in.student_id)
+    if not student or not student_user:
+        raise ValueError("Student not found")
+
+    # lookup phụ huynh
+    parent = db.query(User).filter(User.user_id == student.parent_id).first()
+    if not parent:
+        raise ValueError("Parent not found")
+
+    # tạo record học phí
+    tuition_record = Tuition(
+        student_id=tuition_in.student_id,
+        amount=tuition_in.amount,
+        term=tuition_in.term,
+        due_date=tuition_in.due_date,
+        payment_status=PaymentStatus.unpaid,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(tuition_record)
+    db.commit()
+    db.refresh(tuition_record)
+
+    # gửi thông báo
+    month_str = tuition_in.due_date.strftime("%m/%Y")
+    content = (
+        f"Học phí tháng {month_str} của học sinh {student_user.full_name} là "
+        f"{tuition_in.amount} VND. Hạn thanh toán {tuition_in.due_date.strftime('%d/%m/%Y')}."
+    )
+    send_notification(
+        db=db,
+        sender_id=None,  # hệ thống gửi
+        receiver_id=parent.user_id,
+        content=content,
+        notif_type=NotificationType.tuition,
+    )
+
+    return tuition_record
+
 
 def calculate_tuition_for_student(db: Session, student_id: int) -> Decimal:
-    """
-    Tính học phí cho 1 học sinh dựa trên số lớp học sinh đó đang theo học.
-    Công thức: Tổng học phí = SUM(fee của mỗi lớp).
-    """
     student_classes = (
         db.query(Class)
         .join(student_class_association)
         .filter(student_class_association.c.student_id == student_id)
         .all()
     )
-
-    if not student_classes:
-        return Decimal(0)
-
     total_tuition = Decimal(0)
     for cls in student_classes:
         total_tuition += cls.fee
-
     return total_tuition
 
 
-def create_tuition_record_for_student(
-    db: Session, student_id: int, term: int, due_date: date
-):
-    """
-    Tạo một bản ghi học phí mới cho học sinh sau khi tính toán.
-    - Mặc định payment_status = "unpaid"
-    - payment_date = None (vì chưa thanh toán)
-    """
-    tuition_amount = calculate_tuition_for_student(db, student_id)
-
-    if tuition_amount <= Decimal(0):
-        return None
-
-    tuition_data = TuitionCreate(
-        student_id=student_id,
-        amount=float(tuition_amount),  # ép về float cho schema
-        term=term,
-        due_date=due_date,
-    )
-
-    db_tuition = tuition_crud.create_tuition(db, tuition=tuition_data)
-    return db_tuition
-
-
 def create_tuition_for_all_students(db: Session, term: int, due_date: date):
-    student_ids = db.query(Student.student_id)
+    students = db.query(Student).all()
+    created_records = []
 
-    successful_creations = 0
-    failed_creations = 0
+    for student in students:
+        amount = calculate_tuition_for_student(db, student.student_id)
+        if amount <= 0:
+            continue
 
-    for student_id_tuple in student_ids:
-        student_id = student_id_tuple[0]
-        try:
-            db_tuition = create_tuition_record_for_student(
-                db, student_id=student_id, term=term, due_date=due_date
+        tuition_record = Tuition(
+            student_id=student.student_id,
+            amount=amount,
+            term=term,
+            due_date=due_date,
+            payment_status=PaymentStatus.unpaid,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+        db.add(tuition_record)
+        created_records.append(tuition_record)
+
+        # gửi thông báo
+        parent = db.query(User).filter(User.user_id == student.parent_id).first()
+        student_user = db.query(User).filter(User.user_id == student.user_id).first()
+        if parent and student_user:
+            month_str = due_date.strftime("%m/%Y")
+            content = (
+                f"Học phí tháng {month_str} của học sinh {student_user.full_name} là "
+                f"{amount} VND. Hạn thanh toán {due_date.strftime('%d/%m/%Y')}."
+            )
+            send_notification(
+                db=db,
+                sender_id=None,
+                receiver_id=parent.user_id,
+                content=content,
+                notif_type=NotificationType.tuition,
             )
 
-            if db_tuition:
-                successful_creations += 1
-
-                # Lấy tên học sinh
-                student, student_user = student_crud.get_student_with_user(db, student_id)
-                if not student_user:
-                    continue
-                student_name = student_user.full_name
-
-                # 🔔 Gửi thông báo cho tất cả phụ huynh
-                parents_with_users = student_crud.get_parents_by_student_id(db, student_id)
-                for parent, parent_user in parents_with_users:
-                    if parent_user:
-                        notification_in = NotificationCreate(
-                            sender_id=None,  # hệ thống
-                            receiver_id=parent_user.user_id,
-                            content=f"Học phí kỳ {term} của học sinh {student_name} "
-                                    f"là {db_tuition.amount}, hạn nộp: {due_date}.",
-                            sent_at=datetime.now(timezone.utc),
-                            type="tuition"
-                        )
-                        notification_crud.create_notification(db, notification_in)
-
-        except Exception as e:
-            failed_creations += 1
-            print(f"Lỗi khi tạo học phí cho sinh viên ID {student_id}: {e}")
-            db.rollback()
-
-    try:
-        db.commit()
-    except Exception as e:
-        print(f"Lỗi trong quá trình commit cuối cùng: {e}")
-        db.rollback()
-
-    print(f"--- KẾT QUẢ TẠO HỌC PHÍ ---")
-    print(f"Thành công: {successful_creations} bản ghi")
-    print(f"Thất bại/Lỗi: {failed_creations} bản ghi")
-    print(f"--------------------------")
-
-
-def update_overdue_tuitions(db: Session):
-    """Cập nhật trạng thái của các khoản học phí đã quá hạn."""
-    today = date.today()
-    
-    # Tìm tất cả các bản ghi học phí "unpaid" mà due_date đã qua
-    overdue_tuitions = db.query(Tuition).filter(
-        Tuition.payment_status == PaymentStatus.unpaid,
-        Tuition.due_date < today
-    ).all()
-    
-    updated_count = 0
-    for tuition in overdue_tuitions:
-        tuition.payment_status = PaymentStatus.overdue
-        updated_count += 1
-    
-    if updated_count > 0:
-        db.commit()
-    
-    print(f"Đã cập nhật {updated_count} bản ghi học phí thành 'overdue'.")
+    db.commit()
+    for record in created_records:
+        db.refresh(record)
+    return created_records
