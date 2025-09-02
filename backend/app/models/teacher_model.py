@@ -33,6 +33,8 @@ class Teacher(Base):
 
     # Mối quan hệ one-to-one với Payroll
     payroll = relationship("Payroll", uselist=False, back_populates="teacher")
+
+    # Mối quan hệ one-to-one với TeacherReview
     review = relationship("TeacherReview", uselist=False, back_populates="teacher")
 
     def __repr__(self):
