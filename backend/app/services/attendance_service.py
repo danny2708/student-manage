@@ -8,7 +8,7 @@ from app.schemas.evaluation_schema import EvaluationCreate
 from app.models.attendance_model import AttendanceStatus, Attendance
 from app.models.notification_model import  Notification, NotificationType
 from app.models.evaluation_model import EvaluationType
-from datetime import time, date
+from datetime import time
 from fastapi import HTTPException
 
 def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate) -> List[Attendance]:
@@ -21,7 +21,7 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
     if not class_info:
         raise HTTPException(status_code=404, detail="Không tìm thấy lớp học với ID đã cung cấp.")
         
-    teacher_id = class_info.teacher_id
+    teacher_user_id = class_info.teacher_user_id
 
     try:
         db_records = attendance_crud.create_initial_attendance_records(db, attendance_data)
@@ -30,7 +30,7 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
     
     for record in db_records:
         if record.status == AttendanceStatus.absent:
-            student_and_user_data = student_crud.get_student_with_user(db, record.student_id)
+            student_and_user_data = student_crud.get_student_with_user(db, record.student_user_id)
             
             if student_and_user_data:
                 student, student_user = student_and_user_data
@@ -43,7 +43,7 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
                 )
                 notification_crud.create_notification(db, notification=notification_student)
                 
-                parent_and_user_tuple = student_crud.get_parent_by_student_id(db, record.student_id)
+                parent_and_user_tuple = student_crud.get_parent_by_student_user_id(db, record.student_user_id)
                 if parent_and_user_tuple:
                     parent, parent_user = parent_and_user_tuple
                     notification_parent = NotificationCreate(
@@ -56,8 +56,8 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
 
             
             evaluation_data = EvaluationCreate(
-                student_id=record.student_id,
-                teacher_id=teacher_id,
+                student_user_id=record.student_user_id,
+                teacher_user_id=teacher_user_id,
                 study_point=-5,
                 discipline_point=-5,
                 evaluation_content="Vắng mặt không phép trong buổi học.",
@@ -68,8 +68,8 @@ def create_batch_attendance(db: Session, attendance_data: AttendanceBatchCreate)
     
     return db_records
 
-def update_late_attendance(db: Session, student_id: int, class_id: int, checkin_time: time) -> Optional[Attendance]:
-    attendance_record = attendance_crud.get_absent_attendance_for_student_in_class(db, student_id, class_id)
+def update_late_attendance(db: Session, student_user_id: int, class_id: int, checkin_time: time) -> Optional[Attendance]:
+    attendance_record = attendance_crud.get_absent_attendance_for_student_in_class(db, student_user_id, class_id)
     if not attendance_record:
         return None
 
@@ -84,18 +84,18 @@ def update_late_attendance(db: Session, student_id: int, class_id: int, checkin_
     # Cập nhật evaluation
     evaluation_crud.update_late_evaluation(
         db=db,
-        student_id=student_id,
-        teacher_id=attendance_record.class_obj.teacher_id,
+        student_user_id=student_user_id,
+        teacher_user_id=attendance_record.class_obj.teacher_user_id,
         new_content="Đi học muộn",
         study_point_penalty=-2,         # trừ 2 điểm
         discipline_point_penalty=-2     # trừ 2 điểm
     )
 
     # Lấy học sinh và user
-    student, student_user = student_crud.get_student_with_user(db, student_id)
+    student, student_user = student_crud.get_student_with_user(db, student_user_id)
     if student and student_user:
         # Lấy 1 phụ huynh duy nhất
-        parent, parent_user = student_crud.get_parent_by_student_id(db, student_id)
+        parent, parent_user = student_crud.get_parent_by_student_user_id(db, student_user_id)
         if parent and parent_user:
             # Tìm thông báo hiện tại của phụ huynh liên quan đến buổi học này
             db_notification = db.query(Notification).filter(

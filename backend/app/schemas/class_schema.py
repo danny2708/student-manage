@@ -3,18 +3,18 @@ from typing import Optional
 
 class ClassBase(BaseModel):
     class_name: str = Field(..., example="Class 1A")
-    teacher_id: Optional[int] = Field(None, example=1)
+    teacher_user_id: Optional[int] = Field(None, example=1)
     subject_id: Optional[int] = Field(None, example=1)
     fee: Optional[int] = Field(None, example=1000)
 
 class ClassCreate(ClassBase):
     pass
 
-class ClassUpdate(ClassBase):
-    class_name: Optional[str] = None
-    teacher_id: Optional[int] = None
-    subject_id: Optional[int] = None
-    fee: Optional[int] = None
+class ClassUpdate(BaseModel):
+    class_name: Optional[str] = Field(None, example="Class 1A")
+    teacher_user_id: Optional[int] = Field(None, example=1)
+    subject_id: Optional[int] = Field(None, example=1)
+    fee: Optional[int] = Field(None, example=1000)
 
 class Class(ClassBase):
     class_id: int = Field(..., example=1)

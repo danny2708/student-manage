@@ -36,7 +36,7 @@ def create_attendance_records_for_class(
     dependencies=[Depends(has_roles(["teacher", "manager"]))]
 )
 def update_student_late_attendance(
-    student_id: int,
+    student_user_id: int,
     class_id: int,
     update_data: AttendanceUpdateLate,
     db: Session = Depends(deps.get_db)
@@ -47,7 +47,7 @@ def update_student_late_attendance(
     """
     updated_record = attendance_service.update_late_attendance(
         db, 
-        student_id=student_id, 
+        student_id=student_user_id, 
         class_id=class_id, 
         checkin_time=update_data.checkin_time
     )

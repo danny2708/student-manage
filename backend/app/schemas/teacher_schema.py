@@ -6,7 +6,7 @@ class TeacherBase(BaseModel):
     """
     Schema cơ sở cho Giáo viên, chứa các trường dùng chung.
     """
-    user_id: int
+    teacher_user_id: int
     base_salary_per_class: float
     reward_bonus: float
 
@@ -16,7 +16,6 @@ class TeacherBase(BaseModel):
 class TeacherCreate(TeacherBase):
     """
     Schema cho việc tạo một Giáo viên mới.
-    Thừa kế từ TeacherBase nên đã có đầy đủ các trường.
     """
     pass
 
@@ -37,11 +36,8 @@ class Teacher(TeacherBase):
     class Config:
         from_attributes = True
 
-# Schema chỉ nhận user_id để gán vai trò
-# Đây là schema phù hợp với một endpoint chỉ gán vai trò,
-# nhưng endpoint của bạn cũng tạo bản ghi mới nên cần TeacherCreate.
 class TeacherAssign(BaseModel):
     """
-    Schema chỉ dùng để gán vai trò Giáo viên, chỉ cần user_id.
+    Schema chỉ dùng để gán vai trò Giáo viên, chỉ cần teacher_user_id.
     """
-    user_id: int
+    teacher_user_id: int

@@ -7,21 +7,18 @@ from app.models.teacher_model import Teacher
 from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
 from app.models.association_tables import user_roles 
 
-def get_teacher(db: Session, teacher_id: int) -> Optional[Teacher]:
+def get_teacher(db: Session, teacher_user_id: int) -> Optional[Teacher]:
     """
-    Lấy thông tin giáo viên theo ID.
+    Lấy thông tin giáo viên theo teacher_id.
     """
-    stmt = select(Teacher).where(Teacher.teacher_id == teacher_id)
+    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
     return db.execute(stmt).scalar_one_or_none()
 
-def get_teacher_by_teacher_id(db: Session, teacher_id: int) -> Teacher | None:
-    return db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
-
-def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
+def get_teacher_by_user_id(db: Session, teacher_user_id: int) -> Optional[Teacher]:
     """
-    Lấy thông tin giáo viên theo user_id.
+    Lấy thông tin giáo viên theo teacher_user_id (khóa ngoại đến User).
     """
-    stmt = select(Teacher).where(Teacher.user_id == user_id)
+    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -53,7 +50,7 @@ def create_teacher(db: Session, teacher_in: TeacherCreate) -> Teacher:
     """
     Tạo mới giáo viên.
     """
-    db_teacher = Teacher(**teacher_in.model_dump())
+    db_teacher = Teacher(**teacher_in.model_dump(exclude_unset=True))
     db.add(db_teacher)
     db.commit()
     db.refresh(db_teacher)
@@ -68,7 +65,7 @@ def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) 
     if not db_teacher:
         return None
 
-    update_data = teacher_update.model_dump(exclude_unset=True, exclude={"user_id"})
+    update_data = teacher_update.model_dump(exclude_unset=True, exclude={"teacher_user_id"})
     for key, value in update_data.items():
         setattr(db_teacher, key, value)
 
@@ -76,8 +73,9 @@ def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) 
     db.refresh(db_teacher)
     return db_teacher
 
-def delete_teacher(db: Session, teacher_id: int):
-    db_teacher = get_teacher(db, teacher_id=teacher_id)
+
+def delete_teacher(db: Session, teacher_user_id: int):
+    db_teacher = get_teacher(db, teacher_user_id=teacher_user_id)
     if not db_teacher:
         return None
 
@@ -96,4 +94,3 @@ def delete_teacher(db: Session, teacher_id: int):
     db.delete(db_teacher)
     db.commit()
     return db_teacher
-

@@ -1,171 +1,116 @@
-# app/api/v1/endpoints/student_class_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import date
 
-# Import dependency factory
 from app.api.auth.auth import has_roles
-
 from app.api.deps import get_db
-from app.schemas.student_class_association_schema import (
-    StudentClassAssociationCreate,
-    StudentClassAssociation
-)
-from app.crud.student_class_crud import (
-    get_enrollment,
-    create_enrollment,
-    set_enrollment_inactive,
-    get_enrollments_by_student_id,
-    get_active_enrollments_by_class_id,
-    get_all_enrollments
-)
+from app.crud import enrollment_crud
+from app.crud import student_crud, class_crud
+from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate, Enrollment
 
-router = APIRouter()
+router = APIRouter(prefix="/enrollments", tags=["Enrollments"])
 
-# Dependency cho quyền truy cập của Manager
 MANAGER_ONLY = has_roles(["manager"])
-
-# Dependency cho quyền truy cập của Manager hoặc Teacher
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
-# --- Các endpoint chỉ dành cho Manager ---
-# Manager có thể tạo, xóa, và xem tất cả các bản ghi enrollment
+# --- Manager only endpoints ---
 @router.post(
-    "/", 
-    response_model=StudentClassAssociation, 
+    "/",
+    response_model=Enrollment,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bản ghi enrollment mới cho một sinh viên vào một lớp học",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền tạo
+    dependencies=[Depends(MANAGER_ONLY)]
 )
-def create_new_student_enrollment(
-    student_class_in: StudentClassAssociationCreate,
+def create_new_enrollment(
+    enrollment_in: EnrollmentCreate,
     db: Session = Depends(get_db)
 ):
-    """
-    Tạo một bản ghi enrollment mới.
-    
-    Quyền truy cập: **manager**
-    """
-    existing_enrollment = get_enrollment(
-        db, 
-        student_id=student_class_in.student_id,
-        class_id=student_class_in.class_id
-    )
-    if existing_enrollment:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Student is already enrolled in this class."
-        )
-    
-    new_enrollment = create_enrollment(db=db, student_class_in=student_class_in)
-    
-    return StudentClassAssociation(
-        student_id=new_enrollment.student_id,
-        class_id=new_enrollment.class_id,
-        enrollment_date=new_enrollment.enrollment_date,  
-        status=new_enrollment.enrollment_status.value
-    )
+    # Kiểm tra student & class tồn tại
+    student = student_crud.get_student(db, enrollment_in.student_user_id)
+    cls = class_crud.get_class(db, enrollment_in.class_id)
+    if not student or not cls:
+        raise HTTPException(status_code=404, detail="Student or Class not found")
+
+    # Kiểm tra enrollment đã tồn tại
+    existing = enrollment_crud.get_enrollment(db, student_user_id=enrollment_in.student_user_id, class_id=enrollment_in.class_id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Student is already enrolled in this class.")
+
+    enrollment = enrollment_crud.create_enrollment(db, enrollment_in=enrollment_in)
+    return enrollment
+
 
 @router.delete(
-    "/{student_id}/{class_id}", 
+    "/{student_user_id}/{class_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền xóa
+    dependencies=[Depends(MANAGER_ONLY)]
 )
-def remove_student_enrollment(
-    student_id: int,
+def remove_enrollment(
+    student_user_id: int,
     class_id: int,
     db: Session = Depends(get_db)
 ):
-    """
-    Cập nhật trạng thái enrollment của một sinh viên thành 'Inactive'.
-    
-    Quyền truy cập: **manager**
-    """
-    removed_enrollment = set_enrollment_inactive(
-        db=db, student_id=student_id, class_id=class_id
-    )
-    if not removed_enrollment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Enrollment record not found."
-        )
-    
+    removed = enrollment_crud.set_enrollment_inactive(db, student_user_id=student_user_id, class_id=class_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Enrollment record not found")
     return
 
-# --- Các endpoint dành cho cả Manager và Teacher ---
-# Cả hai vai trò này đều có thể xem thông tin enrollment
+
+# --- Manager or Teacher endpoints ---
 @router.get(
-    "/student/{student_id}", 
-    response_model=List[StudentClassAssociation],
+    "/student/{student_user_id}",
+    response_model=List[Enrollment],
     summary="Lấy danh sách các lớp học mà một sinh viên đã đăng ký",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager hoặc Teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_enrollments_for_student(student_id: int, db: Session = Depends(get_db)):
-    """
-    Lấy danh sách các lớp học mà một sinh viên đã đăng ký.
-    
-    Quyền truy cập: **manager**, **teacher**
-    """
-    enrollments = get_enrollments_by_student_id(db, student_id)
+def get_enrollments_for_student(student_user_id: int, db: Session = Depends(get_db)):
+    enrollments = enrollment_crud.get_enrollments_by_student_user_id(db, student_user_id)
     if not enrollments:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollments not found for this student.")
-    
-    return [
-        StudentClassAssociation(
-            student_id=e.student_id,
-            class_id=e.class_id,
-            enrollment_date=e.enrollment_date,
-            status=e.enrollment_status.value
-        ) for e in enrollments
-    ]
+        raise HTTPException(status_code=404, detail="Enrollments not found for this student")
+    return enrollments
+
 
 @router.get(
     "/class/{class_id}",
-    response_model=List[StudentClassAssociation],
+    response_model=List[Enrollment],
     summary="Lấy danh sách các sinh viên đã đăng ký vào một lớp học",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager hoặc Teacher đều có thể xem
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_active_enrollments_by_class(class_id: int, db: Session = Depends(get_db)):
-    """
-    Lấy danh sách các sinh viên đã đăng ký vào một lớp học.
-    
-    Quyền truy cập: **manager**, **teacher**
-    """
-    enrollments = get_active_enrollments_by_class_id(db, class_id)
+    enrollments = enrollment_crud.get_active_enrollments_by_class_id(db, class_id)
     if not enrollments:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollments not found for this class.")
-    
-    return [
-        StudentClassAssociation(
-            student_id=e.student_id,
-            class_id=e.class_id,
-            enrollment_date=e.enrollment_date,
-            status=e.enrollment_status.value
-        ) for e in enrollments
-    ]
-    
+        raise HTTPException(status_code=404, detail="Enrollments not found for this class")
+    return enrollments
+
+
+# --- Manager only endpoint: get all ---
 @router.get(
     "/",
-    response_model=List[StudentClassAssociation],
+    response_model=List[Enrollment],
     summary="Lấy tất cả các bản ghi enrollment",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ Manager mới có quyền xem toàn bộ
+    dependencies=[Depends(MANAGER_ONLY)]
 )
-def get_all_student_enrollments(db: Session = Depends(get_db)):
-    """
-    Lấy tất cả các bản ghi enrollment.
-    
-    Quyền truy cập: **manager**
-    """
-    enrollments = get_all_enrollments(db)
+def get_all_enrollments(db: Session = Depends(get_db)):
+    enrollments = enrollment_crud.get_all_enrollments(db)
     if not enrollments:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No enrollments found.")
-    
-    return [
-        StudentClassAssociation(
-            student_id=e.student_id,
-            class_id=e.class_id,
-            enrollment_date=e.enrollment_date,
-            status=e.enrollment_status.value
-        ) for e in enrollments
-    ]
+        raise HTTPException(status_code=404, detail="No enrollments found")
+    return enrollments
+
+
+@router.put(
+    "/{enrollment_id}",
+    response_model=Enrollment,
+    summary="Cập nhật thông tin enrollment",
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def update_enrollment(
+    enrollment_id: int,
+    enrollment_update: EnrollmentUpdate,
+    db: Session = Depends(get_db)
+):
+    updated = enrollment_crud.update_enrollment(db, enrollment_id=enrollment_id, enrollment_update=enrollment_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    return updated

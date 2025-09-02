@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+from passlib.context import CryptContext # type: ignore
 
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
@@ -28,7 +28,6 @@ def create_user(db: Session, user: UserCreate) -> User:
     Tạo một người dùng mới trong cơ sở dữ liệu.
     Lưu first_password (raw), password = hash(first_password).
     """
-    raw_password = user.first_password or user.password
 
     db_user = User(
         username=user.username,
@@ -37,8 +36,8 @@ def create_user(db: Session, user: UserCreate) -> User:
         date_of_birth=user.date_of_birth,
         gender=user.gender,
         phone_number=user.phone_number,
-        first_password=raw_password,                # lưu bản raw
-        password=pwd_context.hash(raw_password),    # hash để login
+        password_changed=False,                
+        password=pwd_context.hash(user.password),    
     )
 
     db.add(db_user)

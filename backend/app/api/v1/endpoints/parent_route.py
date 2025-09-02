@@ -10,42 +10,43 @@ from app.api import deps
 from app.api.auth.auth import get_current_active_user, has_roles
 
 router = APIRouter()
+MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
     "/",
     response_model=parent_schema.Parent,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(has_roles(["manager"]))]  # chỉ manager mới được gán parent
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def assign_parent(
     parent_in: parent_schema.ParentAssign,
     db: Session = Depends(deps.get_db)
 ):
-    db_user = user_crud.get_user(db=db, user_id=parent_in.user_id)
+    db_user = user_crud.get_user(db=db, user_id=parent_in.parent_user_id)
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {parent_in.user_id} not found."
+            detail=f"User with id {parent_in.parent_user_id} not found."
         )
 
-    existing_parent = parent_crud.get_parent_by_user_id(db=db, user_id=parent_in.user_id)
+    existing_parent = parent_crud.get_parent_by_user_id(db=db, user_id=parent_in.parent_user_id)
     if existing_parent:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with id {parent_in.user_id} is already a parent."
+            detail=f"User with id {parent_in.parent_user_id} is already a parent."
         )
 
     db_parent = parent_crud.create_parent(
         db=db,
-        parent_in=parent_schema.ParentCreate(user_id=parent_in.user_id)
+        parent_in=parent_schema.ParentCreate(parent_user_id=parent_in.parent_user_id)
     )
 
-    existing_role = user_role_crud.get_user_role(db, user_id=parent_in.user_id, role_name="parent")
+    existing_role = user_role_crud.get_user_role(db, user_id=parent_in.parent_user_id, role_name="parent")
     if not existing_role:
         user_role_crud.create_user_role(
             db=db,
             role_in=UserRoleCreate(
-                user_id=parent_in.user_id,
+                user_id=parent_in.parent_user_id,
                 role_name="parent",
                 assigned_at=datetime.utcnow()
             )
@@ -57,7 +58,7 @@ def assign_parent(
 @router.get(
     "/",
     response_model=List[parent_schema.Parent],
-    dependencies=[Depends(has_roles(["manager"]))]  # chỉ manager được xem danh sách tất cả parent
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def get_all_parents(
     skip: int = 0,
@@ -67,54 +68,53 @@ def get_all_parents(
     return parent_crud.get_all_parents(db, skip=skip, limit=limit)
 
 
-@router.get("/{parent_id}", response_model=parent_schema.Parent)
+@router.get("/{parent_user_id}", response_model=parent_schema.Parent)
 def get_parent(
-    parent_id: int,
+    parent_user_id: int,
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    db_parent = parent_crud.get_parent(db, parent_id=parent_id)
+    db_parent = parent_crud.get_parent(db, parent_user_id=parent_user_id)
     if db_parent is None:
         raise HTTPException(status_code=404, detail="Phụ huynh không tìm thấy.")
 
-    # quyền: parent chỉ xem chính mình, hoặc manager
-    if db_parent.user_id != current_user.user_id and not has_roles(["manager"])(current_user):
+    if db_parent.parent_user_id != current_user.user_id and not has_roles(["manager"])(current_user):
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem thông tin phụ huynh này.")
 
     return db_parent
 
 
-@router.put("/{parent_id}", response_model=parent_schema.Parent)
+@router.put("/{parent_user_id}", response_model=parent_schema.Parent)
 def update_existing_parent(
-    parent_id: int,
+    parent_user_id: int,
     parent_update: parent_schema.ParentUpdate,
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    db_parent = parent_crud.get_parent(db, parent_id=parent_id)
+    db_parent = parent_crud.get_parent(db, parent_user_id=parent_user_id)
     if db_parent is None:
         raise HTTPException(status_code=404, detail="Phụ huynh không tìm thấy.")
 
     if db_parent.user_id != current_user.user_id and not has_roles(["manager"])(current_user):
         raise HTTPException(status_code=403, detail="Bạn không có quyền cập nhật thông tin phụ huynh này.")
 
-    return parent_crud.update_parent(db, parent_id=parent_id, parent_update=parent_update)
+    return parent_crud.update_parent(db, parent_user_id=parent_user_id, parent_update=parent_update)
 
 
 @router.delete(
-    "/{parent_id}",
+    "/{parent_user_id}",
     response_model=dict,
-    dependencies=[Depends(has_roles(["manager"]))]  # chỉ manager được xóa parent
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def delete_existing_parent(
-    parent_id: int,
+    parent_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
-    db_parent = parent_crud.get_parent(db, parent_id=parent_id)
+    db_parent = parent_crud.get_parent(db, parent_user_id=parent_user_id)
     if db_parent is None:
         raise HTTPException(status_code=404, detail="Phụ huynh không tìm thấy.")
 
-    deleted_parent = parent_crud.delete_parent(db, parent_id=parent_id)
+    deleted_parent = parent_crud.delete_parent(db, parent_user_id=parent_user_id)
 
     return {
         "deleted_parent": parent_schema.Parent.from_orm(deleted_parent).dict(),

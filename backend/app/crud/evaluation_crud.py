@@ -10,11 +10,11 @@ def get_evaluation(db: Session, evaluation_id: int):
     """
     return db.query(Evaluation).filter(Evaluation.evaluation_id == evaluation_id).first()
 
-def get_evaluations_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
+def get_evaluations_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
     """
     Lấy danh sách các bản ghi đánh giá chi tiết (delta) của một học sinh.
     """
-    return db.query(Evaluation).filter(Evaluation.student_id == student_id).offset(skip).limit(limit).all()
+    return db.query(Evaluation).filter(Evaluation.student_user_id == student_user_id).offset(skip).limit(limit).all()
 
 def get_all_evaluations(db: Session, skip: int = 0, limit: int = 100):
     """
@@ -50,8 +50,8 @@ def delete_evaluation(db: Session, evaluation_id: int):
 
 def update_late_evaluation(
     db: Session,
-    student_id: int,
-    teacher_id: int,
+    student_user_id: int,
+    teacher_user_id: int,
     new_content: str,
     study_point_penalty: int = 0,
     discipline_point_penalty: int = 0,
@@ -63,8 +63,8 @@ def update_late_evaluation(
       - Trừ study_point và discipline_point
     """
     evaluation_record = db.query(Evaluation).filter(
-        Evaluation.student_id == student_id,
-        Evaluation.teacher_id == teacher_id,
+        Evaluation.student_user_id == student_user_id,
+        Evaluation.teacher_user_id == teacher_user_id,
         Evaluation.evaluation_type == evaluation_type
     ).first()
 

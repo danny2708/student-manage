@@ -100,7 +100,7 @@ def import_students(db: Session, student_rows: list) -> dict:
         student_in = StudentCreate(user_id=db_user.user_id)
         db_student = create_student(db, student_in)
 
-        email_to_student_id[email] = db_student.student_id
+        email_to_student_id[email] = db_student.user_id
 
     return email_to_student_id
 
@@ -152,14 +152,14 @@ def import_parents(db: Session, parent_rows: list, email_to_student_id: dict) ->
         # Tạo parent
         parent_in = ParentCreate(user_id=db_user.user_id)
         db_parent = create_parent(db, parent_in)
-        email_to_parent_id[email] = db_parent.parent_id
+        email_to_parent_id[email] = db_parent.user_id
 
         # Nếu có child_email hợp lệ -> update student.parent_id
         if child_email and child_email in email_to_student_id:
             student_id = email_to_student_id[child_email]
             student = get_student(db, student_id)
             if student:
-                student.parent_id = db_parent.parent_id
+                student.parent_id = db_parent.user_id
                 db.add(student)
                 db.commit()
                 db.refresh(student)

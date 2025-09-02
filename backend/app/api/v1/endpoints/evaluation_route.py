@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 # Import các dependency cần thiết từ auth.py
-from app.api.auth.auth import has_roles, AuthenticatedUser
+from app.api.auth.auth import has_roles
 from app.crud import evaluation_crud, teacher_crud, student_crud
 from app.schemas import evaluation_schema
 from app.api import deps
@@ -33,19 +33,19 @@ def create_new_evaluation_record(
     Tạo một bản ghi đánh giá mới với điểm delta (thay đổi).
     Chỉ cho phép manager và Giáo viên tạo đánh giá.
     """
-    # Bước 1 & 2: Kiểm tra sự tồn tại của teacher_id và student_id
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=evaluation_in.teacher_id)
+    # Bước 1 & 2: Kiểm tra sự tồn tại của teacher_user_id và student_user_id
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=evaluation_in.teacher_user_id)
     if not db_teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Teacher with id {evaluation_in.teacher_id} not found."
+            detail=f"Teacher with id {evaluation_in.teacher_user_id} not found."
         )
     
-    db_student = student_crud.get_student(db, student_id=evaluation_in.student_id)
+    db_student = student_crud.get_student(db, student_user_id=evaluation_in.student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {evaluation_in.student_id} not found."
+            detail=f"Student with id {evaluation_in.student_user_id} not found."
         )
         
     # Bước 3: Tạo bản ghi đánh giá chi tiết
@@ -53,58 +53,58 @@ def create_new_evaluation_record(
 
 
 @router.get(
-    "/total_score/{student_id}",
+    "/total_score/{student_user_id}",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_total_score_by_student(
-    student_id: int,
+    student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
     """
     Tính và trả về điểm tổng hiện tại của một học sinh.
     Chỉ manager và Giáo viên mới có thể xem.
     """
-    # Kiểm tra sự tồn tại của student_id
-    db_student = student_crud.get_student(db, student_id=student_id)
+    # Kiểm tra sự tồn tại của student_user_id
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_id} not found."
+            detail=f"Student with id {student_user_id} not found."
         )
         
-    total_points = evaluation_service.calculate_total_points_for_student(db, student_id=student_id)
+    total_points = evaluation_service.calculate_total_points_for_student(db, student_user_id=student_user_id)
     
     if total_points is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No evaluation record found for student {student_id}"
+            detail=f"No evaluation record found for student {student_user_id}"
         )
         
     return total_points
 
 
 @router.get(
-    "/summary_and_counts/{student_id}",
+    "/summary_and_counts/{student_user_id}",
     response_model=evaluation_schema.EvaluationSummary,
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_summary_and_counts(
-    student_id: int,
+    student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
     """
     Lấy điểm tổng (giới hạn 100) và số lần cộng/trừ điểm của một học sinh.
     Chỉ manager và Giáo viên mới có thể xem.
     """
-    # Kiểm tra sự tồn tại của student_id
-    db_student = student_crud.get_student(db, student_id=student_id)
+    # Kiểm tra sự tồn tại của student_user_id
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_id} not found."
+            detail=f"Student with id {student_user_id} not found."
         )
 
-    summary_data = evaluation_service.get_summary_and_counts_for_student(db, student_id=student_id)
+    summary_data = evaluation_service.get_summary_and_counts_for_student(db, student_user_id=student_user_id)
     return summary_data
 
 
@@ -131,26 +131,26 @@ def get_evaluation_record(
 
 
 @router.get(
-    "/by_student/{student_id}",
+    "/by_student/{student_user_id}",
     response_model=List[evaluation_schema.EvaluationRead],
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_evaluations_by_student(
-    student_id: int,
+    student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
     """
-    Lấy tất cả các bản ghi đánh giá chi tiết của một học sinh theo student_id.
+    Lấy tất cả các bản ghi đánh giá chi tiết của một học sinh theo student_user_id.
     Chỉ manager và Giáo viên mới có thể xem.
     """
-    db_student = student_crud.get_student(db, student_id=student_id)
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_id} not found."
+            detail=f"Student with id {student_user_id} not found."
         )
     
-    evaluations = evaluation_crud.get_evaluations_by_student_id(db, student_id=student_id)
+    evaluations = evaluation_crud.get_evaluations_by_student_user_id(db, student_user_id=student_user_id)
     return evaluations
 
 
