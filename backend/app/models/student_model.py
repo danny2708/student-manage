@@ -27,7 +27,7 @@ class Student(Base):
     parent = relationship("Parent", back_populates="children")
 
 
-    # Các mối quan hệ one-to-many khác
+    # Các mối quan hệ 
     tests = relationship("Test", back_populates="student")
     tuitions = relationship("Tuition", back_populates="student")
     enrollments = relationship("Enrollment", back_populates="student")

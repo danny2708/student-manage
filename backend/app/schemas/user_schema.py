@@ -26,13 +26,13 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = None
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[GenderEnum] = None
     phone_number: Optional[str] = None
     password: Optional[str] = None
-    password_changed: Optional[bool] = None
 
 
 class UserOut(UserBase):

@@ -49,7 +49,7 @@ def create_user(db: Session, user: UserCreate) -> User:
 def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[User]:
     """
     Cập nhật thông tin của một người dùng đã tồn tại.
-    Nếu có password mới → hash lại.
+    Nếu có password mới → hash lại và set password_changed = True.
     """
     db_user = db.query(User).filter(User.user_id == user_id).first()
     if not db_user:
@@ -57,10 +57,11 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[
     
     update_data = user_update.model_dump(exclude_unset=True)
 
-    # Nếu có password mới → hash
+    # Nếu có password mới → hash và set password_changed = True
     if "password" in update_data and update_data["password"]:
         update_data["password"] = pwd_context.hash(update_data["password"])
-    
+        db_user.password_changed = True  # gán trực tiếp vào entity
+
     for key, value in update_data.items():
         setattr(db_user, key, value)
 
