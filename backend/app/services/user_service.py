@@ -6,10 +6,10 @@ from app.models import Teacher, Manager, Student, Parent
 
 # Mapping giữa entity string và model + id field
 ENTITY_MODEL_MAP = {
-    "teacher": (Teacher, Teacher.teacher_id),
-    "manager": (Manager, Manager.manager_id),
-    "student": (Student, Student.student_id),
-    "parent":  (Parent, Parent.parent_id),
+    "teacher": (Teacher, Teacher.user_id),
+    "manager": (Manager, Manager.user_id),
+    "student": (Student, Student.user_id),
+    "parent":  (Parent, Parent.user_id),
 }
 
 def get_user_id(db: Session, entity: str, entity_id: int) -> Optional[int]:

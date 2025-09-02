@@ -6,8 +6,8 @@ from app.models.manager_model import Manager
 from app.schemas.manager_schema import ManagerUpdate, ManagerCreate
 from app.models.association_tables import user_roles 
 
-def get_manager(db: Session, manager_id: int) -> Optional[Manager]:
-    stmt = select(Manager).where(Manager.manager_id == manager_id)
+def get_manager(db: Session, manager_user_id: int) -> Optional[Manager]:
+    stmt = select(Manager).where(Manager.user_id == manager_user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 def get_manager_by_user_id(db: Session, user_id: int) -> Optional[Manager]:
@@ -28,8 +28,8 @@ def create_manager(db: Session, manager_in: ManagerCreate) -> Manager:
     db.refresh(db_manager)
     return db_manager
 
-def update_manager(db: Session, manager_id: int, manager_update: ManagerUpdate) -> Optional[Manager]:
-    db_manager = get_manager(db, manager_id)
+def update_manager(db: Session, manager_user_id: int, manager_update: ManagerUpdate) -> Optional[Manager]:
+    db_manager = get_manager(db, manager_user_id)
     if not db_manager:
         return None
     update_data = manager_update.model_dump(exclude_unset=True)
@@ -39,8 +39,8 @@ def update_manager(db: Session, manager_id: int, manager_update: ManagerUpdate) 
     db.refresh(db_manager)
     return db_manager
 
-def delete_manager(db: Session, manager_id: int):
-    db_manager = get_manager(db, manager_id=manager_id)
+def delete_manager(db: Session, manager_user_id: int):
+    db_manager = get_manager(db, manager_user_id=manager_user_id)
     if not db_manager:
         return None
 

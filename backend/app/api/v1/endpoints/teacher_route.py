@@ -12,7 +12,6 @@ from app.crud import user_role_crud # cần import CRUD user_role
 # Schemas
 from app.schemas import teacher_schema
 from app.schemas.user_role_schema import UserRoleCreate
-from pydantic import BaseModel
 
 # Dependencies
 from app.api import deps
@@ -46,15 +45,15 @@ def assign_teacher(
     Quyền truy cập: **manager**
     """
     # 1. Kiểm tra user có tồn tại
-    db_user = user_crud.get_user(db=db, user_id=teacher_in.user_id)
+    db_user = user_crud.get_user(db=db, user_id=teacher_in.teacher_user_id)
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {teacher_in.user_id} not found."
+            detail=f"User with id {teacher_in.teacher_user_id} not found."
         )
 
     # 2. Kiểm tra user đã là teacher chưa
-    existing_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=teacher_in.user_id)
+    existing_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=teacher_in.teacher_user_id)
     if existing_teacher:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -65,12 +64,12 @@ def assign_teacher(
     db_teacher = teacher_crud.create_teacher(db=db, teacher_in=teacher_in)
 
     # 4. Cập nhật user_roles nếu chưa có role "teacher"
-    existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.user_id, role_name="teacher")
+    existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.teacher_user_id, role_name="teacher")
     if not existing_role:
         user_role_crud.create_user_role(
             db=db,
             role_in=UserRoleCreate(
-                user_id=teacher_in.user_id,
+                user_id=teacher_in.teacher_user_id,
                 role_name="teacher",
                 assigned_at=datetime.utcnow()
             )
@@ -99,13 +98,13 @@ def get_all_teachers(
 
 
 @router.get(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=teacher_schema.Teacher,
     summary="Lấy thông tin một giáo viên theo ID",
     dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -113,7 +112,7 @@ def get_teacher(
     
     Quyền truy cập: **manager**, **teacher**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -123,13 +122,13 @@ def get_teacher(
 
 
 @router.put(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=teacher_schema.Teacher,
     summary="Cập nhật thông tin giáo viên theo ID",
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_existing_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     teacher: teacher_schema.TeacherUpdate, 
     db: Session = Depends(deps.get_db)
 ):
@@ -138,7 +137,7 @@ def update_existing_teacher(
     
     Quyền truy cập: **manager**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,13 +149,13 @@ def update_existing_teacher(
 
 
 @router.delete(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=dict,
     summary="Xóa một giáo viên",
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_existing_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -164,7 +163,7 @@ def delete_existing_teacher(
     
     Quyền truy cập: **manager**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

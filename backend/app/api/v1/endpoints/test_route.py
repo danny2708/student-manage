@@ -11,9 +11,7 @@ from typing import List
 # Import các CRUD operations và schemas đã được cập nhật
 from app.crud import test_crud
 from app.crud import student_crud
-from app.crud import subject_crud
 from app.crud import class_crud
-from app.crud import teacher_crud
 from app.schemas import test_schema
 from app.api import deps
 # Import dependency factory
@@ -39,15 +37,15 @@ def create_new_test(
     test_in: test_schema.TestCreate,
     db: Session = Depends(deps.get_db)
 ):
-    db_student = student_crud.get_student(db, student_id=test_in.student_id)
+    db_student = student_crud.get_student(db, student_user_id=test_in.student_user_id)
     if not db_student:
-        raise HTTPException(status_code=404, detail=f"Student with id {test_in.student_id} not found.")
+        raise HTTPException(status_code=404, detail=f"Student with id {test_in.student_user_id} not found.")
 
     db_class = class_crud.get_class(db, class_id=test_in.class_id)
     if not db_class:
         raise HTTPException(status_code=404, detail=f"Class with id {test_in.class_id} not found.")
 
-    # Tạo test, tự động lấy subject_id và teacher_id từ class
+    # Tạo test, tự động lấy subject_id và teacher_user_id từ class
     db_test = test_crud.create_test(db, test_in)
     if not db_test:
         raise HTTPException(status_code=400, detail="Không thể tạo bài kiểm tra.")
@@ -74,13 +72,13 @@ def get_all_tests(
     return tests
 
 @router.get(
-    "/by_student/{student_id}",
+    "/by_student/{student_user_id}",
     response_model=List[test_schema.Test],
     summary="Lấy danh sách các bài kiểm tra của một học sinh",
     dependencies=[Depends(get_current_active_user)]
 )
 def get_tests_by_student(
-    student_id: int,
+    student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -88,14 +86,14 @@ def get_tests_by_student(
     
     Quyền truy cập: **all authenticated users**. Student và parent chỉ có thể xem của chính họ.
     """
-    db_student = student_crud.get_student(db, student_id=student_id)
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_id} not found."
+            detail=f"Student with id {student_user_id} not found."
         )
     
-    return test_crud.get_tests_by_student_id(db, student_id=student_id)
+    return test_crud.get_tests_by_student_user_id(db, student_user_id=student_user_id)
 
 @router.get(
     "/{test_id}", 
@@ -135,7 +133,7 @@ def update_existing_test(
     if not db_test:
         raise HTTPException(status_code=404, detail="Bài kiểm tra không tìm thấy.")
 
-    # Cập nhật test, nếu class_id thay đổi sẽ tự lấy subject_id và teacher_id mới
+    # Cập nhật test, nếu class_id thay đổi sẽ tự lấy subject_id và teacher_user_id mới
     updated_test = test_crud.update_test(db, test_id, test_update)
     if not updated_test:
         raise HTTPException(status_code=400, detail="Không thể cập nhật bài kiểm tra.")

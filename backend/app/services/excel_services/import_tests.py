@@ -16,18 +16,18 @@ def import_tests_from_excel(db: Session, file: UploadFile, class_id: int):
         ws = workbook.active  # sheet đầu tiên
         test_rows = []
         for row in ws.iter_rows(min_row=2, values_only=True):
-            # row: [STT, test_name, student_id, student_name, class, subject, score, exam_date]
+            # row: [STT, test_name, student_user_id, student_name, class, subject, score, exam_date]
             test_name = (row[1] or "").strip() if row[1] else ""
-            student_id = int(row[2]) if row[2] else None
+            student_user_id = int(row[2]) if row[2] else None
             score = float(row[6]) if row[6] is not None else None
             exam_date = service_helper.parse_date_safe(row[7])
 
-            if not (test_name and student_id and score is not None and exam_date):
+            if not (test_name and student_user_id and score is not None and exam_date):
                 continue
 
             test_rows.append({
                 "test_name": test_name,
-                "student_id": student_id,
+                "student_user_id": student_user_id,
                 "score": score,
                 "exam_date": exam_date,
             })
@@ -41,7 +41,7 @@ def import_tests_from_excel(db: Session, file: UploadFile, class_id: int):
         for r in test_rows:
             test_in = TestCreate(
                 test_name=r["test_name"],
-                student_id=r["student_id"],
+                student_user_id=r["student_user_id"],
                 class_id=class_id,
                 score=r["score"],
                 exam_date=r["exam_date"],

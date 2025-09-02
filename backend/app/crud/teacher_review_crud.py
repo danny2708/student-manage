@@ -11,13 +11,13 @@ def get_teacher_review(db: Session, review_id: int):
     """Get teacher review by ID."""
     return db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
 
-def get_teacher_reviews_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100):
-    """Get a list of reviews by teacher_id."""
-    return db.query(TeacherReview).filter(TeacherReview.teacher_id == teacher_id).offset(skip).limit(limit).all()
+def get_teacher_reviews_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
+    """Get a list of reviews by teacher_user_id."""
+    return db.query(TeacherReview).filter(TeacherReview.teacher_user_id == teacher_user_id).offset(skip).limit(limit).all()
 
-def get_teacher_reviews_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
-    """Get a list of reviews by student_id."""
-    return db.query(TeacherReview).filter(TeacherReview.student_id == student_id).offset(skip).limit(limit).all()
+def get_teacher_reviews_by_student_user_id(db: Session, tudent_user_id: int, skip: int = 0, limit: int = 100):
+    """Get a list of reviews by student_user_id."""
+    return db.query(TeacherReview).filter(TeacherReview.student_user_id == tudent_user_id).offset(skip).limit(limit).all()
 
 def get_all_teacher_reviews(db: Session, skip: int = 0, limit: int = 100):
     """Get a list of all teacher reviews."""

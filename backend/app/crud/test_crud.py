@@ -12,10 +12,10 @@ def create_test(db: Session, test_in: TestCreate):
     
     db_test = Test(
         test_name=test_in.test_name,
-        student_id=test_in.student_id,
+        student_user_id =test_in.student_user_id ,
         class_id=test_in.class_id,
         subject_id=db_class.subject_id,
-        teacher_id=db_class.teacher_id,
+        teacher_user_id=db_class.teacher_user_id,
         score=test_in.score,
         exam_date=test_in.exam_date
     )
@@ -35,7 +35,7 @@ def update_test(db: Session, test_id: int, test_update: TestUpdate):
         if not new_class:
             return None
         db_test.subject_id = new_class.subject_id
-        db_test.teacher_id = new_class.teacher_id
+        db_test.teacher_user_id = new_class.teacher_user_id
 
     for key, value in update_data.items():
         setattr(db_test, key, value)
@@ -49,9 +49,9 @@ def get_test(db: Session, test_id: int):
     stmt = select(Test).where(Test.test_id == test_id)
     return db.execute(stmt).scalars().first()
 
-def get_tests_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
-    """Lấy danh sách các bài kiểm tra theo student_id."""
-    stmt = select(Test).where(Test.student_id == student_id).offset(skip).limit(limit)
+def get_tests_by_student_user_id (db: Session, student_user_id : int, skip: int = 0, limit: int = 100):
+    """Lấy danh sách các bài kiểm tra theo student_user_id ."""
+    stmt = select(Test).where(Test.student_user_id  == student_user_id ).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
 def get_tests_by_subject_id(db: Session, subject_id: int, skip: int = 0, limit: int = 100):

@@ -2,18 +2,15 @@ from sqlalchemy.orm import Session
 from datetime import date
 from app.models.tuition_model import Tuition, PaymentStatus
 from app.schemas.tuition_schema import TuitionCreate, TuitionUpdate
-from app.models.parent_model import Parent
-from app.models.user_model import User
-
 
 def get_tuition(db: Session, tuition_id: int):
     return db.query(Tuition).filter(Tuition.tuition_id == tuition_id).first()
 
 
-def get_tuitions_by_student_id(db: Session, student_id: int, skip: int = 0, limit: int = 100):
+def get_tuitions_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
     return (
         db.query(Tuition)
-        .filter(Tuition.student_id == student_id)
+        .filter(Tuition.student_user_id == student_user_id)
         .offset(skip)
         .limit(limit)
         .all()
@@ -65,8 +62,8 @@ def update_tuition_details(db: Session, tuition_id: int, tuition_update: Tuition
 
     update_data = tuition_update.model_dump(exclude_unset=True)
 
-    # Không cho thay đổi student_id
-    update_data.pop("student_id", None)
+    # Không cho thay đổi student_user_id
+    update_data.pop("student_user_id", None)
 
     for key, value in update_data.items():
         setattr(db_tuition, key, value)

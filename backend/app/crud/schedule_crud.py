@@ -6,8 +6,8 @@ from datetime import date as dt_date
 
 from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
 from app.models.class_model import Class
-from app.models.association_tables import student_class_association
 from app.schemas.schedule_schema import ScheduleCreate, ScheduleUpdate
+from app.models.enrollment_model import Enrollment
 
 def get_schedule_by_id(db: Session, schedule_id: int) -> Optional[Schedule]:
     """
@@ -71,18 +71,18 @@ def search_schedules(
         
     return query.all()
     
-def get_classes_for_teacher(db: Session, teacher_id: int) -> List[Class]:
+def get_classes_for_teacher(db: Session, teacher_user_id: int) -> List[Class]:
     """
     Lấy danh sách các lớp học của một giáo viên cụ thể.
     """
-    return db.query(Class).filter(Class.teacher_id == teacher_id).all()
+    return db.query(Class).filter(Class.teacher_user_id == teacher_user_id).all()
 
-def get_class_ids_for_student(db: Session, student_id: int) -> List[int]:
+def get_class_ids_for_student(db: Session, student_user_id: int) -> List[int]:
     """
     Lấy danh sách các class_id mà sinh viên đang học.
     """
-    stmt = select(student_class_association.c.class_id).where(
-        student_class_association.c.student_id == student_id
+    stmt = select(Enrollment.c.class_id).where(
+        Enrollment.c.student_user_id == student_user_id
     )
     result = db.execute(stmt).scalars().all()
     return result
@@ -93,9 +93,9 @@ def get_schedules_by_class_ids(db: Session, class_ids: List[int]) -> List[Schedu
     """
     return db.query(Schedule).filter(Schedule.class_id.in_(class_ids)).all()
 
-def get_classes_by_teacher_id(db: Session, teacher_id: int) -> List[Class]:
+def get_classes_by_teacher_user_id(db: Session, teacher_user_id: int) -> List[Class]:
     """
     Lấy danh sách các lớp học của một giáo viên cụ thể.
     Đồng bộ tên hàm với service.
     """
-    return db.query(Class).filter(Class.teacher_id == teacher_id).all()
+    return db.query(Class).filter(Class.teacher_user_id == teacher_user_id).all()

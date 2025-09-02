@@ -1,25 +1,25 @@
-# app/schemas/Manager_schema.py
-from datetime import datetime
+# app/schemas/manager_schema.py
 from pydantic import BaseModel
+from typing import Optional
 
 class ManagerBase(BaseModel):
-    user_id: int
-    
+    manager_user_id: int
+
     class Config:
         from_attributes = True
 
 class ManagerCreate(ManagerBase):
     pass
 
-class ManagerUpdate(ManagerBase):
-    user_id: int | None = None
+class ManagerUpdate(BaseModel):
+    manager_user_id: Optional[int] = None
 
-class Manager(ManagerBase):
-    manager_id: int
-    user_id: int
+    class Config:
+        from_attributes = True
 
-class ManagerAssign(BaseModel):
-    user_id: int
+class ManagerRead(ManagerBase):
+    """Schema khi đọc từ DB"""
+    manager_user_id: int
 
     class Config:
         from_attributes = True

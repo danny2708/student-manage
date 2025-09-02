@@ -9,12 +9,12 @@ from app.models.role_model import Role
 
 def get_parent(
     db: Session,
-    parent_id: Optional[int] = None,
+    parent_user_id: Optional[int] = None,
     user_id: Optional[int] = None
 ) -> Optional[Parent]:
     stmt = select(Parent)
-    if parent_id is not None:
-        stmt = stmt.where(Parent.parent_id == parent_id)
+    if parent_user_id is not None:
+        stmt = stmt.where(Parent.user_id == parent_user_id)
     if user_id is not None:
         stmt = stmt.where(Parent.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
@@ -30,7 +30,7 @@ def get_parent_by_email(db: Session, email: str) -> Optional[Parent]:
     from app.models.user_model import User
     stmt = (
         select(Parent)
-        .join(User, User.user_id == Parent.user_id)
+        .join(User,Parent.user_id == User.user_id)
         .where(User.email == email)
     )
     return db.execute(stmt).scalar_one_or_none()
@@ -49,8 +49,8 @@ def create_parent(db: Session, parent_in: ParentCreate) -> Parent:
     db.refresh(db_parent)
     return db_parent
 
-def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate) -> Optional[Parent]:
-    db_parent = get_parent(db, parent_id=parent_id)
+def update_parent(db: Session, parent_user_id: int, parent_update: ParentUpdate) -> Optional[Parent]:
+    db_parent = get_parent(db, parent_user_id=parent_user_id)
     if db_parent:
         for key, value in parent_update.model_dump(exclude_unset=True).items():
             setattr(db_parent, key, value)
@@ -59,8 +59,8 @@ def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate) -> O
     return db_parent
 
 
-def delete_parent(db: Session, parent_id: int):
-    db_parent = get_parent(db, parent_id=parent_id)
+def delete_parent(db: Session, parent_user_id: int):
+    db_parent = get_parent(db, parent_user_id=parent_user_id)
     if not db_parent:
         return None
 

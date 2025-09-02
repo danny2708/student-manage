@@ -3,15 +3,14 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from app.models.tuition_model import Tuition, PaymentStatus
+from app.models.enrollment_model import Enrollment
 from app.schemas.tuition_schema import TuitionCreate
 from app.schemas.notification_schema import NotificationCreate
 from app.crud.notification_crud import create_notification
-from app.crud.student_crud import get_student_with_user
-from app.models.user_model import User
 from app.models.student_model import Student
 from app.models.parent_model import Parent
+from app.models.user_model import User
 from app.models.class_model import Class
-from app.models.association_tables import student_class_association
 
 
 def _send_tuition_notification(
@@ -33,11 +32,11 @@ def _send_tuition_notification(
 
 
 def create_tuition_record(db: Session, tuition_in: TuitionCreate):
-    student, student_user = get_student_with_user(db, tuition_in.student_id)
-    if not student or not student_user:
+    student = db.query(Student).filter(Student.user_id == tuition_in.student_user_id).first()
+    if not student:
         raise ValueError("Student not found")
 
-    parent = db.query(Parent).filter(Parent.parent_id == student.parent_id).first()
+    parent = db.query(Parent).filter(Parent.user_id == student.parent_id).first()
     if not parent:
         raise ValueError("Parent not found")
 
@@ -46,7 +45,7 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
         raise ValueError("Parent user not found")
 
     tuition_record = Tuition(
-        student_id=tuition_in.student_id,
+        student_id=tuition_in.student_user_id,
         amount=tuition_in.amount,
         term=tuition_in.term,
         due_date=tuition_in.due_date,
@@ -58,6 +57,7 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
     db.commit()
     db.refresh(tuition_record)
 
+    student_user = db.query(User).filter(User.user_id == student.user_id).first()
     _send_tuition_notification(
         db, parent_user.user_id, student_user.full_name, tuition_in.amount, tuition_in.due_date
     )
@@ -66,15 +66,15 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
 
 
 def calculate_tuition_for_student(db: Session, student_id: int) -> Decimal:
-    student_classes = (
-        db.query(Class)
-        .join(student_class_association)
-        .filter(student_class_association.c.student_id == student_id)
-        .all()
-    )
+    enrollments = db.query(Enrollment).filter(
+        Enrollment.student_user_id == student_id,
+        Enrollment.enrollment_status == "active"
+    ).all()
     total_tuition = Decimal(0)
-    for cls in student_classes:
-        total_tuition += cls.fee
+    for e in enrollments:
+        cls = db.query(Class).filter(Class.class_id == e.class_id).first()
+        if cls:
+            total_tuition += cls.fee
     return total_tuition
 
 
@@ -83,12 +83,12 @@ def create_tuition_for_all_students(db: Session, term: int, due_date: date):
     created_records = []
 
     for student in students:
-        amount = calculate_tuition_for_student(db, student.student_id)
+        amount = calculate_tuition_for_student(db, student.user_id)
         if amount <= 0:
             continue
 
         tuition_record = Tuition(
-            student_id=student.student_id,
+            student_id=student.user_id,
             amount=amount,
             term=term,
             due_date=due_date,
@@ -99,11 +99,8 @@ def create_tuition_for_all_students(db: Session, term: int, due_date: date):
         db.add(tuition_record)
         created_records.append(tuition_record)
 
-        parent = db.query(Parent).filter(Parent.parent_id == student.parent_id).first()
-        if not parent:
-            continue
-
-        parent_user = db.query(User).filter(User.user_id == parent.user_id).first()
+        parent = db.query(Parent).filter(Parent.user_id == student.parent_id).first()
+        parent_user = db.query(User).filter(User.user_id == parent.user_id).first() if parent else None
         student_user = db.query(User).filter(User.user_id == student.user_id).first()
         if parent_user and student_user:
             _send_tuition_notification(

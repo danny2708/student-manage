@@ -38,20 +38,20 @@ def create_new_teacher_review(
     
     Quyền truy cập: **student**, **parent**
     """
-    # Bước 1: Kiểm tra teacher_id có tồn tại không
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_review_in.teacher_id)
+    # Bước 1: Kiểm tra teacher_user_id có tồn tại không
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_review_in.teacher_user_id)
     if not db_teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Teacher with id {teacher_review_in.teacher_id} not found."
+            detail=f"Teacher with id {teacher_review_in.teacher_user_id} not found."
         )
     
-    # Bước 2: Kiểm tra student_id có tồn tại không
-    db_student = student_crud.get_student(db, student_id=teacher_review_in.student_id)
+    # Bước 2: Kiểm tra student_user_id có tồn tại không
+    db_student = student_crud.get_student(db, student_user_id=teacher_review_in.student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {teacher_review_in.student_id} not found."
+            detail=f"Student with id {teacher_review_in.student_user_id} not found."
         )
         
     # Bước 3: Tạo bản ghi đánh giá
@@ -81,53 +81,53 @@ def get_teacher_review(
     return db_teacher_review
 
 @router.get(
-    "/by_teacher/{teacher_id}", 
+    "/by_teacher/{teacher_user_id}", 
     response_model=List[teacher_review_schema.TeacherReview],
-    summary="Lấy tất cả đánh giá của một giáo viên theo teacher_id",
+    summary="Lấy tất cả đánh giá của một giáo viên theo teacher_user_id",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
 )
 def get_reviews_by_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
-    Lấy tất cả đánh giá của một giáo viên theo teacher_id.
+    Lấy tất cả đánh giá của một giáo viên theo teacher_user_id.
     
     Quyền truy cập: **all authenticated users**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if not db_teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Teacher with id {teacher_id} not found."
+            detail=f"Teacher with id {teacher_user_id} not found."
         )
     
-    reviews = teacher_review_crud.get_teacher_reviews_by_teacher_id(db, teacher_id=teacher_id)
+    reviews = teacher_review_crud.get_teacher_reviews_by_teacher_user_id(db, teacher_user_id=teacher_user_id)
     return reviews
 
 @router.get(
-    "/by_student/{student_id}", 
+    "/by_student/{student_user_id}", 
     response_model=List[teacher_review_schema.TeacherReview],
-    summary="Lấy tất cả đánh giá của một học sinh theo student_id",
+    summary="Lấy tất cả đánh giá của một học sinh theo student_user_id",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
 )
 def get_reviews_by_student(
-    student_id: int, 
+    student_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
-    Lấy tất cả đánh giá của một học sinh theo student_id.
+    Lấy tất cả đánh giá của một học sinh theo student_user_id.
     
     Quyền truy cập: **all authenticated users**
     """
-    db_student = student_crud.get_student(db, student_id=student_id)
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student with id {student_id} not found."
+            detail=f"Student with id {student_user_id} not found."
         )
     
-    reviews = teacher_review_crud.get_teacher_reviews_by_student_id(db, student_id=student_id)
+    reviews = teacher_review_crud.get_teacher_reviews_by_student_user_id(db, student_user_id=student_user_id)
     return reviews
 
 # PUT: Chỉ student sửa review của chính mình
@@ -148,7 +148,7 @@ def update_existing_teacher_review(
         raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
 
     # Chỉ student sửa review của chính mình
-    if db_teacher_review.student_id != current_user.student.id:
+    if db_teacher_review.student_user_id != current_user.student.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền sửa đánh giá này."
@@ -179,7 +179,7 @@ def delete_teacher_review_api(
         raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
 
     # Nếu student, chỉ được xóa review của chính mình
-    if "student" in current_user.roles and db_teacher_review.student_id != current_user.student.id:
+    if "student" in current_user.roles and db_teacher_review.student_user_id != current_user.student.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền xóa đánh giá này."
