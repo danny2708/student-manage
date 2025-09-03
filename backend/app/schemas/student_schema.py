@@ -10,12 +10,8 @@ class StudentBase(BaseModel):
     class Config:
         from_attributes = True
 
-class StudentCreate(BaseModel):
-    user_id: int
-    parent_id: Optional[int] = None   # ✅ cho phép để trống
-
-    class Config:
-        from_attributes = True
+class StudentCreate(StudentBase):
+    pass
 
 class StudentUpdate(BaseModel):
     parent_id: Optional[int] = None   # ✅ chỉ cập nhật parent_id
@@ -24,10 +20,8 @@ class StudentUpdate(BaseModel):
         from_attributes = True
 
 class Student(StudentBase):
-    student_id: int
+    user_id: int
 
     class Config:
         from_attributes = True
 
-class StudentAssign(BaseModel):
-    user_id: int

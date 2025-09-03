@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class ManagerBase(BaseModel):
-    manager_user_id: int
+    user_id: int
 
     class Config:
         from_attributes = True
@@ -11,15 +11,8 @@ class ManagerBase(BaseModel):
 class ManagerCreate(ManagerBase):
     pass
 
-class ManagerUpdate(BaseModel):
-    manager_user_id: Optional[int] = None
-
-    class Config:
-        from_attributes = True
+class ManagerUpdate(ManagerBase):
+    pass
 
 class ManagerRead(ManagerBase):
-    """Schema khi đọc từ DB"""
-    manager_user_id: int
-
-    class Config:
-        from_attributes = True
+    pass

@@ -1,9 +1,11 @@
 # backend/app/crud/student_class_crud.py
 from typing import List, Optional
+from fastapi import HTTPException
 from sqlalchemy import select, insert, delete
 from sqlalchemy.orm import Session
 from app.schemas.enrollment_schema import EnrollmentCreate
 from app.models.enrollment_model import Enrollment, EnrollmentStatus
+from app.models.user_model import User
 
 
 def get_enrollment(db: Session, student_user_id: int, class_id: int) -> Optional[Enrollment]:
@@ -57,16 +59,25 @@ def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[En
     stmt = select(Enrollment).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
-
 def create_enrollment(db: Session, enrollment_in: EnrollmentCreate) -> Enrollment:
-    """Tạo mới một bản ghi enrollment và một liên kết trong bảng student_class_association."""
+    # Kiểm tra user có tồn tại và có role = "student"
+    user = db.execute(
+        select(User).where(User.user_id == enrollment_in.student_user_id)
+    ).scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
-    #  Thêm bản ghi vào bảng enrollments với trạng thái active
+    role_names = [role.name for role in user.roles]
+
+    if "student" not in role_names:
+        raise HTTPException(status_code=400, detail="User is not a student")
+
     db_enrollment = Enrollment(
         student_user_id=enrollment_in.student_user_id,
         class_id=enrollment_in.class_id,
         enrollment_date=enrollment_in.enrollment_date,
-        status=EnrollmentStatus.active.value  # dùng giá trị enum
+        enrollment_status=EnrollmentStatus.active
     )
     db.add(db_enrollment)
     db.commit()
@@ -88,13 +99,14 @@ def set_enrollment_inactive(db: Session, student_user_id: int, class_id: int) ->
 
 
 def update_enrollment(
-    db: Session, student_user_id: int, class_id: int, enrollment_update: dict
+    db: Session, enrollment_id: int, enrollment_update: dict
 ) -> Optional[Enrollment]:
-    """Cập nhật thông tin của một enrollment cụ thể."""
-    db_enrollment = get_enrollment(db, student_user_id, class_id)
+    """Cập nhật thông tin của một enrollment theo enrollment_id."""
+    db_enrollment = db.query(Enrollment).filter(Enrollment.enrollment_id == enrollment_id).first()
     if db_enrollment:
         for key, value in enrollment_update.items():
             setattr(db_enrollment, key, value)
         db.commit()
         db.refresh(db_enrollment)
     return db_enrollment
+

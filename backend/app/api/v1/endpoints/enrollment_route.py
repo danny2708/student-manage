@@ -9,7 +9,7 @@ from app.crud import enrollment_crud
 from app.crud import student_crud, class_crud
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate, Enrollment
 
-router = APIRouter(prefix="/enrollments", tags=["Enrollments"])
+router = APIRouter()
 
 MANAGER_ONLY = has_roles(["manager"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
@@ -105,12 +105,14 @@ def get_all_enrollments(db: Session = Depends(get_db)):
     summary="Cập nhật thông tin enrollment",
     dependencies=[Depends(MANAGER_ONLY)]
 )
-def update_enrollment(
+def update_enrollment_endpoint(
     enrollment_id: int,
     enrollment_update: EnrollmentUpdate,
     db: Session = Depends(get_db)
 ):
-    updated = enrollment_crud.update_enrollment(db, enrollment_id=enrollment_id, enrollment_update=enrollment_update)
+    updated = enrollment_crud.update_enrollment(
+        db, enrollment_id=enrollment_id, enrollment_update=enrollment_update.dict(exclude_unset=True)
+    )
     if not updated:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     return updated

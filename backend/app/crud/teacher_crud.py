@@ -7,18 +7,18 @@ from app.models.teacher_model import Teacher
 from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
 from app.models.association_tables import user_roles 
 
-def get_teacher(db: Session, teacher_user_id: int) -> Optional[Teacher]:
+def get_teacher(db: Session, user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo teacher_id.
     """
-    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
+    stmt = select(Teacher).where(Teacher.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
-def get_teacher_by_user_id(db: Session, teacher_user_id: int) -> Optional[Teacher]:
+def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo teacher_user_id (khóa ngoại đến User).
     """
-    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
+    stmt = select(Teacher).where(Teacher.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -57,11 +57,11 @@ def create_teacher(db: Session, teacher_in: TeacherCreate) -> Teacher:
     return db_teacher
 
 
-def update_teacher(db: Session, teacher_id: int, teacher_update: TeacherUpdate) -> Optional[Teacher]:
+def update_teacher(db: Session, teacher_user_id: int, teacher_update: TeacherUpdate) -> Optional[Teacher]:
     """
     Cập nhật thông tin giáo viên.
     """
-    db_teacher = get_teacher(db, teacher_id)
+    db_teacher = get_teacher(db, teacher_user_id)
     if not db_teacher:
         return None
 

@@ -45,7 +45,7 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
         raise ValueError("Parent user not found")
 
     tuition_record = Tuition(
-        student_id=tuition_in.student_user_id,
+        student_user_id=tuition_in.student_user_id,
         amount=tuition_in.amount,
         term=tuition_in.term,
         due_date=tuition_in.due_date,
@@ -65,9 +65,9 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
     return tuition_record
 
 
-def calculate_tuition_for_student(db: Session, student_id: int) -> Decimal:
+def calculate_tuition_for_student(db: Session, student_user_id: int) -> Decimal:
     enrollments = db.query(Enrollment).filter(
-        Enrollment.student_user_id == student_id,
+        Enrollment.student_user_id == student_user_id,
         Enrollment.enrollment_status == "active"
     ).all()
     total_tuition = Decimal(0)
@@ -88,7 +88,7 @@ def create_tuition_for_all_students(db: Session, term: int, due_date: date):
             continue
 
         tuition_record = Tuition(
-            student_id=student.user_id,
+            student_user_id=student.user_id,
             amount=amount,
             term=term,
             due_date=due_date,

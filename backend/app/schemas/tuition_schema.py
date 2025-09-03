@@ -31,4 +31,4 @@ class TuitionUpdate(BaseModel):
 
 # Schema dùng để cập nhật trạng thái thanh toán
 class TuitionPaymentStatusUpdate(BaseModel):
-    payment_status: PaymentStatus
+    payment_status: PaymentStatus  = Field("paid")

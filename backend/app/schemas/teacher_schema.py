@@ -31,7 +31,7 @@ class Teacher(TeacherBase):
     """
     Schema cho mô hình Giáo viên đã hoàn chỉnh, bao gồm teacher_id.
     """
-    teacher_id: int
+    user_id: int
 
     class Config:
         from_attributes = True

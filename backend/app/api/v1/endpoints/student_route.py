@@ -9,7 +9,7 @@ from app.crud import student_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import student_schema
 
-router = APIRouter(prefix="/students", tags=["Students"])
+router = APIRouter()
 
 MANAGER_ONLY = has_roles(["manager"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
@@ -23,35 +23,35 @@ MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
     dependencies=[Depends(MANAGER_ONLY)]
 )
 def assign_student(
-    student_in: student_schema.StudentAssign,
+    student_in: student_schema.StudentCreate,
     db: Session = Depends(deps.get_db)
 ):
     # Kiểm tra user tồn tại
-    db_user = user_crud.get_user(db=db, user_id=student_in.student_user_id)
+    db_user = user_crud.get_user(db=db, user_id=student_in.user_id)
     if not db_user:
-        raise HTTPException(status_code=404, detail=f"User with id {student_in.student_user_id} not found.")
+        raise HTTPException(status_code=404, detail=f"User with id {student_in.user_id} not found.")
 
     # Kiểm tra user đã là student chưa
-    existing_student = student_crud.get_student_by_user_id(db=db, user_id=student_in.student_user_id)
+    existing_student = student_crud.get_student_by_user_id(db=db, user_id=student_in.user_id)
     if existing_student:
-        raise HTTPException(status_code=400, detail=f"User with id {student_in.student_user_id} is already a student.")
+        raise HTTPException(status_code=400, detail=f"User with id {student_in.user_id} is already a student.")
 
     # Gán student
     db_student = student_crud.create_student(
         db=db,
         student_in=student_schema.StudentCreate(
-            student_user_id=student_in.student_user_id,
-            parent_id=0  # nếu cần, hoặc từ dữ liệu khác
+            user_id=student_in.user_id,
+            parent_id=student_in.parent_id
         )
     )
 
     # Cập nhật user_roles nếu chưa có role "student"
-    existing_role = user_role_crud.get_user_role(db, user_id=student_in.student_user_id, role_name="student")
+    existing_role = user_role_crud.get_user_role(db, user_id=student_in.user_id, role_name="student")
     if not existing_role:
         user_role_crud.create_user_role(
             db=db,
             role_in=UserRoleCreate(
-                user_id=student_in.student_user_id,
+                user_id=student_in.user_id,
                 role_name="student",
                 assigned_at=datetime.utcnow()
             )
@@ -78,13 +78,13 @@ def get_all_students(
 
 # --- GET student by ID ---
 @router.get(
-    "/{student_id}",
+    "/{user_id}",
     response_model=student_schema.Student,
     summary="Lấy thông tin của một học sinh cụ thể",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_student(student_id: int, db: Session = Depends(deps.get_db)):
-    db_student = student_crud.get_student(db, student_id=student_id)
+def get_student(user_id: int, db: Session = Depends(deps.get_db)):
+    db_student = student_crud.get_student(db, user_id=user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
     return db_student
@@ -92,13 +92,13 @@ def get_student(student_id: int, db: Session = Depends(deps.get_db)):
 
 # --- UPDATE student ---
 @router.put(
-    "/{student_id}",
+    "/{user_id}",
     response_model=student_schema.Student,
     summary="Cập nhật thông tin của một học sinh",
     dependencies=[Depends(MANAGER_ONLY)]
 )
-def update_student(student_id: int, student_update: student_schema.StudentUpdate, db: Session = Depends(deps.get_db)):
-    db_student = student_crud.update_student(db, student_id=student_id, student_update=student_update)
+def update_student(user_id: int, student_update: student_schema.StudentUpdate, db: Session = Depends(deps.get_db)):
+    db_student = student_crud.update_student(db, user_id=user_id, student_update=student_update)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
     return db_student
@@ -106,17 +106,17 @@ def update_student(student_id: int, student_update: student_schema.StudentUpdate
 
 # --- DELETE student ---
 @router.delete(
-    "/{student_id}",
+    "/{user_id}",
     response_model=dict,
     summary="Xóa một học sinh",
     dependencies=[Depends(MANAGER_ONLY)]
 )
-def delete_student(student_id: int, db: Session = Depends(deps.get_db)):
-    db_student = student_crud.get_student(db, student_id=student_id)
+def delete_student(user_id: int, db: Session = Depends(deps.get_db)):
+    db_student = student_crud.get_student(db, user_id=user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
 
-    deleted_student = student_crud.delete_student(db, student_id=student_id)
+    deleted_student = student_crud.delete_student(db, user_id=user_id)
     return {
         "deleted_student": student_schema.Student.from_orm(deleted_student).dict(),
         "deleted_at": datetime.utcnow().isoformat(),
