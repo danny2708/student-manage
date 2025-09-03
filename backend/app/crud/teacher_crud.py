@@ -16,7 +16,7 @@ def get_teacher(db: Session, user_id: int) -> Optional[Teacher]:
 
 def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
     """
-    Lấy thông tin giáo viên theo teacher_user_id (khóa ngoại đến User).
+    Lấy thông tin giáo viên theo user_id (khóa ngoại đến User).
     """
     stmt = select(Teacher).where(Teacher.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
@@ -57,15 +57,15 @@ def create_teacher(db: Session, teacher_in: TeacherCreate) -> Teacher:
     return db_teacher
 
 
-def update_teacher(db: Session, teacher_user_id: int, teacher_update: TeacherUpdate) -> Optional[Teacher]:
+def update_teacher(db: Session, user_id: int, teacher_update: TeacherUpdate) -> Optional[Teacher]:
     """
     Cập nhật thông tin giáo viên.
     """
-    db_teacher = get_teacher(db, teacher_user_id)
+    db_teacher = get_teacher(db, user_id)
     if not db_teacher:
         return None
 
-    update_data = teacher_update.model_dump(exclude_unset=True, exclude={"teacher_user_id"})
+    update_data = teacher_update.model_dump(exclude_unset=True, exclude={"user_id"})
     for key, value in update_data.items():
         setattr(db_teacher, key, value)
 
@@ -74,8 +74,8 @@ def update_teacher(db: Session, teacher_user_id: int, teacher_update: TeacherUpd
     return db_teacher
 
 
-def delete_teacher(db: Session, teacher_user_id: int):
-    db_teacher = get_teacher(db, teacher_user_id=teacher_user_id)
+def delete_teacher(db: Session, user_id: int):
+    db_teacher = get_teacher(db, user_id=user_id)
     if not db_teacher:
         return None
 

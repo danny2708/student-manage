@@ -10,7 +10,7 @@ from app.api import deps
 from app.services import payroll_service
 from app.api.auth.auth import get_current_active_user, has_roles
 
-router = APIRouter(prefix="/payrolls", tags=["Payrolls"])
+router = APIRouter()
 MANAGER_ONLY = has_roles(["manager"])
 
 @router.post(
@@ -135,7 +135,7 @@ def get_teacher_payrolls(
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
 
-    if "manager" not in current_user.roles and teacher.user_id != current_user.id:
+    if "manager" not in current_user.roles and teacher.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="You do not have permission to view this teacher's payrolls")
 
     payrolls = payroll_crud.get_payrolls_by_teacher_user_id(db, teacher_user_id, skip=skip, limit=limit)
