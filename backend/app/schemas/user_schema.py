@@ -22,8 +22,6 @@ class UserBase(BaseModel):
 # -------------------------------
 class UserCreate(UserBase):
     password: str = Field(..., example="password")
-    password_changed: bool = Field(default=False, description="Đánh dấu mật khẩu đã được đổi hay chưa")
-
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None

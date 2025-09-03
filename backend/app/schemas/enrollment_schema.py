@@ -8,7 +8,7 @@ class EnrollmentBase(BaseModel):
     student_user_id: int = Field(..., example=1)
     class_id: int = Field(..., example=1)
     enrollment_date: date = Field(..., example="2023-10-26")
-    erollment_status: EnrollmentStatus = Field(..., example="active", description="Trạng thái: active, inactive")
+    enrollment_status: EnrollmentStatus = Field(..., example="active", description="Trạng thái: active, inactive")
 
 class EnrollmentCreate(EnrollmentBase):
     """Schema để tạo một bản ghi enrollment mới."""
@@ -19,7 +19,7 @@ class EnrollmentUpdate(BaseModel):
     student_user_id: Optional[int] = None
     class_id: Optional[int] = None
     enrollment_date: Optional[date] = None
-    erollment_status: Optional[EnrollmentStatus] = None
+    enrollment_status: Optional[EnrollmentStatus] = None
 
 class Enrollment(EnrollmentBase):
     enrollment_id: int = Field(..., example=1001)

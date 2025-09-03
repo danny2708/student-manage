@@ -45,15 +45,15 @@ def assign_teacher(
     Quyền truy cập: **manager**
     """
     # 1. Kiểm tra user có tồn tại
-    db_user = user_crud.get_user(db=db, user_id=teacher_in.teacher_user_id)
+    db_user = user_crud.get_user(db=db, user_id=teacher_in.user_id)
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {teacher_in.teacher_user_id} not found."
+            detail=f"User with id {teacher_in.user_id} not found."
         )
 
     # 2. Kiểm tra user đã là teacher chưa
-    existing_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=teacher_in.teacher_user_id)
+    existing_teacher = teacher_crud.get_teacher_by_user_id(db, user_id=teacher_in.user_id)
     if existing_teacher:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,12 +64,12 @@ def assign_teacher(
     db_teacher = teacher_crud.create_teacher(db=db, teacher_in=teacher_in)
 
     # 4. Cập nhật user_roles nếu chưa có role "teacher"
-    existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.teacher_user_id, role_name="teacher")
+    existing_role = user_role_crud.get_user_role(db, user_id=teacher_in.user_id, role_name="teacher")
     if not existing_role:
         user_role_crud.create_user_role(
             db=db,
             role_in=UserRoleCreate(
-                user_id=teacher_in.teacher_user_id,
+                user_id=teacher_in.user_id,
                 role_name="teacher",
                 assigned_at=datetime.utcnow()
             )

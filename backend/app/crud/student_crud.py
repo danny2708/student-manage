@@ -9,25 +9,25 @@ from app.models.role_model import Role
 from app.models.association_tables import user_roles
 
 
-def get_student(db: Session, student_user_id: int) -> Optional[Student]:
+def get_student(db: Session, user_id: int) -> Optional[Student]:
     return db.execute(
-        select(Student).where(Student.user_id == student_user_id)
+        select(Student).where(Student.user_id == user_id)
     ).scalar_one_or_none()
 
 
-def get_student_with_user(db: Session, student_user_id: int) -> Optional[Tuple[Student, User]]:
+def get_student_with_user(db: Session, user_id: int) -> Optional[Tuple[Student, User]]:
     """
-    Lấy học sinh và user liên kết theo student_user_id.
+    Lấy học sinh và user liên kết theo user_id.
     """
     result = db.execute(
         select(Student, User)
         .join(User, Student.user_id == User.user_id)
-        .where(Student.user_id == student_user_id)
+        .where(Student.user_id == user_id)
     ).first()
     return result if result else (None, None)
 
 
-def get_parent_by_student_user_id(db: Session, student_user_id: int) -> Optional[Tuple[Parent, User]]:
+def get_parent_by_user_id(db: Session, user_id: int) -> Optional[Tuple[Parent, User]]:
     """
     Lấy phụ huynh duy nhất (1-n) của học sinh.
     """
@@ -35,7 +35,7 @@ def get_parent_by_student_user_id(db: Session, student_user_id: int) -> Optional
         select(Parent, User)
         .join(User, Parent.user_id == User.user_id)
         .join(Student, Student.parent_id == Parent.user_id)
-        .where(Student.user_id == student_user_id)
+        .where(Student.user_id == user_id)
     ).first()
 
 
@@ -73,8 +73,8 @@ def create_student(db: Session, student_in: StudentCreate) -> Student:
     return db_student
 
 
-def update_student(db: Session, student_user_id: int, student_update: StudentUpdate) -> Optional[Student]:
-    db_student = get_student(db, student_user_id)
+def update_student(db: Session, user_id: int, student_update: StudentUpdate) -> Optional[Student]:
+    db_student = get_student(db, user_id)
     if db_student:
         update_data = student_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -84,8 +84,8 @@ def update_student(db: Session, student_user_id: int, student_update: StudentUpd
     return db_student
 
 
-def delete_student(db: Session, student_user_id: int):
-    db_student = get_student(db, student_user_id=student_user_id)
+def delete_student(db: Session, user_id: int):
+    db_student = get_student(db, user_id=user_id)
     if not db_student:
         return None
 
