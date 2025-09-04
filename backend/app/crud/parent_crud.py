@@ -5,7 +5,8 @@ from sqlalchemy import select
 from app.models.parent_model import Parent
 from app.schemas.parent_schema import ParentCreate, ParentUpdate
 from app.models.association_tables import user_roles
-from app.models.role_model import Role 
+from app.models.role_model import Role
+from app.models.student_model import Student 
 
 def get_parent(
     db: Session,
@@ -77,5 +78,11 @@ def delete_parent(db: Session, user_id: int):
     db.commit()
     return db_parent
 
+def get_childrens(db: Session, parent_user_id: int):
+    """Lấy danh sách các Student con của Parent dựa theo parent_user_id."""
+    parent = db.query(Parent).filter(Parent.user_id == parent_user_id).first()
+    if not parent:
+        return []
+    return db.query(Student).filter(Student.parent_id == parent.user_id).all()
 
 
