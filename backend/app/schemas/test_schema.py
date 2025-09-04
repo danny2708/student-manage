@@ -11,15 +11,15 @@ class TestBase(BaseModel):
     score: float = Field(..., example=8.5)
     exam_date: date = Field(..., example="2024-05-20")
 
-class TestCreate(TestBase):
-    pass
+class TestCreate(BaseModel):
+    test_name: str = Field(..., example="Bài kiểm tra giữa kỳ")
+    student_user_id: int = Field(..., example=1)
+    class_id: int = Field(..., example=1)
+    score: float = Field(..., example=8.5)
+    exam_date: date = Field(..., example="2024-05-20")
 
 class TestUpdate(BaseModel):
     test_name: Optional[str] = None
-    student_user_id: Optional[int] = None
-    class_id: Optional[int] = None
-    subject_id: Optional[int] = None
-    teacher_user_id: Optional[int] = None
     score: Optional[float] = None
     exam_date: Optional[date] = None
 
