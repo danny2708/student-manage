@@ -72,16 +72,16 @@ def list_tuitions(
 
 
 @router.get(
-    "/by_student/{student_id}",
+    "/by_student/{student_user_id}",
     response_model=List[TuitionRead],
-    summary="Lấy học phí theo student_id",
+    summary="Lấy học phí theo student_user_id",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_tuitions_by_student_id(
-    student_id: int,
+def get_tuitions_by_student_user_id(
+    student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
-    tuitions = tuition_crud.get_tuitions_by_student_id(db, student_id=student_id)
+    tuitions = tuition_crud.get_tuitions_by_student_user_id(db, student_user_id=student_user_id)
     if not tuitions:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy học phí cho học sinh này.")
     return tuitions

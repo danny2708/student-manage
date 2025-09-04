@@ -123,7 +123,7 @@ class ImportUsersResponse(BaseModel):
     "/import-users",
     response_model=ImportUsersResponse,
     summary="Import người dùng từ file Excel",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền import
+    ## dependencies=[Depends(MANAGER_ONLY)] 
 )
 def import_users_from_sheet(
     file: UploadFile = File(...),

@@ -12,7 +12,6 @@ from app.crud import user_role_crud # cần import CRUD user_role
 # Schemas
 from app.schemas import teacher_schema
 from app.schemas.user_role_schema import UserRoleCreate
-from pydantic import BaseModel
 
 # Dependencies
 from app.api import deps
@@ -99,13 +98,13 @@ def get_all_teachers(
 
 
 @router.get(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=teacher_schema.Teacher,
     summary="Lấy thông tin một giáo viên theo ID",
     dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -113,7 +112,7 @@ def get_teacher(
     
     Quyền truy cập: **manager**, **teacher**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -123,13 +122,13 @@ def get_teacher(
 
 
 @router.put(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=teacher_schema.Teacher,
     summary="Cập nhật thông tin giáo viên theo ID",
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
 )
 def update_existing_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     teacher: teacher_schema.TeacherUpdate, 
     db: Session = Depends(deps.get_db)
 ):
@@ -138,7 +137,7 @@ def update_existing_teacher(
     
     Quyền truy cập: **manager**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,13 +149,13 @@ def update_existing_teacher(
 
 
 @router.delete(
-    "/{teacher_id}", 
+    "/{teacher_user_id}", 
     response_model=dict,
     summary="Xóa một giáo viên",
     dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền xóa
 )
 def delete_existing_teacher(
-    teacher_id: int, 
+    teacher_user_id: int, 
     db: Session = Depends(deps.get_db)
 ):
     """
@@ -164,7 +163,7 @@ def delete_existing_teacher(
     
     Quyền truy cập: **manager**
     """
-    db_teacher = teacher_crud.get_teacher(db, teacher_id=teacher_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if db_teacher is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

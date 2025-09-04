@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Optional
 from app.crud import schedule_crud, class_crud
-from app.schemas import schedule_schema
 from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
 from app.schemas.auth_schema import AuthenticatedUser
+from app.crud import parent_crud
 
 def validate_day_of_week_with_date(day_of_week: DayOfWeekEnum, date: dt_date):
     """
@@ -33,47 +33,43 @@ def validate_day_of_week_with_date(day_of_week: DayOfWeekEnum, date: dt_date):
             detail=f"Ngày {date} là {actual_day}, không phải {day_of_week}."
         )
 
-def check_schedule_conflict(
+def check_schedule_conflict( 
     db: Session, 
     class_id: int,
     day_of_week: DayOfWeekEnum, 
     start_time: dt_time, 
     end_time: dt_time, 
-    date: dt_date = None,
-    room: str = None
+    date: Optional[dt_date] = None,
+    room: Optional[str] = None,
+    exclude_schedule_id: Optional[int] = None
 ):
     """
-    Kiểm tra xung đột lịch trình dựa trên hai tiêu chí:
+    Kiểm tra xung đột lịch trình dựa trên 2 tiêu chí:
     1. Lịch trình của cùng một lớp học không được chồng chéo.
     2. Lịch trình trong cùng một phòng học không được chồng chéo.
+
+    Nếu exclude_schedule_id được truyền → bỏ qua chính schedule đó (dùng khi update).
     """
-    #  Check ngày và thứ khớp nhau ---
+    # Kiểm tra tính hợp lệ của date & day_of_week
     validate_day_of_week_with_date(day_of_week, date)
 
-    # --- Kiểm tra xung đột lịch trình của chính lớp học ---
-    # Lấy tất cả lịch trình của lớp học này vào ngày/thứ cụ thể
+    # --- Kiểm tra xung đột lịch trình của lớp ---
     class_conflicts = schedule_crud.search_schedules(
         db=db,
         class_id=class_id,
         day_of_week=day_of_week,
         date=date
     )
-    
     for schedule in class_conflicts:
-        # Nếu lịch trình tìm thấy là chính lịch trình đang được cập nhật, bỏ qua
-        # Logic này hữu ích khi hàm này được sử dụng cho cả tạo và cập nhật
-        if (date and schedule.date == date) or (day_of_week and schedule.day_of_week == day_of_week):
-             # Kiểm tra xung đột thời gian
-            if (schedule.start_time <= start_time < schedule.end_time or
-                schedule.start_time < end_time <= schedule.end_time or
-                (start_time <= schedule.start_time and end_time >= schedule.end_time)):
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Lịch trình mới bị chồng chéo với lịch trình đã có của lớp {class_id}."
-                )
-    
-    # --- Kiểm tra xung đột phòng học ---
-    # Lấy tất cả lịch trình trong cùng một phòng vào ngày/thứ cụ thể
+        if exclude_schedule_id and schedule.schedule_id == exclude_schedule_id:
+            continue
+        if (schedule.start_time < end_time and schedule.end_time > start_time):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Lịch trình bị chồng chéo với lịch đã có của lớp {class_id}."
+            )
+
+    # --- Kiểm tra xung đột phòng ---
     if room:
         room_conflicts = schedule_crud.search_schedules(
             db=db,
@@ -81,39 +77,14 @@ def check_schedule_conflict(
             day_of_week=day_of_week,
             date=date
         )
-
         for schedule in room_conflicts:
-             # Kiểm tra xung đột thời gian
-            if (schedule.start_time <= start_time < schedule.end_time or
-                schedule.start_time < end_time <= schedule.end_time or
-                (start_time <= schedule.start_time and end_time >= schedule.end_time)):
+            if exclude_schedule_id and schedule.schedule_id == exclude_schedule_id:
+                continue
+            if (schedule.start_time < end_time and schedule.end_time > start_time):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Phòng {room} đã có lịch trình vào thời gian này với lớp {schedule.class_id}."
+                    detail=f"Phòng {room} đã có lịch vào thời gian này với lớp {schedule.class_id}."
                 )
-
-
-def create_schedule(db: Session, schedule_in: schedule_schema.ScheduleCreate, current_user):
-    """
-    Tạo một lịch trình mới sau khi kiểm tra xung đột và trả về đối tượng Schedule.
-    """
-    # Check role
-    if not any(role in ["manager", "teacher"] for role in current_user.roles):
-        raise PermissionError("Bạn không có quyền tạo lịch.")
-
-    # Kiểm tra xung đột trước khi tạo
-    check_schedule_conflict(
-        db=db,
-        class_id=schedule_in.class_id,
-        day_of_week=schedule_in.day_of_week,
-        start_time=schedule_in.start_time,
-        end_time=schedule_in.end_time,
-        date=schedule_in.date,
-        room=schedule_in.room
-    )
-
-    # Nếu không có xung đột, tạo lịch trình
-    return schedule_crud.create_schedule(db=db, schedule_in=schedule_in)
 
 def get_schedules_for_teacher(db: Session, teacher_id: int) -> List[Schedule]:
     """
@@ -195,10 +166,10 @@ def search_schedules_by_user_role(
 
     # --- Nếu là Parent ---
     if "parent" in current_user.roles:
-        student_ids = schedule_crud.get_student_ids_by_parent(db, parent_id=current_user.user_id)
+        childrens = parent_crud.get_childrens(db, parent_user_id=current_user.user_id)
         class_ids = []
-        for sid in student_ids:
-            class_ids.extend(schedule_crud.get_class_ids_for_student(db, student_id=sid))
+        for child in childrens:
+            class_ids.extend(schedule_crud.get_class_ids_for_student(db, student_id=child.user_id))
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,

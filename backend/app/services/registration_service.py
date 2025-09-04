@@ -2,7 +2,7 @@ from typing import List
 from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import select, insert
-from passlib.context import CryptContext  # type: ignore
+from passlib.context import CryptContext # type: ignore
 from fastapi import HTTPException, status
 
 from app.models.user_model import User
@@ -12,7 +12,8 @@ from app.models.manager_model import Manager
 from app.models.parent_model import Parent
 from app.models.class_model import Class
 from app.models.role_model import Role
-from app.models.association_tables import student_class_association, user_roles
+from app.models.enrollment_model import Enrollment, EnrollmentStatus
+from app.models.association_tables import user_roles
 
 from app.schemas.register_schema import (
     RegisterRequest,
@@ -22,18 +23,14 @@ from app.schemas.register_schema import (
 from app.schemas.teacher_schema import TeacherCreate
 from app.schemas.parent_schema import ParentCreate
 from app.schemas.student_schema import StudentCreate
+from app.schemas.enrollment_schema import EnrollmentCreate
 
-# Khởi tạo CryptContext với thuật toán bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
 def get_password_hash(password: str) -> str:
-    """Tạo một hash an toàn từ mật khẩu."""
     return pwd_context.hash(password)
 
-
 def get_role_object(db: Session, role_name: str) -> Role:
-    """Hàm helper để truy vấn đối tượng Role từ database."""
     stmt = select(Role).where(Role.name == role_name)
     role = db.execute(stmt).scalars().first()
     if not role:
@@ -43,16 +40,10 @@ def get_role_object(db: Session, role_name: str) -> Role:
         )
     return role
 
-
 def generate_username_from_email(email: str) -> str:
-    """Sinh username từ email (phần trước @)."""
     return email.split("@")[0].lower()
 
-
 def register_single_user_service(db: Session, request: RegisterRequest):
-    """
-    Logic nghiệp vụ để đăng ký một người dùng duy nhất.
-    """
     if request.user_info.role in ["student", "manager", "parent"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -85,32 +76,23 @@ def register_single_user_service(db: Session, request: RegisterRequest):
         db.add(new_user)
         db.flush()
 
-        user_role_stmt = insert(user_roles).values(
-            user_id=new_user.user_id,
-            role_id=role_object.role_id
+        db.execute(
+            insert(user_roles).values(
+                user_id=new_user.user_id,
+                role_id=role_object.role_id
+            )
         )
-        db.execute(user_role_stmt)
         
-        # Sửa lỗi: Lấy thông tin teacher và cung cấp giá trị mặc định nếu thiếu
         if request.role and request.user_info.role == "teacher":
-            # Lấy dictionary teacher_info từ request.role, mặc định là dictionary rỗng
             teacher_info_from_request = request.role.get("teacher_info", {})
-            
-            # Tạo dictionary với các giá trị mặc định
             teacher_data = {
                 "user_id": new_user.user_id,
                 "base_salary_per_class": 0.0,
                 "reward_bonus": 0.0
             }
-            
-            # Cập nhật các giá trị mặc định bằng các giá trị từ request
             teacher_data.update(teacher_info_from_request)
-            
-            # Sử dụng schema Pydantic để validate và lấy dữ liệu
             teacher_info_schema = TeacherCreate(**teacher_data)
-            teacher_data_valid = teacher_info_schema.model_dump(exclude_unset=True)
-
-            new_teacher = Teacher(**teacher_data_valid)
+            new_teacher = Teacher(**teacher_info_schema.model_dump(exclude_unset=True))
             db.add(new_teacher)
 
         db.commit()
@@ -132,21 +114,14 @@ def register_single_user_service(db: Session, request: RegisterRequest):
         )
 
 def register_parent_with_children_service(db: Session, request: ParentAndChildrenRequest):
-    """
-    Logic nghiệp vụ để đăng ký phụ huynh và con cùng lúc.
-    """
     parent_username = generate_username_from_email(request.email)
-    stmt = select(User).where(User.username == parent_username)
-    existing_user = db.execute(stmt).scalars().first()
+    existing_user = db.execute(select(User).where(User.username == parent_username)).scalars().first()
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tên đăng nhập của phụ huynh đã tồn tại."
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tên đăng nhập của phụ huynh đã tồn tại.")
 
     try:
-        parent_role_object = get_role_object(db, "parent")
-        student_role_object = get_role_object(db, "student")
+        parent_role = get_role_object(db, "parent")
+        student_role = get_role_object(db, "student")
 
         hashed_password = get_password_hash(request.password)
         new_parent_user = User(
@@ -161,14 +136,9 @@ def register_parent_with_children_service(db: Session, request: ParentAndChildre
         db.add(new_parent_user)
         db.flush()
 
-        user_role_stmt_parent = insert(user_roles).values(
-            user_id=new_parent_user.user_id,
-            role_id=parent_role_object.role_id
-        )
-        db.execute(user_role_stmt_parent)
-        
-        parent_data = request.model_dump(exclude={"children_info"})
-        new_parent = Parent(**parent_data, user_id=new_parent_user.user_id)
+        db.execute(insert(user_roles).values(user_id=new_parent_user.user_id, role_id=parent_role.role_id))
+
+        new_parent = Parent(**request.model_dump(exclude={"children_info"}), user_id=new_parent_user.user_id)
         db.add(new_parent)
         db.flush()
 
@@ -176,13 +146,9 @@ def register_parent_with_children_service(db: Session, request: ParentAndChildre
 
         for student_info in request.children_info:
             student_username = generate_username_from_email(student_info.email)
-            stmt = select(User).where(User.username == student_username)
-            existing_student_user = db.execute(stmt).scalars().first()
-            if existing_student_user:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại."
-                )
+            if db.execute(select(User).where(User.username == student_username)).scalars().first():
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại.")
 
             new_student_user = User(
                 username=student_username,
@@ -196,39 +162,31 @@ def register_parent_with_children_service(db: Session, request: ParentAndChildre
             db.add(new_student_user)
             db.flush()
 
-            user_role_stmt_student = insert(user_roles).values(
-                user_id=new_student_user.user_id,
-                role_id=student_role_object.role_id
-            )
-            db.execute(user_role_stmt_student)
-            
+            db.execute(insert(user_roles).values(user_id=new_student_user.user_id, role_id=student_role.role_id))
+
             student_data = student_info.model_dump(exclude_unset=True)
             class_id = student_data.pop("class_id", None)
-            
-            new_student = Student(**student_data, user_id=new_student_user.user_id)
+
+            new_student = Student(**student_data, user_id=new_student_user.user_id, parent_id=new_parent.user_id)
             db.add(new_student)
             db.flush()
 
-            new_parent.children.append(new_student)
-
+            # Tạo Enrollment nếu có class_id
             if class_id:
-                stmt = select(Class).where(Class.class_id == class_id)
-                target_class = db.execute(stmt).scalars().first()
+                target_class = db.execute(select(Class).where(Class.class_id == class_id)).scalar_one_or_none()
                 if not target_class:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Không tìm thấy Class với id {class_id}."
-                    )
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                        detail=f"Không tìm thấy Class với id {class_id}.")
 
-                association_stmt = insert(student_class_association).values(
-                    student_id=new_student.student_id,
-                    class_id=target_class.class_id,
+                enrollment = Enrollment(
+                    student_user_id=new_student_user.user_id,
+                    class_id=class_id,
                     enrollment_date=date.today(),
-                    status="Active"
+                    status=EnrollmentStatus.active
                 )
-                db.execute(association_stmt)
+                db.add(enrollment)
 
-            child_ids.append(new_student.student_id)
+            child_ids.append(new_student.user_id)
 
         db.commit()
         db.refresh(new_parent_user)
@@ -238,48 +196,32 @@ def register_parent_with_children_service(db: Session, request: ParentAndChildre
             "parent_user_id": new_parent_user.user_id,
             "children_ids": child_ids
         }
+
     except HTTPException as e:
         db.rollback()
         raise e
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Đã xảy ra lỗi không mong muốn: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Đã xảy ra lỗi không mong muốn: {str(e)}")
 
 
 def register_student_with_existing_parent_service(db: Session, request: RegisterStudentWithParentRequest):
-    """
-    Logic nghiệp vụ để đăng ký một học sinh và liên kết với một phụ huynh đã có.
-    """
     try:
-        stmt = select(User).where(User.user_id == request.parent_user_id)
-        existing_parent_user = db.execute(stmt).scalars().first()
+        existing_parent_user = db.execute(select(User).where(User.user_id == request.parent_user_id)).scalars().first()
         if not existing_parent_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Phụ huynh không tồn tại."
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phụ huynh không tồn tại.")
 
-        stmt_parent = select(Parent).where(Parent.user_id == existing_parent_user.user_id)
-        existing_parent = db.execute(stmt_parent).scalars().first()
+        existing_parent = db.execute(select(Parent).where(Parent.user_id == existing_parent_user.user_id)).scalars().first()
         if not existing_parent:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Người dùng đã cho không có vai trò 'parent'."
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Người dùng đã cho không có vai trò 'parent'.")
 
-        student_role_object = get_role_object(db, "student")
+        student_role = get_role_object(db, "student")
 
         student_username = generate_username_from_email(request.student_info.email)
-        stmt = select(User).where(User.username == student_username)
-        existing_student_user = db.execute(stmt).scalars().first()
-        if existing_student_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại."
-            )
+        if db.execute(select(User).where(User.username == student_username)).scalars().first():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Tên đăng nhập của học sinh '{student_username}' đã tồn tại.")
 
         new_student_user = User(
             username=student_username,
@@ -293,51 +235,41 @@ def register_student_with_existing_parent_service(db: Session, request: Register
         db.add(new_student_user)
         db.flush()
 
-        user_role_stmt_student = insert(user_roles).values(
-            user_id=new_student_user.user_id,
-            role_id=student_role_object.role_id
-        )
-        db.execute(user_role_stmt_student)
-        
-        student_info_data = request.student_info.model_dump(exclude_unset=True)
-        class_id = student_info_data.pop("class_id", None)
-        
-        new_student = Student(**student_info_data, user_id=new_student_user.user_id)
+        db.execute(insert(user_roles).values(user_id=new_student_user.user_id, role_id=student_role.role_id))
+
+        student_data = request.student_info.model_dump(exclude_unset=True)
+        class_id = student_data.pop("class_id", None)
+
+        new_student = Student(**student_data, user_id=new_student_user.user_id, parent_id=existing_parent.user_id)
         db.add(new_student)
         db.flush()
 
         if class_id:
-            stmt = select(Class).where(Class.class_id == class_id)
-            target_class = db.execute(stmt).scalar_one_or_none()
+            target_class = db.execute(select(Class).where(Class.class_id == class_id)).scalar_one_or_none()
             if not target_class:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Không tìm thấy Class với id {class_id}."
-                )
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail=f"Không tìm thấy Class với id {class_id}.")
 
-            association_stmt = insert(student_class_association).values(
-                student_id=new_student.student_id,
-                class_id=target_class.class_id,
+            enrollment = Enrollment(
+                student_user_id=new_student_user.user_id,
+                class_id=class_id,
                 enrollment_date=date.today(),
-                status="Active"
+                status=EnrollmentStatus.active
             )
-            db.execute(association_stmt)
-
-        existing_parent.children.append(new_student)
+            db.add(enrollment)
 
         db.commit()
 
         return {
             "message": "Đăng ký học sinh và liên kết với phụ huynh thành công.",
-            "student_id": new_student.student_id,
+            "student_id": new_student.user_id,
             "parent_user_id": request.parent_user_id
         }
+
     except HTTPException as e:
         db.rollback()
         raise e
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Đã xảy ra lỗi không mong muốn: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Đã xảy ra lỗi không mong muốn: {str(e)}")

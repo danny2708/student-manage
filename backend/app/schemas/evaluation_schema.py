@@ -1,4 +1,3 @@
-# app/schemas/evaluation_schema.py
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
@@ -9,8 +8,8 @@ class EvaluationBase(BaseModel):
     """
     Schema cơ sở cho mô hình Evaluation.
     """
-    teacher_id: int
-    student_id: int
+    teacher_user_id: int
+    student_user_id: int
     study_point: int
     discipline_point: int
     evaluation_type: EvaluationType
@@ -18,11 +17,13 @@ class EvaluationBase(BaseModel):
     evaluation_date: date = date.today()
 
 # Lớp dùng để tạo một bản ghi đánh giá mới
-class EvaluationCreate(EvaluationBase):
-    """
-    Schema để tạo một bản ghi đánh giá mới.
-    """
-    pass
+class EvaluationCreate(BaseModel):
+    student_user_id: int
+    study_point: int
+    discipline_point: int
+    evaluation_type: EvaluationType
+    evaluation_content: Optional[str] = None
+    evaluation_date: date = date.today()
 
 # Lớp dùng để đọc/trả về dữ liệu từ cơ sở dữ liệu
 class EvaluationRead(EvaluationBase):
@@ -40,7 +41,7 @@ class Evaluation(EvaluationRead):
     model_config = ConfigDict(from_attributes=True)
 
 class EvaluationSummary(BaseModel):
-    student_id: int
+    student_user_id: int
     final_study_point: int = Field(..., description="Tổng điểm học tập, giới hạn ở 100.")
     final_discipline_point: int = Field(..., description="Tổng điểm kỷ luật, giới hạn ở 100.")
     study_plus_count: int = Field(..., description="Số lần điểm học tập được cộng.")

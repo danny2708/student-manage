@@ -32,7 +32,7 @@ class StudentInfoInRequest(BaseModel):
 
 class ParentAndChildrenRequest(BaseModel):
     username: str = Field(..., example="parent_jane")
-    email: Optional[str] = Field(None, example="parent.jane@example.com")
+    email: str = Field(None, example="parent.jane@example.com")
     password: str = Field(..., example="secure_password")
     full_name: Optional[str] = Field(None, example="Jane Parent")
     date_of_birth: Optional[date] = Field(None, example="1985-03-20")

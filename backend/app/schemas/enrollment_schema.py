@@ -1,0 +1,28 @@
+# app/schemas/enrollment_schema.py
+from pydantic import BaseModel, Field
+from datetime import date
+from typing import Optional
+from app.models.enrollment_model import EnrollmentStatus
+
+class EnrollmentBase(BaseModel):
+    student_user_id: int = Field(..., example=1)
+    class_id: int = Field(..., example=1)
+    enrollment_date: date = Field(..., example="2023-10-26")
+    enrollment_status: EnrollmentStatus = Field(..., example="active", description="Trạng thái: active, inactive")
+
+class EnrollmentCreate(EnrollmentBase):
+    """Schema để tạo một bản ghi enrollment mới."""
+    pass
+
+class EnrollmentUpdate(BaseModel):
+    """Schema để cập nhật một bản ghi enrollment."""
+    student_user_id: Optional[int] = None
+    class_id: Optional[int] = None
+    enrollment_date: Optional[date] = None
+    enrollment_status: Optional[EnrollmentStatus] = None
+
+class Enrollment(EnrollmentBase):
+    enrollment_id: int = Field(..., example=1001)
+
+    class Config:
+        from_attributes = True

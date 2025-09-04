@@ -22,7 +22,7 @@ MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
 
 @router.post(
-    "/schedules/",
+    "/",
     response_model=schedule_schema.Schedule,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(MANAGER_OR_TEACHER)]
@@ -36,14 +36,14 @@ def create_schedule_route(
     Tạo một lịch trình mới.
     Chỉ Manager hoặc Teacher được phép.
     """
-    return schedule_service.create_schedule(
+    return schedule_crud.create_schedule(
         db=db,
         schedule_in=schedule_in,
         current_user=current_user
     )
 
 
-@router.get("/schedules/", response_model=List[schedule_schema.Schedule])
+@router.get("/search", response_model=List[schedule_schema.Schedule])
 def search_schedules_route(
     db: Session = Depends(deps.get_db),
     class_id: Optional[int] = Query(None),
@@ -67,7 +67,7 @@ def search_schedules_route(
     )
 
 
-@router.get("/schedules/{schedule_id}", response_model=schedule_schema.Schedule)
+@router.get("/{schedule_id}", response_model=schedule_schema.Schedule)
 def get_schedule_route(
     schedule_id: int,
     db: Session = Depends(deps.get_db),
@@ -93,7 +93,7 @@ def get_schedule_route(
 
 
 @router.put(
-    "/schedules/{schedule_id}",
+    "/{schedule_id}",
     response_model=schedule_schema.Schedule,
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
@@ -104,8 +104,8 @@ def update_existing_schedule_route(
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
     """
-    Cập nhật lịch trình.
-    Chỉ Manager/Teacher được phép.
+    Cập nhật lịch trình (partial update).
+    Chỉ cần truyền những field muốn đổi, bao gồm cả class_id nếu cần.
     """
     db_schedule = schedule_crud.get_schedule_by_id(db, schedule_id=schedule_id)
     if not db_schedule:
@@ -114,8 +114,9 @@ def update_existing_schedule_route(
     return schedule_crud.update_schedule(db, schedule=db_schedule, schedule_in=schedule_update)
 
 
+
 @router.delete(
-    "/schedules/{schedule_id}",
+    "/{schedule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(has_roles(["manager"]))]
 )
@@ -135,7 +136,7 @@ def delete_existing_schedule_route(
     return
 
 
-@router.get("/teachers/{teacher_id}/schedules/", response_model=List[schedule_schema.Schedule])
+@router.get("/teachers/{teacher_id}", response_model=List[schedule_schema.Schedule])
 def get_teacher_schedules_route(
     teacher_id: int,
     db: Session = Depends(deps.get_db),
@@ -153,7 +154,7 @@ def get_teacher_schedules_route(
     return schedule_service.get_schedules_for_teacher(db=db, teacher_id=teacher_id)
 
 
-@router.get("/students/{student_id}/schedules/", response_model=List[schedule_schema.Schedule])
+@router.get("/students/{student_id}", response_model=List[schedule_schema.Schedule])
 def get_student_schedules_route(
     student_id: int,
     db: Session = Depends(deps.get_db),

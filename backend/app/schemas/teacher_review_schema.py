@@ -5,25 +5,23 @@ from datetime import datetime
 
 # Schema cơ sở cho các trường dữ liệu do người dùng cung cấp
 class TeacherReviewBase(BaseModel):
-    teacher_id: int
-    student_id: int
+    teacher_user_id: int
     rating: float = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
     review_text: Optional[str] = Field(None, description="Student's review comment")
 
-# Schema to create a new TeacherReview. Inherits from TeacherReviewBase
-# Does not include review_id or review_date as they are auto-generated
 class TeacherReviewCreate(TeacherReviewBase):
     pass
 
-# Complete schema for TeacherReview, including auto-generated fields
+# Schema đầy đủ cho TeacherReview (bao gồm các trường auto-generated)
 class TeacherReview(TeacherReviewBase):
     review_id: int
+    student_user_id: int
     review_date: datetime
 
     class Config:
         from_attributes = True
 
-# Schema to update a TeacherReview
+# Schema để cập nhật TeacherReview
 class TeacherReviewUpdate(BaseModel):
     rating: Optional[float] = Field(None, ge=1, le=5)
     review_text: Optional[str] = None

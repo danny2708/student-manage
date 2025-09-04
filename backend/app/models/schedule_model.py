@@ -6,7 +6,7 @@ import enum
 # Định nghĩa Enum cho loại lịch trình
 class ScheduleTypeEnum(str, enum.Enum):
     WEEKLY = "WEEKLY"
-    ONE_OFF = "ONE_OFF"
+    ONCE = "ONCE"
 
 # Định nghĩa Enum cho các ngày trong tuần
 class DayOfWeekEnum(str, enum.Enum):
@@ -26,7 +26,7 @@ import enum
 # Định nghĩa Enum cho loại lịch trình
 class ScheduleTypeEnum(str, enum.Enum):
     WEEKLY = "WEEKLY"
-    ONE_OFF = "ONE_OFF"
+    ONCE = "ONCE"
 
 # Định nghĩa Enum cho các ngày trong tuần
 class DayOfWeekEnum(str, enum.Enum):

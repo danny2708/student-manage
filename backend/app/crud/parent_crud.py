@@ -5,16 +5,14 @@ from sqlalchemy import select
 from app.models.parent_model import Parent
 from app.schemas.parent_schema import ParentCreate, ParentUpdate
 from app.models.association_tables import user_roles
-from app.models.role_model import Role 
+from app.models.role_model import Role
+from app.models.student_model import Student 
 
 def get_parent(
     db: Session,
-    parent_id: Optional[int] = None,
     user_id: Optional[int] = None
 ) -> Optional[Parent]:
     stmt = select(Parent)
-    if parent_id is not None:
-        stmt = stmt.where(Parent.parent_id == parent_id)
     if user_id is not None:
         stmt = stmt.where(Parent.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
@@ -30,7 +28,7 @@ def get_parent_by_email(db: Session, email: str) -> Optional[Parent]:
     from app.models.user_model import User
     stmt = (
         select(Parent)
-        .join(User, User.user_id == Parent.user_id)
+        .join(User,Parent.user_id == User.user_id)
         .where(User.email == email)
     )
     return db.execute(stmt).scalar_one_or_none()
@@ -49,8 +47,8 @@ def create_parent(db: Session, parent_in: ParentCreate) -> Parent:
     db.refresh(db_parent)
     return db_parent
 
-def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate) -> Optional[Parent]:
-    db_parent = get_parent(db, parent_id=parent_id)
+def update_parent(db: Session, user_id: int, parent_update: ParentUpdate) -> Optional[Parent]:
+    db_parent = get_parent(db, user_id=user_id)
     if db_parent:
         for key, value in parent_update.model_dump(exclude_unset=True).items():
             setattr(db_parent, key, value)
@@ -59,8 +57,8 @@ def update_parent(db: Session, parent_id: int, parent_update: ParentUpdate) -> O
     return db_parent
 
 
-def delete_parent(db: Session, parent_id: int):
-    db_parent = get_parent(db, parent_id=parent_id)
+def delete_parent(db: Session, user_id: int):
+    db_parent = get_parent(db, user_id=user_id)
     if not db_parent:
         return None
 
@@ -80,5 +78,11 @@ def delete_parent(db: Session, parent_id: int):
     db.commit()
     return db_parent
 
+def get_childrens(db: Session, parent_user_id: int):
+    """Lấy danh sách các Student con của Parent dựa theo parent_user_id."""
+    parent = db.query(Parent).filter(Parent.user_id == parent_user_id).first()
+    if not parent:
+        return []
+    return db.query(Student).filter(Student.parent_id == parent.user_id).all()
 
 

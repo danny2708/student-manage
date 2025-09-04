@@ -4,40 +4,62 @@ from datetime import date, time
 from typing import List, Optional
 from app.models.attendance_model import AttendanceStatus
 
-class AttendanceCreate(BaseModel):
-    student_id: int
+
+class AttendanceBase(BaseModel):
+    student_user_id: int
     class_id: int
     status: AttendanceStatus
     checkin_time: Optional[time] = None
 
+
+class AttendanceCreate(AttendanceBase):
+    """Schema để tạo bản ghi điểm danh"""
+    attendance_date: Optional[date] = None  # cho phép backend tự set hôm nay nếu không truyền
+
+
 class AttendanceUpdate(BaseModel):
+    """Schema để update bản ghi điểm danh"""
     status: Optional[AttendanceStatus] = None
     checkin_time: Optional[time] = None
 
-class AttendanceRead(AttendanceCreate):
+
+class AttendanceRead(BaseModel):
+    """Schema để đọc dữ liệu trả về"""
     attendance_id: int
+    student_user_id: int
+    class_id: int
+    status: AttendanceStatus
+    checkin_time: Optional[time] = None
     attendance_date: date
 
     class Config:
         from_attributes = True
 
+
+# ---- Batch / Special Schemas ----
 class AttendanceInitialRecord(BaseModel):
-    student_id: int
+    """Schema mô tả bản ghi điểm danh ban đầu"""
+    student_user_id: int
     status: AttendanceStatus
     checkin_time: Optional[time] = None
 
-# Lớp này mô tả một bản ghi điểm danh duy nhất trong request
+
 class AttendanceRecordCreate(BaseModel):
-    student_id: int
+    """Schema để tạo một bản ghi điểm danh kèm ngày"""
+    student_user_id: int
     status: AttendanceStatus
     checkin_time: Optional[time] = None
     attendance_date: date
-    
+
+
 class AttendanceUpdateLate(BaseModel):
+    """Schema update giờ check-in muộn"""
     checkin_time: time
     attendance_date: date
-    
+
+
 class AttendanceBatchCreate(BaseModel):
+    """Schema để tạo nhiều bản ghi điểm danh cho 1 lớp"""
     class_id: int
     attendance_date: date
     records: List[AttendanceInitialRecord]

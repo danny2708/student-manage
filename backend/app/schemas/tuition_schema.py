@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, condecimal
 from app.models.tuition_model import PaymentStatus 
 
 class TuitionBase(BaseModel):
-    student_id: int
+    student_user_id: int
     amount: float = Field(..., gt=0)
     term: int
     due_date: date
@@ -31,4 +31,4 @@ class TuitionUpdate(BaseModel):
 
 # Schema dùng để cập nhật trạng thái thanh toán
 class TuitionPaymentStatusUpdate(BaseModel):
-    payment_status: PaymentStatus
+    payment_status: PaymentStatus  = Field("paid")

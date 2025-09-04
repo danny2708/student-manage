@@ -16,7 +16,6 @@ class TeacherBase(BaseModel):
 class TeacherCreate(TeacherBase):
     """
     Schema cho việc tạo một Giáo viên mới.
-    Thừa kế từ TeacherBase nên đã có đầy đủ các trường.
     """
     pass
 
@@ -32,16 +31,13 @@ class Teacher(TeacherBase):
     """
     Schema cho mô hình Giáo viên đã hoàn chỉnh, bao gồm teacher_id.
     """
-    teacher_id: int
+    user_id: int
 
     class Config:
         from_attributes = True
 
-# Schema chỉ nhận user_id để gán vai trò
-# Đây là schema phù hợp với một endpoint chỉ gán vai trò,
-# nhưng endpoint của bạn cũng tạo bản ghi mới nên cần TeacherCreate.
 class TeacherAssign(BaseModel):
     """
-    Schema chỉ dùng để gán vai trò Giáo viên, chỉ cần user_id.
+    Schema chỉ dùng để gán vai trò Giáo viên, chỉ cần teacher_user_id.
     """
     user_id: int

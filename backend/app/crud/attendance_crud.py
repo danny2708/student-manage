@@ -8,22 +8,24 @@ from app.models.student_model import Student
 from app.models.attendance_model import Attendance, AttendanceStatus
 from app.schemas.attendance_schema import AttendanceBatchCreate, AttendanceRecordCreate
 
+
 def create_initial_attendance_records(db: Session, attendance_data: AttendanceBatchCreate) -> List[Attendance]:
     """
     Tạo bản ghi điểm danh ban đầu cho tất cả học sinh trong một lớp.
-    Đã cập nhật để xử lý lỗi IntegrityError.
+    Đã cập nhật để sử dụng student_user_id thay cho student_id.
     """
     try:
-        student_ids_to_create = [record.student_id for record in attendance_data.records or []]
+        student_user_ids_to_create = [record.student_user_id for record in attendance_data.records or []]
 
+        # kiểm tra tồn tại trong Student
         existing_students = db.query(Student).filter(
-            Student.student_id.in_(student_ids_to_create)
+            Student.user_id.in_(student_user_ids_to_create)
         ).all()
-        existing_student_ids = {student.student_id for student in existing_students}
+        existing_student_user_ids = {student.user_id for student in existing_students}
 
-        non_existent_ids = [s_id for s_id in student_ids_to_create if s_id not in existing_student_ids]
+        non_existent_ids = [s_id for s_id in student_user_ids_to_create if s_id not in existing_student_user_ids]
         if non_existent_ids:
-            raise ValueError(f"Students with ids {non_existent_ids} not found.")
+            raise ValueError(f"Students with user_ids {non_existent_ids} not found.")
 
         attendance_records = []
         for record in attendance_data.records:
@@ -32,7 +34,7 @@ def create_initial_attendance_records(db: Session, attendance_data: AttendanceBa
                 "attendance_date": attendance_data.attendance_date,
                 "status": record.status.value,
                 "checkin_time": record.checkin_time,
-                "student_id": record.student_id
+                "student_user_id": record.student_user_id
             })
 
         stmt = insert(Attendance).values(attendance_records).returning(Attendance)
@@ -46,19 +48,21 @@ def create_initial_attendance_records(db: Session, attendance_data: AttendanceBa
         db.rollback()
         raise e
 
-def get_attendance_record_by_student_and_date(db: Session, student_id: int, class_id: int, date: str):
+
+def get_attendance_record_by_student_and_date(db: Session, student_user_id: int, class_id: int, date: str):
     """
-    Lấy bản ghi điểm danh của một học sinh vào một ngày cụ thể.
+    Lấy bản ghi điểm danh của một học sinh (student_user_id) vào một ngày cụ thể.
     """
     stmt = select(Attendance).where(
         and_(
-            Attendance.student_id == student_id,
+            Attendance.student_user_id == student_user_id,
             Attendance.class_id == class_id,
             Attendance.attendance_date == date
         )
     )
     result = db.execute(stmt).scalar_one_or_none()
     return result
+
 
 def update_attendance_status(db: Session, db_record: Attendance, new_status: AttendanceStatus, checkin_time: Optional[time] = None) -> Optional[Attendance]:
     """
@@ -73,11 +77,12 @@ def update_attendance_status(db: Session, db_record: Attendance, new_status: Att
         return db_record
     return None
 
-def update_attendance_record(db: Session, student_id: int, class_id: int, date: str, update_data: AttendanceRecordCreate) -> Optional[Attendance]:
+
+def update_attendance_record(db: Session, student_user_id: int, class_id: int, date: str, update_data: AttendanceRecordCreate) -> Optional[Attendance]:
     """
     Cập nhật bản ghi điểm danh.
     """
-    db_record = get_attendance_record_by_student_and_date(db, student_id, class_id, date)
+    db_record = get_attendance_record_by_student_and_date(db, student_user_id, class_id, date)
     if not db_record:
         return None
     
@@ -89,13 +94,14 @@ def update_attendance_record(db: Session, student_id: int, class_id: int, date: 
         checkin_time=update_data.checkin_time
     )
 
-def get_absent_attendance_for_student_in_class(db: Session, student_id: int, class_id: int) -> Optional[Attendance]:
+
+def get_absent_attendance_for_student_in_class(db: Session, student_user_id: int, class_id: int) -> Optional[Attendance]:
     """
     Tìm bản ghi điểm danh bị đánh dấu là 'absent' của một học sinh trong một lớp.
     """
     stmt = select(Attendance).where(
         and_(
-            Attendance.student_id == student_id,
+            Attendance.student_user_id == student_user_id,
             Attendance.class_id == class_id,
             Attendance.status == AttendanceStatus.absent
         )
