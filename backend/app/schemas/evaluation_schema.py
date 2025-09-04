@@ -17,11 +17,13 @@ class EvaluationBase(BaseModel):
     evaluation_date: date = date.today()
 
 # Lớp dùng để tạo một bản ghi đánh giá mới
-class EvaluationCreate(EvaluationBase):
-    """
-    Schema để tạo một bản ghi đánh giá mới.
-    """
-    pass
+class EvaluationCreate(BaseModel):
+    student_user_id: int
+    study_point: int
+    discipline_point: int
+    evaluation_type: EvaluationType
+    evaluation_content: Optional[str] = None
+    evaluation_date: date = date.today()
 
 # Lớp dùng để đọc/trả về dữ liệu từ cơ sở dữ liệu
 class EvaluationRead(EvaluationBase):
