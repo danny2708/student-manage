@@ -19,7 +19,7 @@ def get_all_notifications(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Notification).offset(skip).limit(limit).all()
 
 def create_notification(db: Session, notification: NotificationCreate):
-    """Tạo mới một thông báo."""
+    """Tạo mới một thông báo từ một đối tượng NotificationCreate."""
     db_notification = Notification(**notification.model_dump())
     db.add(db_notification)
     db.commit()

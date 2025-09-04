@@ -1,22 +1,35 @@
-from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date
+from pydantic import BaseModel
+from datetime import datetime
 
 class PayrollBase(BaseModel):
-    staff_id: int = Field(..., example=1)
-    amount: float = Field(..., example=5000.00)
-    payment_date: date = Field(..., example="2023-10-26")
+    teacher_user_id: int
+    month: int
+    base_salary: float
+    reward_bonus: float
+    sent_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 class PayrollCreate(PayrollBase):
     pass
 
-class PayrollUpdate(PayrollBase):
-    staff_id: Optional[int] = None
-    amount: Optional[float] = None
-    payment_date: Optional[date] = None
+
+class PayrollUpdate(BaseModel):
+    month: Optional[int] = None
+    base_salary: Optional[float] = None
+    reward_bonus: Optional[float] = None
+    sent_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 
 class Payroll(PayrollBase):
-    id: int = Field(..., example=1)
+    payroll_id: int
+    total: float   # chỉ xuất hiện ở response
 
     class Config:
         from_attributes = True
