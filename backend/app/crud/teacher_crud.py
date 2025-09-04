@@ -5,7 +5,9 @@ from sqlalchemy import select
 from app.models.role_model import Role 
 from app.models.teacher_model import Teacher
 from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
-from app.models.association_tables import user_roles 
+from app.models.association_tables import user_roles
+from app.models.class_model import Class
+from app.models.enrollment_model import Enrollment 
 
 def get_teacher(db: Session, user_id: int) -> Optional[Teacher]:
     """
@@ -37,6 +39,17 @@ def get_teacher_by_email(db: Session, email: str) -> Optional[Teacher]:
 
     return None
 
+def get_students(db: Session, teacher_user_id: int):
+    """
+    Lấy danh sách student_user_id mà teacher quản lý.
+    """
+    students = (
+        db.query(Enrollment.student_user_id)
+        .join(Class, Enrollment.class_id == Class.class_id)
+        .filter(Class.teacher_user_id == teacher_user_id)
+        .all()
+    )
+    return [s.student_user_id for s in students]
 
 def get_all_teachers(db: Session, skip: int = 0, limit: int = 100) -> List[Teacher]:
     """

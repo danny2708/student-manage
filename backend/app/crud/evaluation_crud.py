@@ -22,7 +22,7 @@ def get_all_evaluations(db: Session, skip: int = 0, limit: int = 100):
     """
     return db.query(Evaluation).offset(skip).limit(limit).all()
 
-def create_evaluation(db: Session, evaluation: EvaluationCreate):
+def create_evaluation(db: Session, evaluation: EvaluationCreate, teacher_user_id: int):
     """
     Tạo mới một bản ghi đánh giá chi tiết (delta).
     
@@ -31,7 +31,10 @@ def create_evaluation(db: Session, evaluation: EvaluationCreate):
     - evaluation.discipline_point: sự thay đổi điểm kỷ luật (+10, -5, ...).
     - evaluation.evaluation_content: lý do thay đổi điểm.
     """
-    db_evaluation = Evaluation(**evaluation.model_dump())
+    db_evaluation = Evaluation(
+        **evaluation.model_dump(),
+        teacher_user_id=teacher_user_id
+    )
     db.add(db_evaluation)
     db.commit()
     db.refresh(db_evaluation)
