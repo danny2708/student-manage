@@ -64,13 +64,8 @@ class ScheduleCreate(ScheduleBase):
 
 # ScheduleUpdate để cập nhật một lịch hiện có
 # Tất cả các trường đều tùy chọn để có thể cập nhật từng phần
-class ScheduleUpdate(BaseModel):
-    schedule_type: Optional[ScheduleTypeEnum] = None
-    day_of_week: Optional[DayOfWeekEnum] = None
-    date: Optional[dt_date] = None
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
-    room: Optional[str] = None
+class ScheduleUpdate(ScheduleBase):
+    pass
 
 # Schedule là schema đại diện cho dữ liệu đã được lưu
 class Schedule(ScheduleBase):
