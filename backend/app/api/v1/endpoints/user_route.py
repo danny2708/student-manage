@@ -12,6 +12,8 @@ from app.services.excel_services import import_users
 from app.api.auth.auth import has_roles
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.crud import user_crud
+from app.api.auth.auth import get_current_active_user
+from app.schemas.auth_schema import AuthenticatedUser
 
 router = APIRouter()
 
@@ -123,7 +125,7 @@ class ImportUsersResponse(BaseModel):
     "/import-users",
     response_model=ImportUsersResponse,
     summary="Import người dùng từ file Excel",
-    ## dependencies=[Depends(MANAGER_ONLY)] 
+    dependencies=[Depends(MANAGER_ONLY)] 
 )
 def import_users_from_sheet(
     file: UploadFile = File(...),
@@ -138,3 +140,4 @@ def import_users_from_sheet(
     except Exception as e:
         logging.exception("Import failed")
         raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
+

@@ -8,5 +8,3 @@ call venv\Scripts\activate
 REM Chạy máy chủ uvicorn
 uvicorn main:app --reload
 
-REM Giữ cửa sổ mở sau khi hoàn thành (tùy chọn)
-REM pause

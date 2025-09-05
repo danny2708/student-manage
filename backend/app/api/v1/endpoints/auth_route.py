@@ -20,6 +20,9 @@ class TokenResponse(BaseModel):
     message: Optional[str] = "Đăng nhập thành công"
     user_id: int
     username: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    roles: list = []
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,43 +30,32 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Kiểm tra mật khẩu thô với mật khẩu đã được băm."""
     return pwd_context.verify(plain_password, hashed_password)
 
-@router.post(
-    "/login", 
-    response_model=TokenResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Đăng nhập người dùng"
-)
-def login(
-    request: LoginRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Xác thực người dùng bằng tên đăng nhập và mật khẩu và trả về JWT token.
-    """
-    # Sử dụng `username` để tìm kiếm người dùng
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
     stmt = select(User).where(User.username == request.username)
     user = db.execute(stmt).scalars().first()
-    
-    # Kiểm tra người dùng và mật khẩu bằng hàm từ auth.py
+
     if not user or not verify_password(request.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tên đăng nhập hoặc mật khẩu không đúng.",
+            detail="Tên đăng nhập hoặc mật khẩu không đúng",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Tính thời gian hết hạn cho token
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    # Tạo JWT token bằng hàm từ auth.py
     access_token = create_access_token(
         data={"sub": str(user.user_id)}, 
         expires_delta=access_token_expires
     )
-        
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer",
-        "user_id": user.user_id,
-        "username": user.username
-    }
+
+    roles = [role.name for role in getattr(user, "roles", [])]
+
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=user.user_id,
+        username=user.username,
+        full_name=user.full_name,
+        email=user.email,
+        roles=roles
+    )

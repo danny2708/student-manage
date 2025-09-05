@@ -49,7 +49,6 @@ def create_new_subject(
     "/", 
     response_model=List[subject_schema.Subject],
     summary="Lấy danh sách tất cả môn học",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Manager và teacher có thể xem
 )
 def get_all_subjects(
     skip: int = 0, 
