@@ -43,7 +43,7 @@
     "src",
     "components",
     ".next/types/**/*.ts"
-  ],
+, "app/pages"  ],
   "exclude": [
     "node_modules"
   ]

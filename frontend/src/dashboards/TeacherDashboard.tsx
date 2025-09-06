@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useAuth } from "../contexts/AuthContext"
+import { useAuth } from "../../src/contexts/AuthContext"
 import { Card } from "src/components/ui/card"
 import { Button } from "src/components/ui/button"
 import { BookOpen, Users, Calendar, Star } from "lucide-react"

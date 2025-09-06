@@ -1,10 +1,15 @@
 @echo off
-REM Chuyển đến thư mục dự án
+REM Chuyển đến thư mục dự án backend
 cd /d backend
 
 REM Kích hoạt môi trường ảo
 call venv\Scripts\activate
 
-REM Chạy máy chủ uvicorn
-uvicorn main:app --reload
+REM Chạy máy chủ uvicorn (chạy song song với frontend)
+start uvicorn main:app --reload
 
+REM Chuyển sang thư mục frontend
+cd /d ../frontend
+
+REM Chạy frontend
+npm run dev
