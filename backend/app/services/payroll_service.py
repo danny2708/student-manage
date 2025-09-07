@@ -9,8 +9,8 @@ from app.models.teacher_model import Teacher
 def create_payroll(db: Session, teacher: Teacher, payroll_in: PayrollCreate):
     today = datetime.now(timezone.utc)
 
-    # Tính total từ base_salary + reward_bonus
-    total_salary = payroll_in.base_salary + payroll_in.reward_bonus
+    # Tính total từ total_base_salary + reward_bonus
+    total_salary = payroll_in.total_base_salary + payroll_in.reward_bonus
 
     # Tạo bản ghi payroll
     db_payroll = payroll_crud.create_payroll_record(db, payroll_in)
@@ -29,9 +29,9 @@ def create_payroll(db: Session, teacher: Teacher, payroll_in: PayrollCreate):
         "payroll_id": db_payroll.payroll_id,
         "teacher_user_id": db_payroll.teacher_user_id,
         "month": db_payroll.month,
-        "base_salary": float(db_payroll.base_salary),
+        "total_base_salary": float(db_payroll.total_base_salary),
         "reward_bonus": float(db_payroll.reward_bonus),
-        "total": total_salary,
+        "total_salary": total_salary,
         "sent_at": db_payroll.sent_at,
         "notification_id": db_notification.notification_id,
         "notification_content": db_notification.content,
@@ -52,14 +52,14 @@ def run_monthly_payroll(db: Session):
         )
 
         total_classes = len(classes)
-        base_salary_per_class = payroll_crud.get_teacher_base_salary(db, teacher.user_id)
-        reward_bonus = payroll_crud.get_teacher_reward_bonus(db, teacher.user_id)
+        base_salary_per_class = payroll_crud.get_teacher_base_salary(db, teacher.user_id) or 0.0
+        reward_bonus = payroll_crud.get_teacher_reward_bonus(db, teacher.user_id) or 0.0
         total_salary = total_classes * base_salary_per_class + reward_bonus
 
         payroll_in = PayrollCreate(
             teacher_user_id=teacher.user_id,
             month=month,
-            base_salary=base_salary_per_class,
+            total_base_salary=total_classes * base_salary_per_class,
             reward_bonus=reward_bonus,
             total=total_salary,
             sent_at=today
@@ -76,10 +76,10 @@ def update_payroll_with_notification(db: Session, payroll_id: int, payroll_updat
     if not db_payroll:
         raise HTTPException(status_code=404, detail="Payroll not found")
 
-    total_salary = db_payroll.base_salary + db_payroll.reward_bonus
+    total = db_payroll.total_base_salary + db_payroll.reward_bonus
 
     notification_in = NotificationCreate(
-        content=f"Lương tháng {db_payroll.month}/{db_payroll.sent_at.year} của bạn đã được cập nhật. Tổng lương: {total_salary:.2f}",
+        content=f"Lương tháng {db_payroll.month}/{db_payroll.sent_at.year} của bạn đã được cập nhật. Tổng lương: {total:.2f}",
         receiver_id=db_payroll.teacher_user_id,
         type="payroll",
         sent_at=datetime.now(timezone.utc)
@@ -91,9 +91,9 @@ def update_payroll_with_notification(db: Session, payroll_id: int, payroll_updat
         "payroll_id": db_payroll.payroll_id,
         "teacher_user_id": db_payroll.teacher_user_id,
         "month": db_payroll.month,
-        "base_salary": db_payroll.base_salary,
+        "total_base_salary": db_payroll.total_base_salary,
         "reward_bonus": db_payroll.reward_bonus,
-        "total": total_salary,
+        "total": total,
         "sent_at": db_payroll.sent_at,
         "notification_id": db_notification.notification_id,
         "notification_content": db_notification.content,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DECIMAL, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -14,9 +14,9 @@ class Payroll(Base):
     teacher_user_id = Column(Integer, ForeignKey('teachers.user_id', ondelete="CASCADE"), nullable=False)
 
     month = Column(Integer, nullable=False)
-    base_salary = Column(DECIMAL(10, 2), nullable=False)
-    reward_bonus = Column(DECIMAL(10, 2), nullable=False)
-    total = Column(DECIMAL(10, 2), nullable=False)
+    total_base_salary = Column(Float, nullable=False, default=0.0)
+    reward_bonus = Column(Float, nullable=False, default=0.0)
+    total = Column(Float, nullable=False)
     sent_at = Column(DateTime, nullable=False)
 
     # Mối quan hệ với giáo viên (many-to-one, vì một giáo viên có thể có nhiều bản lương theo tháng)

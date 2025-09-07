@@ -4,11 +4,11 @@ from app.schemas.payroll_schema import PayrollCreate, PayrollUpdate
 from app.models.class_model import Class
 
 def create_payroll_record(db: Session, payroll_in: PayrollCreate):
-    total = payroll_in.base_salary + payroll_in.reward_bonus
+    total = payroll_in.total_base_salary + payroll_in.reward_bonus
     db_payroll = Payroll(
         teacher_user_id=payroll_in.teacher_user_id,
         month=payroll_in.month,
-        base_salary=payroll_in.base_salary,
+        total_base_salary=payroll_in.total_base_salary,
         reward_bonus=payroll_in.reward_bonus,
         total=total,
         sent_at=payroll_in.sent_at,
@@ -53,16 +53,22 @@ def get_payrolls_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int
     return db.query(Payroll).filter(Payroll.teacher_user_id == teacher_user_id).offset(skip).limit(limit).all()
 
 def update_payroll(db: Session, payroll_id: int, payroll_update: PayrollUpdate):
-    """Cập nhật thông tin bảng lương."""
     db_payroll = db.query(Payroll).filter(Payroll.payroll_id == payroll_id).first()
     if db_payroll:
         update_data = payroll_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_payroll, key, value)
+
+        # Tính lại total tự động
+        base_salary = db_payroll.total_base_salary or 0.0
+        reward = db_payroll.reward_bonus or 0.0
+        db_payroll.total = base_salary + reward
+
         db.add(db_payroll)
         db.commit()
         db.refresh(db_payroll)
     return db_payroll
+
 
 
 def delete_payroll(db: Session, payroll_id: int):

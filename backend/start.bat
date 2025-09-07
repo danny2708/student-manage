@@ -6,10 +6,10 @@ REM Kích hoạt môi trường ảo
 call venv\Scripts\activate
 
 REM Chạy máy chủ uvicorn (chạy song song với frontend)
-start uvicorn main:app --reload
+uvicorn main:app --reload
 
 REM Chuyển sang thư mục frontend
-cd /d ../frontend
+REM cd /d ../frontend
 
 REM Chạy frontend
-npm run dev
+REM npm run dev

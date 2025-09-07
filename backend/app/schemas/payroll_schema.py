@@ -5,8 +5,8 @@ from datetime import datetime
 class PayrollBase(BaseModel):
     teacher_user_id: int
     month: int
-    base_salary: float
-    reward_bonus: float
+    total_base_salary: float = 0.0
+    reward_bonus: float = 0.0
     sent_at: datetime
 
     class Config:
@@ -19,7 +19,7 @@ class PayrollCreate(PayrollBase):
 
 class PayrollUpdate(BaseModel):
     month: Optional[int] = None
-    base_salary: Optional[float] = None
+    total_base_salary: Optional[float] = None
     reward_bonus: Optional[float] = None
     sent_at: Optional[datetime] = None
 

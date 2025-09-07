@@ -16,8 +16,9 @@ class Teacher(Base):
     __tablename__ = 'teachers'
     # user_id là khóa chính và khóa ngoại
     user_id = Column(Integer, ForeignKey('users.user_id', ondelete="CASCADE"), primary_key=True, unique=True, nullable=False)
-    base_salary_per_class = Column(Float)
-    reward_bonus = Column(Float)
+    base_salary_per_class = Column(Float, nullable=False, default=0.0)
+    reward_bonus = Column(Float, nullable=False, default=0.0)
+
 
     # Mối quan hệ với người dùng (one-to-one)
     user = relationship("User", back_populates="teacher")
