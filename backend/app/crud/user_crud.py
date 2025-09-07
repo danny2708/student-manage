@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+from passlib.context import CryptContext # type: ignore
 
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
@@ -28,7 +28,6 @@ def create_user(db: Session, user: UserCreate) -> User:
     Tạo một người dùng mới trong cơ sở dữ liệu.
     Lưu first_password (raw), password = hash(first_password).
     """
-    raw_password = user.first_password or user.password
 
     db_user = User(
         username=user.username,
@@ -37,8 +36,8 @@ def create_user(db: Session, user: UserCreate) -> User:
         date_of_birth=user.date_of_birth,
         gender=user.gender,
         phone_number=user.phone_number,
-        first_password=raw_password,                # lưu bản raw
-        password=pwd_context.hash(raw_password),    # hash để login
+        password_changed=False,                
+        password=pwd_context.hash(user.password),    
     )
 
     db.add(db_user)
@@ -50,7 +49,7 @@ def create_user(db: Session, user: UserCreate) -> User:
 def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[User]:
     """
     Cập nhật thông tin của một người dùng đã tồn tại.
-    Nếu có password mới → hash lại.
+    Nếu có password mới → hash lại và set password_changed = True.
     """
     db_user = db.query(User).filter(User.user_id == user_id).first()
     if not db_user:
@@ -58,10 +57,11 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[
     
     update_data = user_update.model_dump(exclude_unset=True)
 
-    # Nếu có password mới → hash
+    # Nếu có password mới → hash và set password_changed = True
     if "password" in update_data and update_data["password"]:
         update_data["password"] = pwd_context.hash(update_data["password"])
-    
+        db_user.password_changed = True  # gán trực tiếp vào entity
+
     for key, value in update_data.items():
         setattr(db_user, key, value)
 

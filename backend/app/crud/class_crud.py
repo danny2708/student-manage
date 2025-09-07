@@ -12,7 +12,7 @@ def get_class_by_name(db: Session, class_name: str):
 
 def get_classes_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100):
     """Lấy danh sách lớp học theo teacher_id."""
-    return db.query(Class).filter(Class.teacher_id == teacher_id).offset(skip).limit(limit).all()
+    return db.query(Class).filter(Class.teacher_user_id == teacher_id).offset(skip).limit(limit).all()
 
 def get_all_classes(db: Session, skip: int = 0, limit: int = 100):
     """Lấy danh sách tất cả lớp học."""

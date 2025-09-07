@@ -1,30 +1,24 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from sqlalchemy import DECIMAL, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.database import Base
 
-# Schema cơ sở cho TeacherReview
-class TeacherReviewBase(BaseModel):
-    teacher_id: int
-    student_id: int
-    rating: int = Field(..., ge=1, le=5, description="Số sao đánh giá từ 1 đến 5")
-    review_text: Optional[str] = Field(None, description="Nhận xét của sinh viên")
-    timestamp: datetime = Field(..., example="2023-10-26T14:30:00")
 
-# Schema để tạo TeacherReview mới
-class TeacherReviewCreate(TeacherReviewBase):
-    pass
+class TeacherReview(Base):
+    __tablename__ = "teacher_reviews"
 
-# Schema để đọc/trả về TeacherReview hoàn chỉnh
-class TeacherReview(TeacherReviewBase):
-    id: int
+    review_id = Column(Integer, primary_key=True, index=True)
 
-    class Config:
-        from_attributes = True
+    teacher_user_id = Column(Integer, ForeignKey("teachers.user_id", ondelete="CASCADE"), nullable=False)
+    student_user_id = Column(Integer, ForeignKey("students.user_id", ondelete="CASCADE"), nullable=False)
 
-# Schema để cập nhật TeacherReview
-class TeacherReviewUpdate(BaseModel):
-    teacher_id: Optional[int] = None
-    student_id: Optional[int] = None
-    rating: Optional[int] = Field(None, ge=1, le=5)
-    review_text: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    rating = Column(DECIMAL(10, 2), nullable=False)
+    review_text = Column(String)
+    review_date = Column(DateTime, default=datetime.utcnow)
+
+    # Quan hệ với Teacher và Student
+    teacher = relationship("Teacher", back_populates="review")
+    student = relationship("Student", back_populates="review")
+
+    def __repr__(self):
+        return f"<TeacherReview(teacher_user_id={self.teacher_user_id}, student_user_id={self.student_user_id}, rating={self.rating})>"

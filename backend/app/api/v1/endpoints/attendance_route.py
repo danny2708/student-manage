@@ -1,65 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-
-from app.crud import attendance_crud 
-from app.schemas import attendance_schema 
 from app.api import deps
+from app.schemas.attendance_schema import AttendanceRead, AttendanceBatchCreate, AttendanceUpdateLate
+from app.services import attendance_service
+from app.api.auth.auth import has_roles, get_current_active_user
 
 router = APIRouter()
+TEACHER_ONLY = has_roles(["teacher"])
 
-@router.post("/", response_model=attendance_schema.Attendance, status_code=status.HTTP_201_CREATED)
-def create_new_attendance(attendance: attendance_schema.AttendanceCreate, db: Session = Depends(deps.get_db)):
-    """
-    Tạo một bản ghi điểm danh mới.
-    """
-    # Bạn có thể thêm kiểm tra xem student_id và class_id có tồn tại không
-    return attendance_crud.create_attendance(db=db, attendance=attendance)
+@router.post(
+    "/batch",
+    response_model=list[AttendanceRead],
+    dependencies=[Depends(TEACHER_ONLY)]
+)
+def create_attendance_records_for_class(
+    attendance_data: AttendanceBatchCreate,
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(get_current_active_user)  # thêm dòng này
+):
+    return attendance_service.create_batch_attendance(db, attendance_data, current_user)
 
-@router.get("/", response_model=List[attendance_schema.Attendance])
-def get_all_attendances(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
-    """
-    Lấy danh sách tất cả các bản ghi điểm danh.
-    """
-    attendances = attendance_crud.get_all_attendances(db, skip=skip, limit=limit)
-    return attendances
 
-@router.get("/{attendance_id}", response_model=attendance_schema.Attendance)
-def get_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Lấy thông tin của một bản ghi điểm danh cụ thể bằng ID.
-    """
-    db_attendance = attendance_crud.get_attendance(db, attendance_id=attendance_id)
-    if db_attendance is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Điểm danh không tìm thấy."
-        )
-    return db_attendance
-
-@router.put("/{attendance_id}", response_model=attendance_schema.Attendance)
-def update_existing_attendance(attendance_id: int, attendance: attendance_schema.AttendanceUpdate, db: Session = Depends(deps.get_db)):
-    """
-    Cập nhật thông tin của một bản ghi điểm danh cụ thể bằng ID.
-    """
-    db_attendance = attendance_crud.update_attendance(db, attendance_id=attendance_id, attendance_update=attendance)
-    if db_attendance is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Điểm danh không tìm thấy."
-        )
-    return db_attendance
-
-@router.delete("/{attendance_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_existing_attendance(attendance_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Xóa một bản ghi điểm danh cụ thể bằng ID.
-    """
-    db_attendance = attendance_crud.delete_attendance(db, attendance_id=attendance_id)
-    if db_attendance is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Điểm danh không tìm thấy."
-        )
-    return {"message": "Điểm danh đã được xóa thành công."}
-
+@router.patch(
+    "/update_late",
+    response_model=AttendanceRead,
+    dependencies=[Depends(TEACHER_ONLY)]
+)
+def update_student_late_attendance(
+    student_user_id: int,
+    class_id: int,
+    update_data: AttendanceUpdateLate,
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(get_current_active_user)  # thêm dòng này
+):
+    updated_record = attendance_service.update_late_attendance(
+        db,
+        student_user_id=student_user_id,
+        class_id=class_id,
+        checkin_time=update_data.checkin_time,
+        attendance_date=update_data.attendance_date,
+        current_user=current_user
+    )
+    if not updated_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bản ghi điểm danh để cập nhật.")
+    return updated_record

@@ -16,4 +16,4 @@ from .schedule_model import Schedule
 from .test_model import Test
 
 # Import các bảng liên kết từ association_tables.py
-from .association_tables import user_roles, student_parent_association,student_class_association
+from .association_tables import user_roles

@@ -1,15 +1,26 @@
+# app/api/route/auth_route.py
+from datetime import timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from passlib.context import CryptContext
-
+from pydantic import BaseModel
+from passlib.context import CryptContext # type: ignore # type: ignore
 from app.api.deps import get_db
-from app.schemas.auth_schema import LoginRequest, LoginSuccess
 from app.models.user_model import User
+from app.schemas.auth_schema import LoginRequest
+from app.api.auth.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
 
-# Khởi tạo CryptContext với thuật toán bcrypt để băm và kiểm tra mật khẩu
+# Schema cho phản hồi khi đăng nhập thành công
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    message: Optional[str] = "Đăng nhập thành công"
+    user_id: int
+    username: str
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -18,7 +29,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 @router.post(
     "/login", 
-    response_model=LoginSuccess,
+    response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Đăng nhập người dùng"
 )
@@ -27,30 +38,32 @@ def login(
     db: Session = Depends(get_db)
 ):
     """
-    Xác thực người dùng bằng tên đăng nhập và mật khẩu.
+    Xác thực người dùng bằng tên đăng nhập và mật khẩu và trả về JWT token.
     """
-    # 1. Tìm người dùng trong cơ sở dữ liệu
+    # Sử dụng `username` để tìm kiếm người dùng
     stmt = select(User).where(User.username == request.username)
     user = db.execute(stmt).scalars().first()
     
-    # 2. Kiểm tra xem người dùng có tồn tại không
-    if not user:
+    # Kiểm tra người dùng và mật khẩu bằng hàm từ auth.py
+    if not user or not verify_password(request.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tên đăng nhập hoặc mật khẩu không đúng."
+            detail="Tên đăng nhập hoặc mật khẩu không đúng.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-
-    # 3. Xác minh mật khẩu
-    if not verify_password(request.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tên đăng nhập hoặc mật khẩu không đúng."
-        )
-        
-    # 4. Trả về thông tin người dùng nếu đăng nhập thành công
-    return LoginSuccess(
-        message="Đăng nhập thành công",
-        user_id=user.user_id,
-        username=user.username
+    
+    # Tính thời gian hết hạn cho token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    # Tạo JWT token bằng hàm từ auth.py
+    access_token = create_access_token(
+        data={"sub": str(user.user_id)}, 
+        expires_delta=access_token_expires
     )
-
+        
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user_id": user.user_id,
+        "username": user.username
+    }

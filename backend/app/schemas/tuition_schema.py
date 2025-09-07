@@ -1,24 +1,34 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from datetime import date
+from decimal import Decimal
+from typing import Optional
+from pydantic import BaseModel, Field, condecimal
+from app.models.tuition_model import PaymentStatus 
 
 class TuitionBase(BaseModel):
-    student_id: int = Field(..., example=1)
-    amount: float = Field(..., example=1500.00)
-    payment_date: date = Field(..., example="2023-10-26")
-    is_paid: bool = Field(False, example=True)
+    student_user_id: int
+    amount: float = Field(..., gt=0)
+    term: int
+    due_date: date
 
+# Schema dùng để tạo mới
 class TuitionCreate(TuitionBase):
     pass
 
-class TuitionUpdate(TuitionBase):
-    student_id: Optional[int] = None
-    amount: Optional[float] = None
+# Schema dùng để đọc dữ liệu từ DB
+class TuitionRead(TuitionBase):
+    tuition_id: int
+    payment_status: PaymentStatus
     payment_date: Optional[date] = None
-    is_paid: Optional[bool] = None
-
-class Tuition(TuitionBase):
-    id: int = Field(..., example=1)
 
     class Config:
         from_attributes = True
+
+# Schema dùng để cập nhật chi tiết học phí
+class TuitionUpdate(BaseModel):
+    amount: Optional[float] = Field(None, gt=0)
+    term: Optional[int] = None
+    due_date: Optional[date] = None
+
+# Schema dùng để cập nhật trạng thái thanh toán
+class TuitionPaymentStatusUpdate(BaseModel):
+    payment_status: PaymentStatus  = Field("paid")

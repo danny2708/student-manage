@@ -1,6 +1,23 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+from typing import List, Optional
 
+# Pydantic model cho payload của JWT
+class TokenData(BaseModel):
+    user_id: Optional[int] = None
+
+# Pydantic model cho người dùng đã xác thực
+class AuthenticatedUser(BaseModel):
+    user_id: int = Field(..., example=1, description="ID của người dùng")
+    username: str = Field(..., example="john_doe", description="Tên đăng nhập")
+    roles: List[str] = Field(..., example=["manager"], description="Danh sách vai trò của người dùng")
+    is_active: bool = Field(True, example=True, description="Trạng thái hoạt động của người dùng")
+    full_name: Optional[str] = Field(None, example="John Doe", description="Họ và tên đầy đủ")
+    email: Optional[EmailStr] = Field(None, example="john.doe@example.com", description="Email của người dùng")
+
+    class Config:
+        from_attributes = True
+
+        
 class LoginRequest(BaseModel):
     """
     Schema cho yêu cầu đăng nhập.

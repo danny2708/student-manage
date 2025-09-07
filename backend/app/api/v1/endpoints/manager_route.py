@@ -3,21 +3,25 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
-# Import các CRUD operations
-from app.crud import manager_crud
-from app.crud import user_crud, user_role_crud
+from app.crud import manager_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
-from app.schemas import manager_schema 
+from app.schemas import manager_schema
 from app.api import deps
+from app.api.auth.auth import has_roles
 
 router = APIRouter()
+MANAGER_ONLY = has_roles(["manager"])
 
-@router.post("/", response_model=manager_schema.Manager, status_code=status.HTTP_201_CREATED)
-def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depends(deps.get_db)):
-    """
-    Gán một user đã tồn tại thành manager + cập nhật role 'manager' trong user_roles.
-    """
-    # 1. Kiểm tra user tồn tại
+@router.post(
+    "/",
+    response_model=manager_schema.ManagerRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def assign_manager(
+    manager_in: manager_schema.ManagerCreate,
+    db: Session = Depends(deps.get_db)
+):
     db_user = user_crud.get_user(db=db, user_id=manager_in.user_id)
     if not db_user:
         raise HTTPException(
@@ -25,7 +29,6 @@ def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depen
             detail=f"User with id {manager_in.user_id} not found."
         )
 
-    # 2. Kiểm tra đã là manager chưa
     existing_manager = manager_crud.get_manager_by_user_id(db=db, user_id=manager_in.user_id)
     if existing_manager:
         raise HTTPException(
@@ -33,13 +36,11 @@ def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depen
             detail=f"User with id {manager_in.user_id} is already a manager."
         )
 
-    # 3. Tạo manager
     db_manager = manager_crud.create_manager(
         db=db,
-        manager_in=manager_schema.ManagerCreate(user_id=manager_in.user_id)
+        manager_in=manager_in
     )
 
-    # 4. Gán role "manager" vào user_roles nếu chưa có
     existing_role = user_role_crud.get_user_role(db, user_id=manager_in.user_id, role_name="manager")
     if not existing_role:
         user_role_crud.create_user_role(
@@ -54,22 +55,30 @@ def assign_manager(manager_in: manager_schema.ManagerAssign, db: Session = Depen
     return db_manager
 
 
-@router.get("/", response_model=List[manager_schema.Manager])
-def get_all_managers(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
-    """
-    Lấy danh sách tất cả quản lý.
-    """
-    managers = manager_crud.get_all_managers(db, skip=skip, limit=limit)
-    return managers
+@router.get(
+    "/",
+    response_model=List[manager_schema.ManagerRead],
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def get_all_managers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(deps.get_db)
+):
+    return manager_crud.get_all_managers(db, skip=skip, limit=limit)
 
 
-@router.get("/{manager_id}", response_model=manager_schema.Manager)
-def get_manager(manager_id: int, db: Session = Depends(deps.get_db)):
-    """
-    Lấy thông tin của một quản lý cụ thể bằng ID.
-    """
-    db_manager = manager_crud.get_manager(db, manager_id=manager_id)
-    if db_manager is None:
+@router.get(
+    "/{user_id}",
+    response_model=manager_schema.ManagerRead,
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def get_manager(
+    user_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    db_manager = manager_crud.get_manager(db, user_id=user_id)
+    if not db_manager:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Quản lý không tìm thấy."
@@ -77,13 +86,18 @@ def get_manager(manager_id: int, db: Session = Depends(deps.get_db)):
     return db_manager
 
 
-@router.put("/{manager_id}", response_model=manager_schema.Manager)
-def update_existing_manager(manager_id: int, manager: manager_schema.ManagerUpdate, db: Session = Depends(deps.get_db)):
-    """
-    Cập nhật thông tin của một quản lý cụ thể bằng ID.
-    """
-    db_manager = manager_crud.update_manager(db, manager_id=manager_id, manager_update=manager)
-    if db_manager is None:
+@router.put(
+    "/{user_id}",
+    response_model=manager_schema.ManagerRead,
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def update_existing_manager(
+    user_id: int,
+    manager: manager_schema.ManagerUpdate,
+    db: Session = Depends(deps.get_db)
+):
+    db_manager = manager_crud.update_manager(db, user_id=user_id, manager_update=manager)
+    if not db_manager:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Quản lý không tìm thấy."
@@ -91,20 +105,26 @@ def update_existing_manager(manager_id: int, manager: manager_schema.ManagerUpda
     return db_manager
 
 
-@router.delete("/{manager_id}", response_model=dict)
-def delete_existing_manager(manager_id: int, db: Session = Depends(deps.get_db)):
-    db_manager = manager_crud.get_manager(db, manager_id=manager_id)
-    if db_manager is None:
+@router.delete(
+    "/{user_id}",
+    response_model=dict,
+    dependencies=[Depends(MANAGER_ONLY)]
+)
+def delete_existing_manager(
+    user_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    db_manager = manager_crud.get_manager(db, user_id=user_id)
+    if not db_manager:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Nhân viên không tìm thấy."
         )
 
-    deleted_manager = manager_crud.delete_manager(db, manager_id=manager_id)
+    deleted_manager = manager_crud.delete_manager(db, user_id=user_id)
 
     return {
-        "deleted_manager": manager_schema.Manager.from_orm(deleted_manager).dict(),
+        "deleted_manager": manager_schema.ManagerRead.from_orm(deleted_manager).dict(),
         "deleted_at": datetime.utcnow().isoformat(),
         "status": "success"
     }
-

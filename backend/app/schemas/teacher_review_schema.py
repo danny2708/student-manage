@@ -1,30 +1,27 @@
+# app/schemas/teacher_review_schema.py
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-# Schema cơ sở cho TeacherReview
+# Schema cơ sở cho các trường dữ liệu do người dùng cung cấp
 class TeacherReviewBase(BaseModel):
-    teacher_id: int
-    student_id: int
-    rating: int = Field(..., ge=1, le=5, description="Rating từ 1 đến 5 sao")
-    review_text: Optional[str] = Field(None, description="Nhận xét của học sinh")
-    created_at: datetime = Field(..., example="2023-10-26T14:30:00")
+    teacher_user_id: int
+    rating: float = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
+    review_text: Optional[str] = Field(None, description="Student's review comment")
 
-# Schema để tạo TeacherReview mới
 class TeacherReviewCreate(TeacherReviewBase):
     pass
 
-# Schema để đọc/trả về TeacherReview hoàn chỉnh
+# Schema đầy đủ cho TeacherReview (bao gồm các trường auto-generated)
 class TeacherReview(TeacherReviewBase):
     review_id: int
+    student_user_id: int
+    review_date: datetime
 
     class Config:
         from_attributes = True
 
 # Schema để cập nhật TeacherReview
 class TeacherReviewUpdate(BaseModel):
-    teacher_id: Optional[int] = None
-    student_id: Optional[int] = None
-    rating: Optional[int] = Field(None, ge=1, le=5)
+    rating: Optional[float] = Field(None, ge=1, le=5)
     review_text: Optional[str] = None
-    created_at: Optional[datetime] = None
