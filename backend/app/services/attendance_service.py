@@ -1,6 +1,5 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 from app.crud import (
     attendance_crud,
     notification_crud,
@@ -9,6 +8,7 @@ from app.crud import (
     class_crud,
     schedule_crud,
 )
+from sqlalchemy.orm import joinedload
 from app.schemas.attendance_schema import AttendanceBatchCreate
 from app.schemas.notification_schema import NotificationCreate, NotificationUpdate
 from app.schemas.evaluation_schema import EvaluationCreate
@@ -16,12 +16,12 @@ from app.models.attendance_model import AttendanceStatus, Attendance
 from app.models.notification_model import Notification, NotificationType
 from app.models.evaluation_model import EvaluationType
 from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
-from datetime import time as dt_time, datetime, date as dt_date, timedelta
+from datetime import time as dt_time, datetime, date as dt_date
 from fastapi import HTTPException
 
 
 def _resolve_schedule_for_class_and_date(
-    db: Session, class_id: int, attendance_date: dt_date
+    db: Session, schedule_id: int, attendance_date: dt_date
 ) -> Optional[Schedule]:
     """
     Tìm lịch học hợp lệ của lớp tại ngày attendance_date:
@@ -31,7 +31,7 @@ def _resolve_schedule_for_class_and_date(
     # 1) Lịch ONCE theo ngày
     once_matches = schedule_crud.search_schedules(
         db=db,
-        class_id=class_id,
+        schedule_id=schedule_id,
         schedule_type=ScheduleTypeEnum.ONCE,
         date=attendance_date,
     )
@@ -52,7 +52,7 @@ def _resolve_schedule_for_class_and_date(
 
     weekly_matches = schedule_crud.search_schedules(
         db=db,
-        class_id=class_id,
+        schedule_id=schedule_id,
         schedule_type=ScheduleTypeEnum.WEEKLY,
         day_of_week=dow_enum,
     )
@@ -61,51 +61,33 @@ def _resolve_schedule_for_class_and_date(
 
     return None
 
-
 def check_attendance_permission(
     db: Session,
-    class_id: int,
+    schedule_id: int,
     attendance_date: dt_date,
     checkin_time: Optional[dt_time],
     current_user,
 ) -> Schedule:
-    """
-    Helper kiểm tra quyền điểm danh:
-    - Giáo viên có dạy lớp không
-    - Có lịch học hợp lệ không (WEEKLY hoặc ONCE)
-    - Thời gian check-in nằm trong khoảng start - end của schedule
-    """
-    # 1) Giáo viên có dạy lớp không
-    class_info = class_crud.get_class(db, class_id)
-    if not class_info:
-        raise HTTPException(status_code=404, detail="Không tìm thấy lớp học.")
-    if class_info.teacher_user_id != current_user.user_id:
+    schedule = schedule_crud.get_schedule(db, schedule_id)
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Không tìm thấy lịch học.")
+    if schedule.class_info.teacher_user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Bạn không được phép điểm danh cho lớp này.")
 
-    # 2) Tìm lịch phù hợp (ONCE theo date, hoặc WEEKLY theo thứ)
-    schedule = _resolve_schedule_for_class_and_date(db, class_id, attendance_date)
-    if not schedule:
-        raise HTTPException(status_code=400, detail="Không tìm thấy lịch học phù hợp.")
-
-    # 3) Kiểm tra thời gian check-in
-    #    - create batch: nếu record có checkin_time thì dùng; nếu không thì dùng thời gian hiện tại
+    # Nếu checkin_time None thì dùng giờ hiện tại
     time_to_check = checkin_time or datetime.now().time()
 
-    # (Optional) grace period nếu muốn nới thêm vài phút ở cuối buổi:
-    # grace_minutes = 0
-    # end_with_grace = (datetime.combine(datetime.today(), schedule.end_time) + timedelta(minutes=grace_minutes)).time()
-    # in_range = schedule.start_time <= time_to_check <= end_with_grace
+    # Chuyển tất cả về naive time (không timezone)
+    start_time_naive = schedule.start_time.replace(tzinfo=None) if hasattr(schedule.start_time, "tzinfo") else schedule.start_time
+    end_time_naive = schedule.end_time.replace(tzinfo=None) if hasattr(schedule.end_time, "tzinfo") else schedule.end_time
 
-    in_range = schedule.start_time <= time_to_check <= schedule.end_time
-    if not in_range:
+    if not (start_time_naive <= time_to_check <= end_time_naive):
         raise HTTPException(
             status_code=403,
             detail=f"Bạn chỉ có thể điểm danh trong giờ học "
-                   f"({schedule.start_time.strftime('%H:%M:%S')} - {schedule.end_time.strftime('%H:%M:%S')}).",
+                   f"({schedule.start_time} - {schedule.end_time})."
         )
-
     return schedule
-
 
 def create_batch_attendance(
     db: Session, attendance_data: AttendanceBatchCreate, current_user
@@ -125,14 +107,14 @@ def create_batch_attendance(
     # Kiểm tra permission & khung giờ
     check_attendance_permission(
         db=db,
-        class_id=attendance_data.class_id,
+        schedule_id=attendance_data.schedule_id,
         attendance_date=attendance_data.attendance_date,
         checkin_time=representative_checkin,  # có thì dùng, không thì dùng now trong helper
         current_user=current_user,
     )
 
     # Lấy teacher của lớp (phục vụ tạo evaluation)
-    class_info = class_crud.get_class(db, attendance_data.class_id)
+    class_info = class_crud.get_class(db, attendance_data.schedule_id)
     if not class_info:
         raise HTTPException(status_code=404, detail="Không tìm thấy lớp học với ID đã cung cấp.")
     teacher_user_id = class_info.teacher_user_id
@@ -188,44 +170,39 @@ def create_batch_attendance(
 
     return db_records
 
-
 def update_late_attendance(
-    db: Session,
+    db,
     student_user_id: int,
-    class_id: int,
-    checkin_time: dt_time,
-    attendance_date: dt_date,
+    schedule_id: int,
+    checkin_time: datetime.time,
+    attendance_date: datetime.date,
     current_user,
 ) -> Optional[Attendance]:
-    """
-    Cập nhật trạng thái điểm danh từ 'absent' sang 'late' khi sinh viên đến muộn.
-    Chỉ khi:
-      - Giáo viên dạy lớp đó
-      - Trong khung giờ học của lịch hợp lệ
-      - Bản ghi điểm danh của đúng NGÀY đó đang là 'absent'
-    """
-    # Kiểm tra permission & khung giờ
+
     check_attendance_permission(
         db=db,
-        class_id=class_id,
+        schedule_id=schedule_id,
         attendance_date=attendance_date,
         checkin_time=checkin_time,
         current_user=current_user,
     )
 
-    # Lấy đúng bản ghi theo NGÀY
-    attendance_record = attendance_crud.get_attendance_record_by_student_and_date(
-        db, student_user_id=student_user_id, class_id=class_id, date=attendance_date
+    attendance_record = (
+        db.query(Attendance)
+        .options(
+            joinedload(Attendance.schedule).joinedload(Schedule.class_info)
+        )
+        .filter(
+            Attendance.student_user_id == student_user_id,
+            Attendance.schedule_id == schedule_id,
+            Attendance.attendance_date == attendance_date,
+        )
+        .first()
     )
-    if not attendance_record:
+
+    if not attendance_record or attendance_record.status != AttendanceStatus.absent:
         return None
 
-    # Chỉ cho phép đổi từ 'absent' -> 'late'
-    if attendance_record.status != AttendanceStatus.absent:
-        # Không update nếu không phải absent
-        return None
-
-    # Cập nhật trạng thái attendance
     updated_record = attendance_crud.update_attendance_status(
         db,
         db_record=attendance_record,
@@ -233,11 +210,15 @@ def update_late_attendance(
         checkin_time=checkin_time,
     )
 
-    # Cập nhật evaluation (trừ điểm vì đi muộn)
+    if not attendance_record.schedule or not attendance_record.schedule.class_info:
+        raise HTTPException(status_code=500, detail="Không tìm thấy thông tin lớp/giáo viên.")
+    teacher_user_id = attendance_record.schedule.class_info.teacher_user_id
+
     evaluation_crud.update_late_evaluation(
         db=db,
         student_user_id=student_user_id,
-        teacher_user_id=attendance_record.class_obj.teacher_user_id,
+        teacher_user_id=teacher_user_id,
+        attendance_date=attendance_date,
         new_content="Đi học muộn",
         study_point_penalty=-2,
         discipline_point_penalty=-2,
@@ -246,6 +227,7 @@ def update_late_attendance(
     # Cập nhật notification phụ huynh nếu trước đó đã gửi 'vắng mặt'
     student, student_user = student_crud.get_student_with_user(db, student_user_id)
     if student and student_user:
+        # Phụ huynh
         parent, parent_user = student_crud.get_parent_by_user_id(db, student_user_id)
         if parent and parent_user:
             db_notification = db.query(Notification).filter(
@@ -263,5 +245,21 @@ def update_late_attendance(
                     notification_id=db_notification.notification_id,
                     notification_update=NotificationUpdate(content=new_content),
                 )
+
+        # Học sinh
+        db_student_notification = db.query(Notification).filter(
+            Notification.receiver_id == student_user.user_id,
+            Notification.content.like(f"%vắng mặt%{attendance_record.attendance_date}%"),
+        ).first()
+
+        if db_student_notification:
+            new_content = (
+                f"Thông báo: Bạn đã đi học muộn trong buổi học ngày {attendance_record.attendance_date}."
+            )
+            notification_crud.update_notification(
+                db=db,
+                notification_id=db_student_notification.notification_id,
+                notification_update=NotificationUpdate(content=new_content),
+            )
 
     return updated_record

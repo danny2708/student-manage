@@ -18,14 +18,9 @@ class Class(Base):
     subject = relationship("Subject", back_populates="classes")
 
 
-    # Quan hệ 1-n nhiều với Enrollment, Attendance, Schedule, Test
+    # Quan hệ 1-n nhiều với Enrollment, Schedule, Test
     enrollments = relationship(
         "Enrollment",
-        back_populates="class_obj",
-        cascade="all, delete-orphan"
-    )
-    attendances = relationship(
-        "Attendance",
         back_populates="class_obj",
         cascade="all, delete-orphan"
     )

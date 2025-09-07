@@ -1,7 +1,7 @@
 # app/crud/evaluation_crud.py
-from typing import Optional
+from datetime import date
 from sqlalchemy.orm import Session
-from app.models.evaluation_model import Evaluation
+from app.models.evaluation_model import Evaluation, EvaluationType
 from app.schemas.evaluation_schema import EvaluationCreate
 
 def get_evaluation(db: Session, evaluation_id: int):
@@ -55,28 +55,35 @@ def update_late_evaluation(
     db: Session,
     student_user_id: int,
     teacher_user_id: int,
+    attendance_date: date,
     new_content: str,
     study_point_penalty: int = 0,
     discipline_point_penalty: int = 0,
-    evaluation_type: str = "discipline"
-) -> Optional[Evaluation]:
-    """
-    Cập nhật evaluation khi sinh viên đến muộn:
-      - Thay đổi nội dung
-      - Trừ study_point và discipline_point
-    """
+    evaluation_type: EvaluationType = EvaluationType.discipline
+) -> Evaluation:
     evaluation_record = db.query(Evaluation).filter(
         Evaluation.student_user_id == student_user_id,
         Evaluation.teacher_user_id == teacher_user_id,
-        Evaluation.evaluation_type == evaluation_type
+        Evaluation.evaluation_type == evaluation_type,
+        Evaluation.evaluation_date == attendance_date
     ).first()
 
     if evaluation_record:
         evaluation_record.evaluation_content = new_content
         evaluation_record.study_point = study_point_penalty
         evaluation_record.discipline_point = discipline_point_penalty
-        db.commit()
-        db.refresh(evaluation_record)
-        return evaluation_record
+    else:
+        evaluation_record = Evaluation(
+            student_user_id=student_user_id,
+            teacher_user_id=teacher_user_id,
+            evaluation_date=attendance_date,
+            evaluation_content=new_content,
+            study_point=study_point_penalty,
+            discipline_point=discipline_point_penalty,
+            evaluation_type=evaluation_type
+        )
+        db.add(evaluation_record)
 
-    return None
+    db.commit()
+    db.refresh(evaluation_record)
+    return evaluation_record

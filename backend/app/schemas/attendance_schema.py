@@ -7,7 +7,7 @@ from app.models.attendance_model import AttendanceStatus
 
 class AttendanceBase(BaseModel):
     student_user_id: int
-    class_id: int
+    schedule_id: int
     status: AttendanceStatus
     checkin_time: Optional[time] = None
 
@@ -17,19 +17,14 @@ class AttendanceCreate(AttendanceBase):
     attendance_date: Optional[date] = None  # cho phép backend tự set hôm nay nếu không truyền
 
 
-class AttendanceUpdate(BaseModel):
-    """Schema để update bản ghi điểm danh"""
-    status: Optional[AttendanceStatus] = None
-    checkin_time: Optional[time] = None
-
 
 class AttendanceRead(BaseModel):
     """Schema để đọc dữ liệu trả về"""
     attendance_id: int
     student_user_id: int
-    class_id: int
+    schedule_id: int
     status: AttendanceStatus
-    checkin_time: Optional[time] = None
+    checkin_time: Optional[time] 
     attendance_date: date
 
     class Config:
@@ -41,7 +36,7 @@ class AttendanceInitialRecord(BaseModel):
     """Schema mô tả bản ghi điểm danh ban đầu"""
     student_user_id: int
     status: AttendanceStatus
-    checkin_time: Optional[time] = None
+    checkin_time: Optional[time] 
 
 
 class AttendanceRecordCreate(BaseModel):
@@ -60,6 +55,6 @@ class AttendanceUpdateLate(BaseModel):
 
 class AttendanceBatchCreate(BaseModel):
     """Schema để tạo nhiều bản ghi điểm danh cho 1 lớp"""
-    class_id: int
+    schedule_id: int
     attendance_date: date
     records: List[AttendanceInitialRecord]

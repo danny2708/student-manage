@@ -30,7 +30,7 @@ def create_initial_attendance_records(db: Session, attendance_data: AttendanceBa
         attendance_records = []
         for record in attendance_data.records:
             attendance_records.append({
-                "class_id": attendance_data.class_id,
+                "schedule_id": attendance_data.schedule_id,
                 "attendance_date": attendance_data.attendance_date,
                 "status": record.status.value,
                 "checkin_time": record.checkin_time,
@@ -49,14 +49,14 @@ def create_initial_attendance_records(db: Session, attendance_data: AttendanceBa
         raise e
 
 
-def get_attendance_record_by_student_and_date(db: Session, student_user_id: int, class_id: int, date: str):
+def get_attendance_record_by_student_and_date(db: Session, student_user_id: int, schedule_id: int, date: str):
     """
     Lấy bản ghi điểm danh của một học sinh (student_user_id) vào một ngày cụ thể.
     """
     stmt = select(Attendance).where(
         and_(
             Attendance.student_user_id == student_user_id,
-            Attendance.class_id == class_id,
+            Attendance.schedule_id == schedule_id,
             Attendance.attendance_date == date
         )
     )
@@ -78,11 +78,11 @@ def update_attendance_status(db: Session, db_record: Attendance, new_status: Att
     return None
 
 
-def update_attendance_record(db: Session, student_user_id: int, class_id: int, date: str, update_data: AttendanceRecordCreate) -> Optional[Attendance]:
+def update_attendance_record(db: Session, student_user_id: int, schedule_id: int, date: str, update_data: AttendanceRecordCreate) -> Optional[Attendance]:
     """
     Cập nhật bản ghi điểm danh.
     """
-    db_record = get_attendance_record_by_student_and_date(db, student_user_id, class_id, date)
+    db_record = get_attendance_record_by_student_and_date(db, student_user_id, schedule_id, date)
     if not db_record:
         return None
     
@@ -95,14 +95,14 @@ def update_attendance_record(db: Session, student_user_id: int, class_id: int, d
     )
 
 
-def get_absent_attendance_for_student_in_class(db: Session, student_user_id: int, class_id: int) -> Optional[Attendance]:
+def get_absent_attendance_for_student_in_class(db: Session, student_user_id: int, schedule_id: int) -> Optional[Attendance]:
     """
     Tìm bản ghi điểm danh bị đánh dấu là 'absent' của một học sinh trong một lớp.
     """
     stmt = select(Attendance).where(
         and_(
             Attendance.student_user_id == student_user_id,
-            Attendance.class_id == class_id,
+            Attendance.schedule_id == schedule_id,
             Attendance.status == AttendanceStatus.absent
         )
     )

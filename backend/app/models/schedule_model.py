@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey
+from sqlalchemy import Column, Date, Integer, String, Enum, ForeignKey, Time
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -18,10 +18,7 @@ class DayOfWeekEnum(str, enum.Enum):
     SATURDAY = "SATURDAY"
     SUNDAY = "SUNDAY"
 
-from sqlalchemy import Column, Date, Integer, String, Enum, ForeignKey, Time
-from sqlalchemy.orm import relationship
-from app.database import Base
-import enum
+
 
 # Định nghĩa Enum cho loại lịch trình
 class ScheduleTypeEnum(str, enum.Enum):
@@ -43,12 +40,15 @@ class Schedule(Base):
 
     schedule_id = Column(Integer, primary_key=True, index=True)
     class_id = Column(Integer, ForeignKey("classes.class_id"), nullable=False)
-    room = Column(String)
+    room = Column(String, nullable=False)
     schedule_type = Column(Enum(ScheduleTypeEnum), nullable=False)
-    day_of_week = Column(Enum(DayOfWeekEnum))
+    day_of_week = Column(Enum(DayOfWeekEnum), nullable=False)
     date = Column(Date)
-    start_time = Column(Time)
-    end_time = Column(Time)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
     
     # Quan hệ với bảng classes
     class_info = relationship("Class", back_populates="schedules")
+
+    # Quan hệ với attendance
+    attendances = relationship("Attendance", back_populates="schedule")

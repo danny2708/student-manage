@@ -131,3 +131,10 @@ def get_classes_by_teacher_user_id(db: Session, teacher_user_id: int) -> List[Cl
     Đồng bộ tên hàm với service.
     """
     return db.query(Class).filter(Class.teacher_user_id == teacher_user_id).all()
+
+def get_schedule(db: Session, schedule_id: int) -> Schedule | None:
+    """
+    Lấy một lịch học theo schedule_id.
+    Trả về Schedule object hoặc None nếu không tìm thấy.
+    """
+    return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
