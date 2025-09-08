@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { Button } from "../ui/button"
+import { Button } from "../../../components/ui/button"
 import { X, UserPlus, Eye, Trash2, Users, BookOpen, Star, FileText, Calendar, GraduationCap } from "lucide-react"
 import { useState } from "react"
 

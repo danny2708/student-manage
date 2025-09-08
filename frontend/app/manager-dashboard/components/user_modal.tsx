@@ -1,6 +1,6 @@
 "use client"
 
-import { Badge } from "../ui/badge"
+import { Badge } from "../../../components/ui/badge"
 
 interface User {
   user_id: number
@@ -13,6 +13,7 @@ interface User {
 interface UserModalProps {
   users: User[]
   onUserClick: (user: User) => void
+  onClose: () => void
 }
 
 export function UserModal({ users, onUserClick }: UserModalProps) {

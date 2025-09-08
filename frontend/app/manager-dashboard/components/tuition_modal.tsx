@@ -1,8 +1,8 @@
 "use client"
 
-import { Badge } from "../ui/badge"
+import { Badge } from "../../../components/ui/badge"
 
-interface Tuition {
+export interface Tuition {
   tuition_id: number
   studentName: string
   className: string
@@ -13,6 +13,7 @@ interface Tuition {
 
 interface TuitionModalProps {
   tuitions: Tuition[]
+  onClose: () => void
 }
 
 export function TuitionModal({ tuitions }: TuitionModalProps) {
