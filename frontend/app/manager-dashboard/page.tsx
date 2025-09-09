@@ -193,6 +193,8 @@ export default function ManagerDashboard() {
     class: "",
     subject: "",
   })
+
+
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["general"])
 
@@ -941,7 +943,7 @@ export default function ManagerDashboard() {
 
           {selectedUser && (
             <div
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              // className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
               onClick={() => setSelectedUser(null)}
             >
               <div onClick={(e) => e.stopPropagation()}>

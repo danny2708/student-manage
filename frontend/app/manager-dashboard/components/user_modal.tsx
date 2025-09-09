@@ -73,3 +73,4 @@ export function UserModal({ users, onUserClick }: UserModalProps) {
     </div>
   )
 }
+
