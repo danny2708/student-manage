@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import {
   Users,
   DollarSign,
@@ -20,6 +20,11 @@ import {
   School,
 } from "lucide-react"
 import { RoleModal } from "./components/role_modal"
+import { UserInfoModal } from "./functions/user_info_modal"
+import { ActionModal } from "./functions/action_modal"
+import { CreateModal } from "./functions/create_modal"
+import { ShowInfoModal } from "./functions/show_info_modal"
+import { ModifyModal } from "./functions/modify_modal"
 
 // Mock data
 const mockUsers = [
@@ -193,10 +198,14 @@ export default function ManagerDashboard() {
     class: "",
     subject: "",
   })
-
-
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["general"])
+  const [showUserInfo, setShowUserInfo] = useState<any>(null)
+  const [showActionModal, setShowActionModal] = useState<any>(null)
+  const [showCreateModal, setShowCreateModal] = useState<string | null>(null)
+  const [showInfoModal, setShowInfoModal] = useState<any>(null)
+  const [showModifyModal, setShowModifyModal] = useState<any>(null)
+  const [showClassActionModal, setShowClassActionModal] = useState<any>(null)
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
@@ -221,6 +230,63 @@ export default function ManagerDashboard() {
 
   const updateSearchTerm = (section: string, value: string) => {
     setSearchTerms((prev) => ({ ...prev, [section]: value }))
+  }
+
+  const handleTableRowClick = (type: string, data: any) => {
+    if (type === "user") {
+      setSelectedUser(data)
+    } else {
+      setShowActionModal({ type, data })
+    }
+  }
+
+  const handleShowInfo = () => {
+    if (showActionModal) {
+      setShowInfoModal(showActionModal)
+      setShowActionModal(null)
+    }
+  }
+
+  const handleModify = () => {
+    if (showActionModal) {
+      setShowModifyModal(showActionModal)
+      setShowActionModal(null)
+    }
+  }
+
+  const handleClassCardClick = (classData: any) => {
+    setShowClassActionModal({ type: "class", data: classData })
+  }
+
+  const handleClassShowInfo = () => {
+    if (showClassActionModal) {
+      setShowInfoModal(showClassActionModal)
+      setShowClassActionModal(null)
+    }
+  }
+
+  const handleClassModify = () => {
+    if (showClassActionModal) {
+      setShowModifyModal(showClassActionModal)
+      setShowClassActionModal(null)
+    }
+  }
+
+  const handleSaveModify = (updatedData: any) => {
+    console.log("Saving modified data:", updatedData)
+    // Here you would typically update your data source
+    setShowModifyModal(null)
+  }
+
+  const handleUserShowInfo = () => {
+    if (selectedUser) {
+      setShowUserInfo(selectedUser)
+      setSelectedUser(null)
+    }
+  }
+
+  const handleCreateNew = (type: string) => {
+    setShowCreateModal(type)
   }
 
   const renderDashboardContent = () => {
@@ -329,6 +395,12 @@ export default function ManagerDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+              <button
+                onClick={() => handleCreateNew("user")}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+              >
+                Create New User
+              </button>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
@@ -371,7 +443,7 @@ export default function ManagerDashboard() {
                   {filteredUsers.map((user) => (
                     <tr
                       key={user.user_id}
-                      onClick={() => handleUserClick(user)}
+                      onClick={() => handleTableRowClick("user", user)}
                       className="hover:bg-gray-700 cursor-pointer transition-colors"
                     >
                       <td className="px-3 py-3 text-sm text-gray-300">{user.user_id}</td>
@@ -413,6 +485,12 @@ export default function ManagerDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Tuition Management</h2>
+              <button
+                onClick={() => handleCreateNew("tuition")}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+              >
+                Create New Tuition
+              </button>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
@@ -456,7 +534,11 @@ export default function ManagerDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-600">
                   {mockTuitions.map((tuition) => (
-                    <tr key={tuition.tuiton_id} className="hover:bg-gray-700 transition-colors">
+                    <tr
+                      key={tuition.tuiton_id}
+                      className="hover:bg-gray-700 transition-colors cursor-pointer"
+                      onClick={() => handleTableRowClick("tuition", tuition)}
+                    >
                       <td className="px-3 py-3 text-sm text-gray-300">{tuition.tuiton_id}</td>
                       <td className="px-3 py-3 text-sm text-gray-300 break-words">{tuition.studentName}</td>
                       <td className="px-3 py-3 text-sm text-cyan-400">{tuition.className}</td>
@@ -487,6 +569,12 @@ export default function ManagerDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Schedule Management</h2>
+              <button
+                onClick={() => handleCreateNew("schedule")}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+              >
+                Create New Schedule
+              </button>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
@@ -536,7 +624,11 @@ export default function ManagerDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-600">
                   {mockSchedules.map((schedule) => (
-                    <tr key={schedule.schedule_id} className="hover:bg-gray-700 transition-colors">
+                    <tr
+                      key={schedule.schedule_id}
+                      className="hover:bg-gray-700 transition-colors cursor-pointer"
+                      onClick={() => handleTableRowClick("schedule", schedule)}
+                    >
                       <td className="px-2 py-3 text-sm text-gray-300">{schedule.schedule_id}</td>
                       <td className="px-2 py-3 text-sm text-cyan-400">{schedule.class}</td>
                       <td className="px-2 py-3 text-sm text-gray-300">{schedule.day}</td>
@@ -565,6 +657,12 @@ export default function ManagerDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Payroll Management</h2>
+              <button
+                onClick={() => handleCreateNew("payroll")}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+              >
+                Create New Payroll
+              </button>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
@@ -611,7 +709,11 @@ export default function ManagerDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-600">
                   {mockPayrolls.map((payroll) => (
-                    <tr key={payroll.payroll_id} className="hover:bg-gray-700 transition-colors">
+                    <tr
+                      key={payroll.payroll_id}
+                      className="hover:bg-gray-700 transition-colors cursor-pointer"
+                      onClick={() => handleTableRowClick("payroll", payroll)}
+                    >
                       <td className="px-3 py-3 text-sm text-gray-300">{payroll.payroll_id}</td>
                       <td className="px-3 py-3 text-sm text-gray-300 break-words">{payroll.teacherName}</td>
                       <td className="px-3 py-3 text-sm text-gray-300">
@@ -637,70 +739,66 @@ export default function ManagerDashboard() {
           </div>
         )
       case "teacher-review":
-      return (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Teacher Review Management</h2>
-          </div>
-
-          {/* Search + Filter */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search reviews..."
-                value={searchTerms.teacherReview}
-                onChange={(e) => updateSearchTerm("teacherReview", e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              />
-              <Star className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Teacher Review Management</h2>
             </div>
-            <button className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Filter
-            </button>
-          </div>
-
-          {/* Table */}
-          <div className="bg-gray-800 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Teacher
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Student
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Rating
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Review
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-600">
-                {mockTeacherReviews.map((review) => (
-                  <tr key={review.review_id} className="hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{review.review_id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{review.teacher}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{review.student}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-yellow-400">
-                      {"★".repeat(review.rating)}
-                      {"☆".repeat(5 - review.rating)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-300 break-words max-w-xs">{review.review}</td>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search reviews..."
+                  value={searchTerms.teacherReview}
+                  onChange={(e) => updateSearchTerm("teacherReview", e.target.value)}
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                />
+                <Star className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+              <button className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Filter
+              </button>
+            </div>
+            <div className="bg-gray-800 rounded-lg overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">
+                      ID
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-32">
+                      TEACHER
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-32">
+                      STUDENT
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
+                      RATING
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      REVIEW
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-600">
+                  {mockTeacherReviews.map((review) => (
+                    <tr key={review.review_id} className="hover:bg-gray-700 transition-colors">
+                      <td className="px-3 py-3 text-sm text-gray-300">{review.review_id}</td>
+                      <td className="px-3 py-3 text-sm text-gray-300 break-words">{review.teacher}</td>
+                      <td className="px-3 py-3 text-sm text-gray-300 break-words">{review.student}</td>
+                      <td className="px-3 py-3 text-sm text-yellow-400">
+                        {"★".repeat(review.rating)}
+                        {"☆".repeat(5 - review.rating)}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-300 break-words max-w-xs">{review.review}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )
+        )
       case "evaluation":
         return (
           <div className="space-y-4">
@@ -772,6 +870,13 @@ export default function ManagerDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Class Management</h2>
+              <button
+                onClick={() => handleCreateNew("class")}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                <BookOpen className="h-4 w-4" />
+                Create New Class
+              </button>
             </div>
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
@@ -793,7 +898,8 @@ export default function ManagerDashboard() {
               {mockClasses.map((classItem) => (
                 <div
                   key={classItem.class_id}
-                  className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg p-4 text-white shadow-lg"
+                  onClick={() => handleClassCardClick(classItem)}
+                  className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg p-4 text-white shadow-lg cursor-pointer hover:from-orange-500 hover:to-orange-600 transition-colors"
                 >
                   <div className="text-lg font-bold mb-2">{classItem.name}</div>
                   <div className="text-sm opacity-90 mb-1">Teacher: {classItem.teacher}</div>
@@ -802,7 +908,10 @@ export default function ManagerDashboard() {
                   <div className="text-sm opacity-90">Fee: {classItem.fee.toLocaleString()} ₫</div>
                 </div>
               ))}
-              <div className="bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-lg p-4 text-white shadow-lg flex items-center justify-center cursor-pointer hover:from-cyan-500 hover:to-cyan-600 transition-colors">
+              <div
+                onClick={() => handleCreateNew("class")}
+                className="bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-lg p-4 text-white shadow-lg flex items-center justify-center cursor-pointer hover:from-cyan-500 hover:to-cyan-600 transition-colors"
+              >
                 <div className="text-center">
                   <div className="text-4xl mb-2">+</div>
                   <div className="text-sm">Add New Class</div>
@@ -943,11 +1052,100 @@ export default function ManagerDashboard() {
 
           {selectedUser && (
             <div
-              // className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              className="fixed inset-0 flex items-center justify-center z-50"
               onClick={() => setSelectedUser(null)}
             >
               <div onClick={(e) => e.stopPropagation()}>
-                <RoleModal user={selectedUser} onClose={() => setSelectedUser(null)} />
+                <RoleModal user={selectedUser} onClose={() => setSelectedUser(null)} onShowInfo={handleUserShowInfo} />
+              </div>
+            </div>
+          )}
+
+          {showUserInfo && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowUserInfo(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <UserInfoModal user={showUserInfo} onClose={() => setShowUserInfo(null)} />
+              </div>
+            </div>
+          )}
+
+          {showActionModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowActionModal(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ActionModal
+                  onClose={() => setShowActionModal(null)}
+                  onShowInfo={handleShowInfo}
+                  onModify={handleModify}
+                  onDelete={() => {}}
+                />
+              </div>
+            </div>
+          )}
+
+          {showModifyModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowModifyModal(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ModifyModal
+                  type={showModifyModal.type}
+                  data={showModifyModal.data}
+                  onClose={() => setShowModifyModal(null)}
+                  onSave={handleSaveModify}
+                />
+              </div>
+            </div>
+          )}
+
+          {showClassActionModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowClassActionModal(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ActionModal
+                  onClose={() => setShowClassActionModal(null)}
+                  onShowInfo={handleClassShowInfo}
+                  onModify={handleClassModify}
+                  onDelete={() => {}}
+                />
+              </div>
+            </div>
+          )}
+
+          {showCreateModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowCreateModal(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <CreateModal
+                  type={showCreateModal}
+                  onClose={() => setShowCreateModal(null)}
+                  onCreate={(data) => console.log("Create:", data)}
+                />
+              </div>
+            </div>
+          )}
+
+          {showInfoModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={() => setShowInfoModal(null)}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <ShowInfoModal
+                  type={showInfoModal.type}
+                  data={showInfoModal.data}
+                  onClose={() => setShowInfoModal(null)}
+                />
               </div>
             </div>
           )}

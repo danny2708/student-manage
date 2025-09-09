@@ -5,7 +5,7 @@ import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { X, Search, Filter } from "lucide-react"
 
-export interface Payroll {
+interface Payroll {
   payroll_id: number
   teacherName: string
   baseSalary: number
@@ -15,12 +15,12 @@ export interface Payroll {
   sentAt: string
 }
 
-interface PayrollModal {
+interface PayrollModalProps {
   payrolls: Payroll[]
   onClose: () => void
 }
 
-export function PayrollModal({ payrolls, onClose }: PayrollModal) {
+export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredPayrolls = payrolls.filter((payroll) =>
@@ -37,12 +37,8 @@ export function PayrollModal({ payrolls, onClose }: PayrollModal) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">Payroll Management</h2>
-          <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
-          aria-label="Close modal"
-          >
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors" aria-label="Close modal">
+            <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 

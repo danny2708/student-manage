@@ -33,9 +33,8 @@ export function EvaluationModal({ evaluations, onClose }: EvaluationModalProps) 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">Student Evaluations</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors" aria-label="Close modal">
             <X className="h-5 w-5 text-gray-500" />
-            aria-label="Close modal"
           </button>
         </div>
 

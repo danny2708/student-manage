@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { Button } from "../../../components/ui/button"
 import { X, UserPlus, Eye, Trash2, Users, BookOpen, Star, FileText, Calendar, GraduationCap } from "lucide-react"
 import { useState } from "react"
@@ -17,19 +15,18 @@ interface User {
 interface RoleModalProps {
   user: User
   onClose: () => void
+  onShowInfo?: () => void // Added onShowInfo prop to trigger user info modal
 }
 
-export function RoleModal({ user, onClose }: RoleModalProps) {
+export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
   const [showSubModal, setShowSubModal] = useState(false)
   const [subModalType, setSubModalType] = useState("")
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose()
-    }
-  }
-
   const handleSubModalClick = (type: string) => {
+    if (type === "info" && onShowInfo) {
+      onShowInfo()
+      return
+    }
     setSubModalType(type)
     setShowSubModal(true)
   }
@@ -119,17 +116,10 @@ export function RoleModal({ user, onClose }: RoleModalProps) {
   const buttons = getRoleButtons()
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto">
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
-          aria-label="Close modal"
-        >
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10" aria-label="Close modal">
           <X className="h-5 w-5" />
         </button>
 
@@ -166,19 +156,12 @@ export function RoleModal({ user, onClose }: RoleModalProps) {
 
       {/* Sub Modal for Student Classes */}
       {showSubModal && subModalType === "add-class" && user.role === "student" && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-60"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowSubModal(false)
-            }
-          }}
-        >
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto ml-80">
             <button
               onClick={() => setShowSubModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
-              aria-label="Close sub-modal"
+              aria-label="Close modal"
             >
               <X className="h-5 w-5" />
             </button>

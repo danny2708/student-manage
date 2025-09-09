@@ -22,12 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@/components/*": [
-        "./components/*"
-      ]
+      "@/*": ["./frontend/*"]
     },
     "allowJs": true,
     "incremental": true,
@@ -42,8 +37,9 @@
   "include": [
     "src",
     "components",
-    ".next/types/**/*.ts"
-, "app/pages"  ],
+    ".next/types/**/*.ts",
+    "app/pages"
+  ],
   "exclude": [
     "node_modules"
   ]
