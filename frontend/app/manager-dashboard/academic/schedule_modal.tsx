@@ -108,3 +108,5 @@ export function ScheduleModal({ schedules, onClose }: ScheduleModalProps) {
     </div>
   )
 }
+
+export type { Schedule }

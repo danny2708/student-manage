@@ -19,12 +19,11 @@ import {
   UserCheck,
   School,
 } from "lucide-react"
-import { RoleModal } from "./components/role_modal"
+import { RoleModal } from "./user/role_modal"
 import { UserInfoModal } from "./functions/user_info_modal"
 import { ActionModal } from "./functions/action_modal"
 import { CreateModal } from "./functions/create_modal"
 import { ShowInfoModal } from "./functions/show_info_modal"
-import { ModifyModal } from "./functions/modify_modal"
 
 // Mock data
 const mockUsers = [
@@ -204,8 +203,6 @@ export default function ManagerDashboard() {
   const [showActionModal, setShowActionModal] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState<string | null>(null)
   const [showInfoModal, setShowInfoModal] = useState<any>(null)
-  const [showModifyModal, setShowModifyModal] = useState<any>(null)
-  const [showClassActionModal, setShowClassActionModal] = useState<any>(null)
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
@@ -247,35 +244,15 @@ export default function ManagerDashboard() {
     }
   }
 
-  const handleModify = () => {
-    if (showActionModal) {
-      setShowModifyModal(showActionModal)
-      setShowActionModal(null)
-    }
-  }
-
   const handleClassCardClick = (classData: any) => {
-    setShowClassActionModal({ type: "class", data: classData })
+    setShowActionModal({ type: "class", data: classData })
   }
 
   const handleClassShowInfo = () => {
-    if (showClassActionModal) {
-      setShowInfoModal(showClassActionModal)
-      setShowClassActionModal(null)
+    if (showActionModal) {
+      setShowInfoModal(showActionModal)
+      setShowActionModal(null)
     }
-  }
-
-  const handleClassModify = () => {
-    if (showClassActionModal) {
-      setShowModifyModal(showClassActionModal)
-      setShowClassActionModal(null)
-    }
-  }
-
-  const handleSaveModify = (updatedData: any) => {
-    console.log("Saving modified data:", updatedData)
-    // Here you would typically update your data source
-    setShowModifyModal(null)
   }
 
   const handleUserShowInfo = () => {
@@ -1078,44 +1055,7 @@ export default function ManagerDashboard() {
               onClick={() => setShowActionModal(null)}
             >
               <div onClick={(e) => e.stopPropagation()}>
-                <ActionModal
-                  onClose={() => setShowActionModal(null)}
-                  onShowInfo={handleShowInfo}
-                  onModify={handleModify}
-                  onDelete={() => {}}
-                />
-              </div>
-            </div>
-          )}
-
-          {showModifyModal && (
-            <div
-              className="fixed inset-0 flex items-center justify-center z-50"
-              onClick={() => setShowModifyModal(null)}
-            >
-              <div onClick={(e) => e.stopPropagation()}>
-                <ModifyModal
-                  type={showModifyModal.type}
-                  data={showModifyModal.data}
-                  onClose={() => setShowModifyModal(null)}
-                  onSave={handleSaveModify}
-                />
-              </div>
-            </div>
-          )}
-
-          {showClassActionModal && (
-            <div
-              className="fixed inset-0 flex items-center justify-center z-50"
-              onClick={() => setShowClassActionModal(null)}
-            >
-              <div onClick={(e) => e.stopPropagation()}>
-                <ActionModal
-                  onClose={() => setShowClassActionModal(null)}
-                  onShowInfo={handleClassShowInfo}
-                  onModify={handleClassModify}
-                  onDelete={() => {}}
-                />
+                <ActionModal onClose={() => setShowActionModal(null)} onShowInfo={handleShowInfo} onDelete={() => {}} />
               </div>
             </div>
           )}

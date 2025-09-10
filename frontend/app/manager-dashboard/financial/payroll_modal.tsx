@@ -120,3 +120,5 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
     </div>
   )
 }
+
+export type { Payroll }

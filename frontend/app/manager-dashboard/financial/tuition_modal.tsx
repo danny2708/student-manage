@@ -6,43 +6,47 @@ import { Button } from "../../../components/ui/button"
 import { X, Search, Filter } from "lucide-react"
 import { useState } from "react"
 
-interface User {
-  user_id: number
-  username: string
-  role: string
-  fullName: string
-  email: string
+interface Tuition {
+  tuition_id: number
+  studentName: string
+  className: string
+  amount: number
+  status: string
+  dueDate: string
 }
 
-interface UserModalProps {
-  users: User[]
-  onUserClick: (user: User) => void
+interface TuitionModalProps {
+  tuitions: Tuition[]
   onClose: () => void
 }
 
-export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
+export function TuitionModal({ tuitions, onClose }: TuitionModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredTuitions = tuitions.filter(
+    (tuition) =>
+      tuition.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tuition.className.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "manager":
-        return "bg-purple-100 text-purple-800 border-purple-200"
-      case "teacher":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      case "student":
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "paid":
         return "bg-green-100 text-green-800 border-green-200"
-      case "parent":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case "overdue":
+        return "bg-red-100 text-red-800 border-red-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount)
   }
 
   return (
@@ -50,8 +54,8 @@ export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors" aria-label="Close modal">
+          <h2 className="text-lg font-semibold text-gray-900">Tuition Management</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors" aria-label="Close tuition modal">
             <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
@@ -62,7 +66,7 @@ export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search users..."
+                placeholder="Search tuitions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -80,35 +84,37 @@ export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
           <table className="w-full">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User ID
+                  Student Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Username
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Full Name
+                  Class
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Due Date
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr
-                  key={user.user_id}
-                  onClick={() => onUserClick(user)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.user_id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600 font-medium">{user.username}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getRoleBadgeColor(user.role)}>{user.role || "No role"}</Badge>
+              {filteredTuitions.map((tuition) => (
+                <tr key={tuition.tuition_id} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.tuition_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.studentName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600 font-medium">{tuition.className}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    {formatCurrency(tuition.amount)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.fullName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge className={getStatusBadgeColor(tuition.status)}>{tuition.status}</Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.dueDate}</td>
                 </tr>
               ))}
             </tbody>
@@ -118,3 +124,5 @@ export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
     </div>
   )
 }
+ 
+export type { Tuition }

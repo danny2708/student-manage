@@ -1,154 +1,328 @@
 "use client"
 
-import { X, Edit } from "lucide-react"
+import { useState } from "react"
+import { X } from "lucide-react"
+import { Input } from "../../../components/ui/input"
+
+// Import interfaces from their respective files
+import { Payroll } from "../financial/payroll_modal"
+import { Tuition } from "../financial/tuition_modal"
+import { Schedule } from "../academic/schedule_modal"
+import { Class } from "../academic/class_modal"
+
+// Combine all types into a single union type
+type ModalDataType = Tuition | Payroll | Schedule | Class;
 
 interface ShowInfoModalProps {
   type: string
-  data: any
+  data: ModalDataType
   onClose: () => void
 }
 
 export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
-  const renderContent = () => {
+  const [editedData, setEditedData] = useState(data);
+
+  // The 'prev' parameter now correctly infers its type from the state
+  const handleInputChange = (field: string, value: string) => {
+    setEditedData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSave = () => {
+    console.log("Saving changes:", editedData)
+    onClose()
+  }
+
+  const renderFields = () => {
     switch (type) {
-      case "payroll":
-        return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">ID</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-700">{data.payroll_id}</span>
-                <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Teacher name</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-700">{data.teacherName}</span>
-                <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Month</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-700">7</span>
-                <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Total base</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-700">{data.baseSalary?.toLocaleString()} vnd</span>
-                <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Reward bonus</span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-700">{data.bonus?.toLocaleString()} vnd</span>
-                <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Total</span>
-              <span className="text-gray-700">{data.total?.toLocaleString()} vnd</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Sent at</span>
-              <span className="text-gray-700">{data.sentAt}</span>
-            </div>
-          </div>
-        )
       case "tuition":
+        const tuitionData = editedData as Tuition;
         return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">ID</span>
-              <span className="text-gray-700">{data.tuiton_id}</span>
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">ID</span>
+              <span className="text-white">{tuitionData.tuition_id}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Student name</span>
-              <span className="text-gray-700">{data.studentName}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Student name</span>
+              <Input
+                type="text"
+                value={tuitionData.studentName || ""}
+                onChange={(e) => handleInputChange("studentName", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Class</span>
-              <span className="text-gray-700">{data.className}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Class</span>
+              <Input
+                type="text"
+                value={tuitionData.className || ""}
+                onChange={(e) => handleInputChange("className", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Amount</span>
-              <span className="text-gray-700">{data.amount?.toLocaleString()} vnd</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Amount</span>
+              <Input
+                type="text"
+                value={`${tuitionData.amount?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("amount", e.target.value.replace(/[^\d]/g, ""))}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Status</span>
-              <span className="text-gray-700">{data.status}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Status</span>
+              <select
+                aria-label="Status"
+                value={tuitionData.status || ""}
+                onChange={(e) => handleInputChange("status", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              >
+                <option value="paid">paid</option>
+                <option value="pending">pending</option>
+                <option value="overdue">overdue</option>
+              </select>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Due date</span>
-              <span className="text-gray-700">{data.dueDate}</span>
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-cyan-400 font-medium">Due date</span>
+              <Input
+                type="date"
+                value={tuitionData.dueDate || ""}
+                onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-          </div>
+          </>
+        )
+      case "payroll":
+        const payrollData = editedData as Payroll;
+        return (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">ID</span>
+              <span className="text-white">{payrollData.payroll_id}</span>
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Teacher name</span>
+              <Input
+                type="text"
+                value={payrollData.teacherName || ""}
+                onChange={(e) => handleInputChange("teacherName", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Base salary</span>
+              <Input
+                type="text"
+                value={`${payrollData.baseSalary?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("baseSalary", e.target.value.replace(/[^\d]/g, ""))}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Reward bonus</span>
+              <Input
+                type="text"
+                value={`${payrollData.bonus?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("bonus", e.target.value.replace(/[^\d]/g, ""))}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Total</span>
+              <Input
+                type="text"
+                value={`${payrollData.total?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("total", e.target.value.replace(/[^\d]/g, ""))}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Status</span>
+              <select
+                aria-label="User Role"
+                value={payrollData.status || ""}
+                onChange={(e) => handleInputChange("status", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              >
+                <option value="paid">paid</option>
+                <option value="pending">pending</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-cyan-400 font-medium">Sent at</span>
+              <Input
+                type="date"
+                value={payrollData.sentAt || ""}
+                onChange={(e) => handleInputChange("sentAt", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+          </>
         )
       case "schedule":
+        const scheduleData = editedData as Schedule;
         return (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">ID</span>
-              <span className="text-gray-700">{data.schedule_id}</span>
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">ID</span>
+              <span className="text-white">{scheduleData.schedule_id}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Class</span>
-              <span className="text-gray-700">{data.class}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Class</span>
+              <Input
+                type="text"
+                value={scheduleData.class || ""}
+                onChange={(e) => handleInputChange("class", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Day</span>
-              <span className="text-gray-700">{data.day}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Day</span>
+              <select
+                aria-label="Day"
+                value={scheduleData.day || ""}
+                onChange={(e) => handleInputChange("day", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              >
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+              </select>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Room</span>
-              <span className="text-gray-700">{data.room}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Room</span>
+              <Input
+                type="text"
+                value={scheduleData.room || ""}
+                onChange={(e) => handleInputChange("room", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Date</span>
-              <span className="text-gray-700">{data.date}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Date</span>
+              <Input
+                type="text"
+                value={scheduleData.date || ""}
+                onChange={(e) => handleInputChange("date", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Type</span>
-              <span className="text-gray-700">{data.type}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Type</span>
+              <select
+                aria-label="Type"
+                value={scheduleData.type || ""}
+                onChange={(e) => handleInputChange("type", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              >
+                <option value="Weekly">Weekly</option>
+                <option value="Once">Once</option>
+              </select>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">Start</span>
-              <span className="text-gray-700">{data.start}</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Start</span>
+              <Input
+                type="time"
+                value={scheduleData.start || ""}
+                onChange={(e) => handleInputChange("start", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-cyan-600 font-medium">End</span>
-              <span className="text-gray-700">{data.end}</span>
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-cyan-400 font-medium">End</span>
+              <Input
+                type="time"
+                value={scheduleData.end || ""}
+                onChange={(e) => handleInputChange("end", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
             </div>
-          </div>
+          </>
+        )
+      case "class":
+        const classData = editedData as Class;
+        return (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">ID</span>
+              <span className="text-white">{classData.class_id}</span>
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Class name</span>
+              <Input
+                type="text"
+                value={classData.name || ""}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Teacher</span>
+              <Input
+                type="text"
+                value={classData.teacher || ""}
+                onChange={(e) => handleInputChange("teacher", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Subject</span>
+              <Input
+                type="text"
+                value={classData.subject || ""}
+                onChange={(e) => handleInputChange("subject", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-cyan-400 font-medium">Capacity</span>
+              <Input
+                type="number"
+                value={classData.capacity || ""}
+                onChange={(e) => handleInputChange("capacity", e.target.value)}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-cyan-400 font-medium">Fee</span>
+              <Input
+                type="text"
+                value={`${classData.fee?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("fee", e.target.value.replace(/[^\d]/g, ""))}
+                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+              />
+            </div>
+          </>
         )
       default:
-        return <div>No information available</div>
+        return <div className="text-white">No information available</div>
     }
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-xl w-80 p-6">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative">
       {/* Close button */}
-      <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" aria-label="Close modal">
+      <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" aria-label="Close information modal">
         <X className="h-5 w-5" />
       </button>
 
-      <div className="mb-6">{renderContent()}</div>
+      <div className="mt-2">
+        {renderFields()}
 
-      <div className="flex gap-2">
-        <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium">
-          Delete
-        </button>
-        <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium">
-          Save changes
-        </button>
-        <button className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium">
-          Discard changes
-        </button>
+        {/* Save button */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleSave}
+            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors font-medium"
+          >
+            Save changes
+          </button>
+        </div>
       </div>
     </div>
   )

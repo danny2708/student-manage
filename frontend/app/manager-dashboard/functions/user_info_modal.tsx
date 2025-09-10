@@ -35,7 +35,7 @@ export function UserInfoModal({ user, onClose }: UserInfoModalProps) {
         </div>
 
         {/* Right panel with detailed information */}
-        <div className="p-6 flex-1">
+        <div className="p-6 flex-1 bg-white">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Information</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
