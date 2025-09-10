@@ -65,18 +65,20 @@ export function TeacherReviewModal({ reviews, onClose }: TeacherReviewModalProps
         </div>
 
         {/* Table */}
-        <div className="overflow-auto max-h-[60vh]">
-          <table className="w-full">
+        <div className="overflow-auto max-h-[60vh] border border-gray-200 rounded-lg">
+          <table className="w-full table-auto">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  ID
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                   Teacher
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                   Student
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                   Rating
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -87,16 +89,16 @@ export function TeacherReviewModal({ reviews, onClose }: TeacherReviewModalProps
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredReviews.map((review) => (
                 <tr key={review.review_id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{review.review_id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">{review.teacher}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{review.student}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 text-sm text-gray-900 w-16">{review.review_id}</td>
+                  <td className="px-4 py-4 text-sm text-blue-600 font-medium w-40">{review.teacher}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900 w-40">{review.student}</td>
+                  <td className="px-4 py-4 w-24">
                     <div className="flex items-center gap-1">
                       {renderStars(review.rating)}
                       <span className="ml-2 text-sm text-gray-600">({review.rating}/5)</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">{review.review}</td>
+                  <td className="px-4 py-4 text-sm text-gray-900 break-words">{review.review}</td>
                 </tr>
               ))}
             </tbody>

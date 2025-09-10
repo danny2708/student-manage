@@ -1,4 +1,3 @@
 @echo off
-
-REM Chạy frontend
+cd frontend
 call npm run dev

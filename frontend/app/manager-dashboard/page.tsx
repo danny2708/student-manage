@@ -738,19 +738,19 @@ export default function ManagerDashboard() {
               </button>
             </div>
             <div className="bg-gray-800 rounded-lg overflow-x-auto">
-              <table className="w-full min-w-[600px]">
+              <table className="w-full min-w-[800px]">
                 <thead className="bg-gray-700">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
                       ID
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-32">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-40">
                       TEACHER
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-32">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-40">
                       STUDENT
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">
                       RATING
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
@@ -768,7 +768,7 @@ export default function ManagerDashboard() {
                         {"★".repeat(review.rating)}
                         {"☆".repeat(5 - review.rating)}
                       </td>
-                      <td className="px-3 py-3 text-sm text-gray-300 break-words max-w-xs">{review.review}</td>
+                      <td className="px-3 py-3 text-sm text-gray-300 break-words">{review.review}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -946,7 +946,7 @@ export default function ManagerDashboard() {
               </table>
             </div>
             <div className="flex justify-center mt-6">
-              <button className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
+              <button className="px-6 py-2 bg-blue-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
                 Add subject
               </button>
             </div>

@@ -13,6 +13,7 @@ import { Class } from "../academic/class_modal"
 // Combine all types into a single union type
 type ModalDataType = Tuition | Payroll | Schedule | Class;
 
+
 interface ShowInfoModalProps {
   type: string
   data: ModalDataType
@@ -22,10 +23,9 @@ interface ShowInfoModalProps {
 export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
   const [editedData, setEditedData] = useState(data);
 
-  // The 'prev' parameter now correctly infers its type from the state
-  const handleInputChange = (field: string, value: string) => {
-    setEditedData((prev) => ({ ...prev, [field]: value }))
-  }
+  const handleInputChange = (field: string, value: string | number) => {
+  setEditedData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSave = () => {
     console.log("Saving changes:", editedData)
@@ -33,15 +33,25 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
   }
 
   const renderFields = () => {
+    // We use a temporary variable and cast for better type-safety
+    const currentData = editedData;
+
+    // A reusable function to render the ID field with centered style
+    const renderIdField = (id: string) => (
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-cyan-400 font-medium">ID</span>
+        <div className="flex-1 flex justify-center">
+          <span className="text-white">{id}</span>
+        </div>
+      </div>
+    );
+
     switch (type) {
       case "tuition":
-        const tuitionData = editedData as Tuition;
+        const tuitionData = currentData as Tuition;
         return (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">ID</span>
-              <span className="text-white">{tuitionData.tuition_id}</span>
-            </div>
+            {renderIdField(String(tuitionData.tuition_id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Student name</span>
               <Input
@@ -94,13 +104,10 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
           </>
         )
       case "payroll":
-        const payrollData = editedData as Payroll;
+        const payrollData = currentData as Payroll;
         return (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">ID</span>
-              <span className="text-white">{payrollData.payroll_id}</span>
-            </div>
+            {renderIdField(String(payrollData.payroll_id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Teacher name</span>
               <Input
@@ -161,13 +168,10 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
           </>
         )
       case "schedule":
-        const scheduleData = editedData as Schedule;
+        const scheduleData = currentData as Schedule;
         return (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">ID</span>
-              <span className="text-white">{scheduleData.schedule_id}</span>
-            </div>
+            {renderIdField(String(scheduleData.schedule_id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Class</span>
               <Input
@@ -245,13 +249,10 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
           </>
         )
       case "class":
-        const classData = editedData as Class;
+        const classData = currentData as Class;
         return (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">ID</span>
-              <span className="text-white">{classData.class_id}</span>
-            </div>
+            {renderIdField(String(classData.class_id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Class name</span>
               <Input
@@ -307,7 +308,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
   return (
     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative">
       {/* Close button */}
-      <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" aria-label="Close information modal">
+      <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" aria-label="Close modal">
         <X className="h-5 w-5" />
       </button>
 

@@ -9,7 +9,7 @@ REM Chạy máy chủ uvicorn (chạy song song với frontend)
 uvicorn main:app --reload
 
 REM Chuyển sang thư mục frontend
-REM cd /d ../frontend
+cd /d ../frontend
 
 REM Chạy frontend
 REM npm run dev

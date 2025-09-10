@@ -77,7 +77,7 @@ export function SubjectModal({ subjects, onClose }: SubjectModalProps) {
 
         {/* Add Subject Button */}
         <div className="p-4 bg-gray-50 border-t">
-          <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Add subject</Button>
+          <Button className="w-full bg-orange-500 hover:bg-blue-600 text-white">Add subject</Button>
         </div>
       </div>
     </div>
