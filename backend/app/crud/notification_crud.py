@@ -1,6 +1,11 @@
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.notification_model import Notification
 from app.schemas.notification_schema import NotificationCreate, NotificationUpdate
+from datetime import datetime, timezone
+
+today = datetime.now(timezone.utc)
+year = today.year
 
 def get_notification(db: Session, notification_id: int):
     """Lấy thông tin thông báo theo ID."""
@@ -45,3 +50,16 @@ def delete_notification(db: Session, notification_id: int):
         db.delete(db_notification)
         db.commit()
     return db_notification
+
+def get_notification_by_content_and_receiver(
+    db: Session, 
+    content: str, 
+    receiver_id: int
+) -> Optional[Notification]:
+    """
+    Tìm thông báo dựa trên nội dung và người nhận.
+    """
+    return db.query(Notification).filter(
+        Notification.content == content,
+        Notification.receiver_id == receiver_id
+    ).first()

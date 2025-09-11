@@ -8,6 +8,7 @@ from app.schemas.tuition_schema import (
     TuitionCreate,
     TuitionUpdate,
     TuitionRead,
+    TuitionView,
     TuitionPaymentStatusUpdate
 )
 from app.services import tuition_service
@@ -40,26 +41,35 @@ def create_tuition(
     """
     return tuition_service.create_tuition_record(db, tuition_in)
 
-
 @router.get(
     "/{tuition_id}",
-    response_model=TuitionRead,
+    response_model=TuitionView,
     summary="Lấy thông tin học phí bằng ID",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_tuition(
+def get_tuition_by_id(
     tuition_id: int, 
     db: Session = Depends(deps.get_db)
 ):
-    db_tuition = tuition_crud.get_tuition(db, tuition_id)
-    if not db_tuition:
+    tuition_data = tuition_crud.get_tuition(db, tuition_id)
+    if not tuition_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tuition not found")
-    return db_tuition
+        
+    db_tuition, student_fullname = tuition_data
+    
+    return TuitionView(
+        id=db_tuition.tuition_id,
+        student=student_fullname,
+        amount=db_tuition.amount,
+        term=db_tuition.term,
+        status=db_tuition.payment_status,
+        due_date=db_tuition.due_date
+    )
 
-
+# Sửa endpoint GET /
 @router.get(
     "/",
-    response_model=List[TuitionRead],
+    response_model=List[TuitionView],
     summary="Lấy danh sách tất cả học phí",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
@@ -68,12 +78,23 @@ def list_tuitions(
     limit: int = 100, 
     db: Session = Depends(deps.get_db)
 ):
-    return tuition_crud.get_all_tuitions(db, skip=skip, limit=limit)
+    results = tuition_crud.get_all_tuitions_with_student_name(db, skip=skip, limit=limit)
+    tuition_views = []
+    for tuition, student_fullname in results:
+        tuition_views.append(TuitionView(
+            id=tuition.tuition_id,
+            student=student_fullname,
+            amount=tuition.amount,
+            term=tuition.term,
+            status=tuition.payment_status,
+            due_date=tuition.due_date
+        ))
+    return tuition_views
 
-
+# Sửa endpoint GET /by_student/{student_user_id}
 @router.get(
     "/by_student/{student_user_id}",
-    response_model=List[TuitionRead],
+    response_model=List[TuitionView],
     summary="Lấy học phí theo student_user_id",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
@@ -81,15 +102,26 @@ def get_tuitions_by_student_user_id(
     student_user_id: int,
     db: Session = Depends(deps.get_db)
 ):
-    tuitions = tuition_crud.get_tuitions_by_student_user_id(db, student_user_id=student_user_id)
-    if not tuitions:
+    results = tuition_crud.get_tuitions_by_student_user_id(db, student_user_id=student_user_id)
+    if not results:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy học phí cho học sinh này.")
-    return tuitions
+    
+    tuition_views = []
+    for tuition, student_fullname in results:
+        tuition_views.append(TuitionView(
+            id=tuition.tuition_id,
+            student=student_fullname,
+            amount=tuition.amount,
+            term=tuition.term,
+            status=tuition.payment_status,
+            due_date=tuition.due_date
+        ))
+    return tuition_views
 
-
+# Sửa endpoint GET /by_parent/{parent_id}
 @router.get(
     "/by_parent/{parent_id}",
-    response_model=List[TuitionRead],
+    response_model=List[TuitionView],
     summary="Lấy tất cả học phí theo parent",
     dependencies=[Depends(PARENT_OR_MANAGER)]
 )
@@ -98,20 +130,28 @@ def get_tuitions_by_parent(
     db: Session = Depends(deps.get_db),
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
-    # Nếu user là parent → chỉ được xem học phí của chính con mình
     if "parent" in current_user.roles:
-        parent_id = current_user.user_id  
-
-    # Nếu user là manager → có thể xem theo parent_id được truyền vào URL
+        parent_id = current_user.user_id 
     elif "manager" in current_user.roles:
-        pass  # giữ nguyên parent_id từ param
-
+        pass
     else:
         raise HTTPException(status_code=403, detail="Không có quyền truy cập")
-
-    return tuition_crud.get_tuitions_by_parent_id(db, parent_id=parent_id)
-
-
+    
+    results = tuition_crud.get_tuitions_by_parent_id(db, parent_id=parent_id)
+    if not results:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy học phí cho phụ huynh này.")
+        
+    tuition_views = []
+    for tuition, student_fullname in results:
+        tuition_views.append(TuitionView(
+            id=tuition.tuition_id,
+            student=student_fullname,
+            amount=tuition.amount,
+            status=tuition.payment_status,
+            due_date=tuition.due_date,
+            term=tuition.term
+        ))
+    return tuition_views
 
 @router.put(
     "/{tuition_id}",

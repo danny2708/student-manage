@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Computed, Integer, ForeignKey, Float, DateTime
+from sqlalchemy import Column, Computed, Integer, ForeignKey, Float, DateTime, Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
-
+from app.models.tuition_model import PaymentStatus
 
 class Payroll(Base):
     """
@@ -18,7 +18,8 @@ class Payroll(Base):
     reward_bonus = Column(Float, nullable=False, default=0.0)
     total = Column(Float, Computed("total_base_salary + reward_bonus"), nullable=False)
     sent_at = Column(DateTime, nullable=False)
-
+    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.unpaid, nullable=False)
+    
     # Mối quan hệ với giáo viên (many-to-one, vì một giáo viên có thể có nhiều bản lương theo tháng)
     teacher = relationship("Teacher", back_populates="payroll")
 

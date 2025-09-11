@@ -16,6 +16,9 @@ def get_teacher(db: Session, user_id: int) -> Optional[Teacher]:
     stmt = select(Teacher).where(Teacher.user_id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
+def get_all_teachers(db: Session):
+    return db.query(Teacher).all()
+
 def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo user_id (khóa ngoại đến User).
@@ -51,6 +54,11 @@ def get_students(db: Session, teacher_user_id: int):
     )
     return [s.student_user_id for s in students]
 
+def get_classes_taught_by_teacher(db: Session, teacher_user_id: int, month: int, year: int):
+    return db.query(Class).filter(
+        Class.teacher_user_id == teacher_user_id,
+    ).all()
+
 def get_all_teachers(db: Session, skip: int = 0, limit: int = 100) -> List[Teacher]:
     """
     Lấy danh sách tất cả giáo viên.
@@ -58,6 +66,15 @@ def get_all_teachers(db: Session, skip: int = 0, limit: int = 100) -> List[Teach
     stmt = select(Teacher).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
+def get_teacher_base_salary(db: Session, teacher_user_id: int):
+    from app.models import Teacher
+    teacher = db.query(Teacher).filter(Teacher.user_id == teacher_user_id).first()
+    return teacher.base_salary_per_class if teacher else 0.0
+
+def get_teacher_reward_bonus(db: Session, teacher_user_id: int):
+    from app.models import Teacher
+    teacher = db.query(Teacher).filter(Teacher.user_id == teacher_user_id).first()
+    return teacher.reward_bonus if teacher else 0.0
 
 def create_teacher(db: Session, teacher_in: TeacherCreate) -> Teacher:
     """

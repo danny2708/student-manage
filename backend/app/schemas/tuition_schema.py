@@ -1,7 +1,6 @@
 from datetime import date
-from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field, condecimal
+from pydantic import BaseModel, Field
 from app.models.tuition_model import PaymentStatus 
 
 class TuitionBase(BaseModel):
@@ -32,3 +31,11 @@ class TuitionUpdate(BaseModel):
 # Schema dùng để cập nhật trạng thái thanh toán
 class TuitionPaymentStatusUpdate(BaseModel):
     payment_status: PaymentStatus  = Field("paid")
+
+class TuitionView(BaseModel):
+    id: int
+    student: str
+    amount: float
+    term: int
+    status: PaymentStatus
+    due_date: date
