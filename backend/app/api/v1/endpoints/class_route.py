@@ -101,7 +101,7 @@ def delete_existing_class(
 # Lấy danh sách tất cả các lớp học
 @router.get(
     "/",
-    response_model=List[class_schema.Class],
+    response_model=List[class_schema.ClassView],
     summary="Lấy danh sách tất cả các lớp học"
 )
 def get_all_classes(
@@ -121,7 +121,7 @@ def get_all_classes(
 # Lấy thông tin của một lớp học
 @router.get(
     "/{class_id}",
-    response_model=class_schema.Class,
+    response_model=class_schema.ClassView,
     summary="Lấy thông tin của một lớp học"
 )
 def get_class(

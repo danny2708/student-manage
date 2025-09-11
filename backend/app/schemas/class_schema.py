@@ -23,3 +23,11 @@ class Class(ClassBase):
 
     class Config:
         from_attributes = True
+
+class ClassView(BaseModel):
+    class_id: int
+    class_name: str 
+    teacher_name: Optional[str] 
+    subject_id: Optional[int] 
+    max_students: Optional[int]
+    fee: Optional[int] 
