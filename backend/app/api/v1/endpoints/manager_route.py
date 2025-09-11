@@ -8,6 +8,8 @@ from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import manager_schema
 from app.api import deps
 from app.api.auth.auth import has_roles
+from app.schemas import stats_schema as schemas
+from app.services import stats_service
 
 router = APIRouter()
 MANAGER_ONLY = has_roles(["manager"])
@@ -67,6 +69,19 @@ def get_all_managers(
 ):
     return manager_crud.get_all_managers(db, skip=skip, limit=limit)
 
+@router.get(
+    "/stats",
+    response_model=schemas.Stats,
+    # Nếu bạn cần bảo vệ endpoint này, bạn có thể thêm dependencies như sau:
+    # dependencies=[Depends(deps.get_current_user)] 
+)
+def get_stats(
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Lấy các số liệu thống kê tổng hợp của hệ thống.
+    """
+    return stats_service.get_stats(db)
 
 @router.get(
     "/{user_id}",
