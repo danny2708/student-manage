@@ -2,27 +2,83 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.teacher_review_model import TeacherReview
-from app.schemas.teacher_review_schema import TeacherReviewCreate, TeacherReviewUpdate
+from app.schemas.teacher_review_schema import TeacherReviewCreate, TeacherReviewUpdate, TeacherReviewView
 from datetime import datetime
 import logging
+from typing import List
+from app.models.user_model import User
+from sqlalchemy import select, join
 
 logger = logging.getLogger(__name__)
 
+
+def get_teacher_review_with_names_query(db: Session):
+    """
+    Returns a SQLAlchemy query object with JOINs to retrieve teacher and student names.
+    """
+    teacher_user = User.__table__.alias("teacher_user")
+    student_user = User.__table__.alias("student_user")
+
+    return (
+        select(
+            TeacherReview.review_id.label("id"), 
+            teacher_user.c.full_name.label("teacher_name"),
+            student_user.c.full_name.label("student_name"),
+            TeacherReview.rating,
+            TeacherReview.review_date,
+            TeacherReview.review_text
+        )
+        .select_from(
+            join(
+                TeacherReview,
+                teacher_user,
+                TeacherReview.teacher_user_id == teacher_user.c.user_id
+            )
+        )
+        .join(
+            student_user,
+            TeacherReview.student_user_id == student_user.c.user_id
+        )
+    )
+
 def get_teacher_review(db: Session, review_id: int):
-    """Get teacher review by ID."""
-    return db.query(TeacherReview).filter(TeacherReview.review_id == review_id).first()
+    """Get teacher review by ID, returning a TeacherReviewView object."""
+    query = get_teacher_review_with_names_query(db).where(TeacherReview.review_id == review_id)
+    result = db.execute(query).first()
+    if result:
+        return TeacherReviewView.model_validate(result)
+    return None
 
 def get_teacher_reviews_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
-    """Get a list of reviews by teacher_user_id."""
-    return db.query(TeacherReview).filter(TeacherReview.teacher_user_id == teacher_user_id).offset(skip).limit(limit).all()
+    """Get a list of reviews by teacher_user_id, returning a list of TeacherReviewView objects."""
+    query = (
+        get_teacher_review_with_names_query(db)
+        .where(TeacherReview.teacher_user_id == teacher_user_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    results = db.execute(query).all()
+    return [TeacherReviewView.model_validate(row) for row in results]
 
 def get_teacher_reviews_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
-    """Get a list of reviews by student_user_id."""
-    return db.query(TeacherReview).filter(TeacherReview.student_user_id == student_user_id).offset(skip).limit(limit).all()
+    """Get a list of reviews by student_user_id, returning a list of TeacherReviewView objects."""
+    query = (
+        get_teacher_review_with_names_query(db)
+        .where(TeacherReview.student_user_id == student_user_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    results = db.execute(query).all()
+    return [TeacherReviewView.model_validate(row) for row in results]
 
-def get_all_teacher_reviews(db: Session, skip: int = 0, limit: int = 100):
-    """Get a list of all teacher reviews."""
-    return db.query(TeacherReview).offset(skip).limit(limit).all()
+# This function is already correct based on your previous code
+def get_all_teacher_reviews(db: Session, skip: int = 0, limit: int = 100) -> List[TeacherReviewView]:
+    """
+    Query all teacher reviews, getting teacher and student names by JOINing with the users table.
+    """
+    query = get_teacher_review_with_names_query(db).offset(skip).limit(limit)
+    results = db.execute(query).all()
+    return [TeacherReviewView.model_validate(row) for row in results]
 
 def create_teacher_review(
     db: Session, 

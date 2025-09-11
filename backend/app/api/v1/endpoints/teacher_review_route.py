@@ -52,9 +52,36 @@ def create_new_teacher_review(
         student_user_id=current_user.user_id
     )
 
+
+@router.get(
+    "/",
+    response_model=List[teacher_review_schema.TeacherReviewView],
+    summary="Lấy danh sách tất cả đánh giá của giáo viên",
+    dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
+)
+def get_all_reviews(
+    db: Session = Depends(deps.get_db), 
+    skip: int = 0, 
+    limit: int = 100
+):
+    """
+    Lấy tất cả các đánh giá của giáo viên.
+    
+    Quyền truy cập: **all authenticated users**
+    """
+    reviews = teacher_review_crud.get_all_teacher_reviews(db, skip, limit)
+    if not reviews:
+        # Tùy chọn: trả về 404 nếu không tìm thấy đánh giá nào
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy đánh giá nào."
+        )
+    return reviews
+
+
 @router.get(
     "/{review_id}", 
-    response_model=teacher_review_schema.TeacherReview,
+    response_model=teacher_review_schema.TeacherReviewView,
     summary="Lấy thông tin một đánh giá giáo viên theo ID",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
 )
@@ -77,7 +104,7 @@ def get_teacher_review(
 
 @router.get(
     "/by_teacher/{user_id}", 
-    response_model=List[teacher_review_schema.TeacherReview],
+    response_model=List[teacher_review_schema.TeacherReviewView],
     summary="Lấy tất cả đánh giá của một giáo viên theo user_id",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
 )
@@ -102,7 +129,7 @@ def get_reviews_by_teacher(
 
 @router.get(
     "/by_student/{user_id}", 
-    response_model=List[teacher_review_schema.TeacherReview],
+    response_model=List[teacher_review_schema.TeacherReviewView],
     summary="Lấy tất cả đánh giá của một giáo viên theo user_id",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem
 )

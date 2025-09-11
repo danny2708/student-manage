@@ -25,3 +25,14 @@ class TeacherReview(TeacherReviewBase):
 class TeacherReviewUpdate(BaseModel):
     rating: Optional[float] = Field(None, ge=1, le=5)
     review_text: Optional[str] = None
+
+class TeacherReviewView(BaseModel):
+    id: int
+    teacher_name: str
+    student_name: str
+    rating: float
+    review_date: datetime
+    review_text: Optional[str]
+    
+    class Config:
+        from_attributes = True
