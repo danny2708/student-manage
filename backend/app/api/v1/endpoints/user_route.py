@@ -10,7 +10,7 @@ from app.api import deps
 from app.services.excel_services import import_users
 # Import dependency factory
 from app.api.auth.auth import has_roles
-from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
+from app.schemas.user_schema import UserCreate, UserUpdate, UserOut, UserView, UserViewDetails
 from app.crud import user_crud
 from app.api.auth.auth import get_current_active_user
 from app.schemas.auth_schema import AuthenticatedUser
@@ -42,7 +42,7 @@ def create_user_info(user: UserCreate, db: Session = Depends(deps.get_db)):
 
 @router.get(
     "/",
-    response_model=List[UserOut],
+    response_model=List[UserView],
     summary="Lấy danh sách tất cả người dùng",
     dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager và teacher có quyền xem
 )
@@ -57,7 +57,7 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db
 
 @router.get(
     "/{user_id}",
-    response_model=UserOut,
+    response_model=UserViewDetails,
     summary="Lấy thông tin một người dùng bằng ID",
     dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager và teacher có quyền xem
 )

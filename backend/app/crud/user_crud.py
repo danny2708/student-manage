@@ -4,24 +4,61 @@ from passlib.context import CryptContext # type: ignore
 
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
+from app.schemas.user_schema import UserView, UserViewDetails
 
 # bcrypt context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Trong app/crud/user_crud.py
 
-def get_user(db: Session, user_id: int) -> Optional[User]:
+def get_user(db: Session, user_id: int) -> Optional[UserViewDetails]:
     """
-    Truy vấn người dùng bằng ID.
+    Truy vấn người dùng bằng ID và trả về thông tin chi tiết.
     """
-    return db.query(User).filter(User.user_id == user_id).first()
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    if not db_user:
+        return None
+    
+    # Chuyển đổi danh sách đối tượng Role thành danh sách chuỗi tên vai trò
+    user_roles_list = [role.name for role in db_user.roles]
+    
+    # Tạo đối tượng UserViewDetails từ db_user
+    return UserViewDetails(
+        user_id=db_user.user_id,
+        username=db_user.username,
+        user_roles=user_roles_list,
+        full_name=db_user.full_name,
+        email=db_user.email,
+        phone_number=db_user.phone_number,
+        password_changed=db_user.password_changed,
+        # Các trường khác từ UserViewDetails cần được ánh xạ nếu có
+        # Ví dụ: created_at=db_user.created_at, updated_at=db_user.updated_at
+    )
 
+# Trong app/crud/user_crud.py
 
-def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
+def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[UserView]:
     """
-    Truy vấn danh sách tất cả người dùng với phân trang.
+    Truy vấn danh sách tất cả người dùng và trả về thông tin cơ bản.
     """
-    return db.query(User).offset(skip).limit(limit).all()
-
+    db_users = db.query(User).offset(skip).limit(limit).all()
+    
+    users_view = []
+    for user in db_users:
+        # Chuyển đổi danh sách đối tượng Role thành danh sách chuỗi tên vai trò
+        user_roles_list = [role.name for role in user.roles]
+        
+        users_view.append(
+            UserView(
+                user_id=user.user_id,
+                username=user.username,
+                roles=user_roles_list,
+                full_name=user.full_name,
+                email=user.email,
+                phone_number=user.phone_number
+            )
+        )
+    return users_view
 
 def create_user(db: Session, user: UserCreate) -> User:
     """

@@ -40,14 +40,25 @@ class UserOut(UserBase):
     class Config:
         from_attributes = True
 
+class UserView(BaseModel):
+    user_id: int
+    username: str
+    roles: List[str]
+    full_name: Optional[str]
+    email: Optional[EmailStr]
+    phone_number: Optional[str]
 
+class UserViewDetails(UserBase):
+    user_id: int
+    user_roles: List[str]
+    password_changed: bool
 # -------------------------------
 # Schema cho import từ Google Sheet
 # -------------------------------
 class SheetUserCreate(UserBase):
     password: str
     password_changed: bool = Field(default=False)
-
+    roles: List[str]
 
 class SheetUserImportRequest(BaseModel):
     users: List[SheetUserCreate]
