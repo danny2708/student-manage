@@ -3,9 +3,9 @@
 import type React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "../../src/components/ui/button"
-import { Input } from "../../src/components/ui/input"
-import { Card } from "../../src/components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Card } from "../../components/ui/card"
 import { User, Lock, Mail, Eye, EyeOff, Phone, Calendar } from "lucide-react"
 import authService from "../../src/services/authService"
 

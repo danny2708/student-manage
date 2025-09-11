@@ -1,5 +1,5 @@
 "use client"
-
+import { useRouter } from "next/navigation";
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import {
@@ -18,14 +18,31 @@ import {
   Wallet,
   UserCheck,
   School,
+  LogOut,
+   X,
+  User,
+  Mail,
+  Phone,
 } from "lucide-react"
 import { RoleModal } from "./user/role_modal"
 import { UserInfoModal } from "./functions/user_info_modal"
 import { ActionModal } from "./functions/action_modal"
 import { CreateModal } from "./functions/create_modal"
 import { ShowInfoModal } from "./functions/show_info_modal"
+import { UserAccountModal } from "../user_account"
 
 // Mock data
+const mockUserAccount = {
+    username: "Admin 1",
+    role: "Manager",
+    user_id: 1,
+    fullName: "Nguyễn Văn A",
+    email: "admin1@example.com",
+    gender: "Male",
+    dob: "01/01/1990",
+    phone: "0987654321",
+  };
+
 const mockUsers = [
   { user_id: 1, username: "danny", role: "teacher", fullName: "Nguyễn Văn A", email: "a@gmail.com" },
   { user_id: 2, username: "benny", role: "student", fullName: "Nguyễn Văn B", email: "b@gmail.com" },
@@ -185,6 +202,7 @@ const sidebarCategories = [
   },
 ]
 
+
 export default function ManagerDashboard() {
   const [activeSection, setActiveSection] = useState("dashboard")
   const [searchTerms, setSearchTerms] = useState({
@@ -203,12 +221,36 @@ export default function ManagerDashboard() {
   const [showActionModal, setShowActionModal] = useState<any>(null)
   const [showCreateModal, setShowCreateModal] = useState<string | null>(null)
   const [showInfoModal, setShowInfoModal] = useState<any>(null)
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
       prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
     )
   }
+
+  const router = useRouter();
+
+  // Hàm xử lý đăng xuất
+  const handleLogout = () => {
+    // Thao tác xóa token, session... ở đây
+    console.log("Đăng xuất thành công!");
+    // Điều hướng về trang đăng nhập
+    router.push('/login');
+  };
+
+    const handleAccountClick = () => {
+    setShowAccountModal(true);
+  };
+
+  // Hàm đóng modal tài khoản
+  const handleCloseAccountModal = () => {
+    setShowAccountModal(false);
+  };
+
+  const handleCloseUserInfoModal = () => {
+    setShowUserInfo(null);
+  };
 
   const handleUserClick = (user: any) => {
     setSelectedUser(user)
@@ -974,7 +1016,16 @@ export default function ManagerDashboard() {
               </div>
             </div>
           </div>
-
+          <div className="p-3 border-b border-gray-700">
+          {/* Nút User Account */}
+            <button
+              onClick={handleAccountClick}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs transition-colors text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <User className="h-4 w-4" />
+              <span className="flex-1 text-left">{mockUserAccount.username}</span>
+            </button>
+          </div>
           {/* Navigation */}
           <nav className="p-3 space-y-1">
             {sidebarCategories.map((category) => {
@@ -1019,6 +1070,17 @@ export default function ManagerDashboard() {
               )
             })}
           </nav>
+
+        {/* Logout Button */}
+          <div className="mt-auto p-3 border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs transition-colors text-gray-300 hover:bg-red-600 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="flex-1 text-left">Log out</span>
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -1026,6 +1088,18 @@ export default function ManagerDashboard() {
           <div className="bg-white rounded-lg shadow-lg min-h-[calc(100vh-3rem)]">
             <div className="p-6">{renderMainContent()}</div>
           </div>
+
+          {/* Modal User Account */}
+          {showAccountModal && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50"
+              onClick={handleCloseAccountModal}
+            >
+              <div onClick={(e) => e.stopPropagation()}>
+                <UserAccountModal user={mockUserAccount} onClose={handleCloseAccountModal} />
+              </div>
+            </div>
+          )}
 
           {selectedUser && (
             <div
