@@ -9,3 +9,11 @@ class Stats(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SubjectStats(BaseModel):
+    subject_id: int
+    subject_name: str
+    total_classes: int
+
+    class Config:
+        from_attributes = True

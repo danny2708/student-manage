@@ -2,21 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import time, date as dt_date
 from enum import Enum
-
-# Định nghĩa Enum cho các ngày trong tuần
-class DayOfWeekEnum(str, Enum):
-    MONDAY = "MONDAY"
-    TUESDAY = "TUESDAY"
-    WEDNESDAY = "WEDNESDAY"
-    THURSDAY = "THURSDAY"
-    FRIDAY = "FRIDAY"
-    SATURDAY = "SATURDAY"
-    SUNDAY = "SUNDAY"
-
-# Định nghĩa Enum mới cho loại lịch
-class ScheduleTypeEnum(str, Enum):
-    WEEKLY = "WEEKLY"
-    ONE_OFF = "ONE_OFF"
+from app.models.schedule_model import DayOfWeekEnum, ScheduleTypeEnum
 
 # ScheduleBase là schema cơ bản chứa các trường chung
 class ScheduleBase(BaseModel):
@@ -48,13 +34,13 @@ class ScheduleBase(BaseModel):
 
     @field_validator('date')
     @classmethod
-    def validate_one_off_schedule(cls, value, info):
+    def validate_once_schedule(cls, value, info):
         """
-        Validator này đảm bảo date phải được cung cấp cho lịch ONE_OFF.
+        Validator này đảm bảo date phải được cung cấp cho lịch ONCE.
         """
-        if info.data.get('schedule_type') == ScheduleTypeEnum.ONE_OFF:
+        if info.data.get('schedule_type') == ScheduleTypeEnum.ONCE:
             if value is None:
-                raise ValueError('date must be provided for a ONE_OFF schedule')
+                raise ValueError('date must be provided for a ONCE schedule')
         return value
 
 # ScheduleCreate để tạo một lịch mới
@@ -74,3 +60,16 @@ class Schedule(ScheduleBase):
     class Config:
         from_attributes = True
 
+
+class ScheduleView(BaseModel):
+    id: int
+    class_name: str 
+    room: Optional[str] 
+    schedule_type: ScheduleTypeEnum
+    day_of_week: Optional[DayOfWeekEnum] 
+    date: Optional[dt_date] 
+    start_time: time 
+    end_time: time 
+
+    class Config:
+        from_attributes = True

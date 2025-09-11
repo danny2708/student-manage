@@ -98,11 +98,11 @@ def get_schedules_for_teacher(db: Session, teacher_id: int) -> List[Schedule]:
     schedules = schedule_crud.get_schedules_by_class_ids(db=db, class_ids=class_ids)
     return schedules
 
-def get_schedules_for_student(db: Session, student_id: int) -> List[Schedule]:
+def get_schedules_for_student(db: Session, student_user_id: int) -> List[Schedule]:
     """
     Lấy danh sách các lịch trình của một sinh viên cụ thể.
     """
-    student_class_ids = schedule_crud.get_class_ids_for_student(db, student_id=student_id)
+    student_class_ids = schedule_crud.get_class_ids_for_student(db, student_user_id=student_user_id)
     if not student_class_ids:
         return []
     

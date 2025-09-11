@@ -1,20 +1,42 @@
-# backend/app/crud/schedule_crud.py
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, join
 from typing import Optional, List
-from datetime import date as dt_date
+from datetime import date as dt_date, time
 from app.schemas import schedule_schema
 from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
 from app.models.class_model import Class
-from app.schemas.schedule_schema import ScheduleCreate, ScheduleUpdate
+from app.schemas.schedule_schema import ScheduleCreate, ScheduleUpdate, ScheduleView
 from app.models.enrollment_model import Enrollment
 from app.services import schedule_service
 
-def get_schedule_by_id(db: Session, schedule_id: int) -> Optional[Schedule]:
+# Helper function để lấy truy vấn JOIN giữa Schedule và Class
+def get_schedule_with_class_name_query():
+    """Returns a SQLAlchemy query object with a JOIN to get the class name."""
+    return (
+        select(
+            Schedule.schedule_id.label("id"),
+            Class.class_name,
+            Schedule.room,
+            Schedule.schedule_type,
+            Schedule.day_of_week,
+            Schedule.date,
+            Schedule.start_time,
+            Schedule.end_time
+        )
+        .select_from(
+            join(Schedule, Class, Schedule.class_id == Class.class_id)
+        )
+    )
+
+def get_schedule_by_id(db: Session, schedule_id: int) -> Optional[ScheduleView]:
     """
-    Lấy một lịch trình cụ thể dựa trên schedule_id.
+    Lấy một lịch trình cụ thể dựa trên schedule_id, trả về ScheduleView object.
     """
-    return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+    query = get_schedule_with_class_name_query().where(Schedule.schedule_id == schedule_id)
+    result = db.execute(query).first()
+    if result:
+        return ScheduleView.model_validate(result._asdict())
+    return None
 
 def create_schedule(db: Session, schedule_in: ScheduleCreate, current_user):
     if not any(role in ["manager", "teacher"] for role in current_user.roles):
@@ -28,7 +50,7 @@ def create_schedule(db: Session, schedule_in: ScheduleCreate, current_user):
         end_time=schedule_in.end_time,
         date=schedule_in.date,
         room=schedule_in.room,
-        exclude_schedule_id=None   # create => không cần loại trừ
+        exclude_schedule_id=None
     )
 
     db_schedule = Schedule(**schedule_in.model_dump())
@@ -55,7 +77,7 @@ def update_schedule(db: Session, schedule: Schedule, schedule_in: ScheduleUpdate
         end_time=end_time,
         date=date,
         room=room,
-        exclude_schedule_id=schedule.schedule_id   # update => bỏ qua chính nó
+        exclude_schedule_id=schedule.schedule_id
     )
 
     for field, value in update_data.items():
@@ -74,34 +96,37 @@ def delete_schedule(db: Session, schedule: Schedule):
 
 def search_schedules(
     db: Session,
+    skip: int = 0,
+    limit: int = 100,
     class_id: Optional[int] = None,
     class_ids: Optional[List[int]] = None,
     day_of_week: Optional[DayOfWeekEnum] = None,
     schedule_type: Optional[ScheduleTypeEnum] = None,
     date: Optional[dt_date] = None,
     room: Optional[str] = None
-) -> List[Schedule]:
+) -> List[ScheduleView]:
     """
-    Tìm kiếm và lọc các lịch trình dựa trên nhiều tiêu chí.
-    Hỗ trợ cả class_id đơn và danh sách class_ids.
+    Tìm kiếm và lọc các lịch trình dựa trên nhiều tiêu chí, trả về ScheduleView object.
+    Hàm này đã được bổ sung tham số skip và limit để hỗ trợ phân trang.
     """
-    query = db.query(Schedule)
+    query = get_schedule_with_class_name_query()
 
     if class_id is not None:
-        query = query.filter(Schedule.class_id == class_id)
+        query = query.where(Schedule.class_id == class_id)
     if class_ids:
-        query = query.filter(Schedule.class_id.in_(class_ids))
+        query = query.where(Schedule.class_id.in_(class_ids))
     if day_of_week is not None:
-        query = query.filter(Schedule.day_of_week == day_of_week)
+        query = query.where(Schedule.day_of_week == day_of_week)
     if schedule_type is not None:
-        query = query.filter(Schedule.schedule_type == schedule_type)
+        query = query.where(Schedule.schedule_type == schedule_type)
     if date is not None:
-        query = query.filter(Schedule.date == date)
+        query = query.where(Schedule.date == date)
     if room is not None:
-        query = query.filter(Schedule.room == room)
+        query = query.where(Schedule.room == room)
 
-    return query.all()
-
+    results = db.execute(query.offset(skip).limit(limit)).all()
+    return [ScheduleView.model_validate(row._asdict()) for row in results]
+    
     
 def get_classes_for_teacher(db: Session, teacher_user_id: int) -> List[Class]:
     """
@@ -113,17 +138,19 @@ def get_class_ids_for_student(db: Session, student_user_id: int) -> List[int]:
     """
     Lấy danh sách các class_id mà sinh viên đang học.
     """
-    stmt = select(Enrollment.c.class_id).where(
-        Enrollment.c.student_user_id == student_user_id
+    stmt = select(Enrollment.class_id).where(
+        Enrollment.student_user_id == student_user_id
     )
     result = db.execute(stmt).scalars().all()
     return result
 
-def get_schedules_by_class_ids(db: Session, class_ids: List[int]) -> List[Schedule]:
+def get_schedules_by_class_ids(db: Session, class_ids: List[int]) -> List[ScheduleView]:
     """
-    Lấy tất cả các lịch trình thuộc danh sách class_id.
+    Lấy tất cả các lịch trình thuộc danh sách class_id, trả về ScheduleView object.
     """
-    return db.query(Schedule).filter(Schedule.class_id.in_(class_ids)).all()
+    query = get_schedule_with_class_name_query().where(Schedule.class_id.in_(class_ids))
+    results = db.execute(query).all()
+    return [ScheduleView.model_validate(row._asdict()) for row in results]
 
 def get_classes_by_teacher_user_id(db: Session, teacher_user_id: int) -> List[Class]:
     """
