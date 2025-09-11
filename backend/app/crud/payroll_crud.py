@@ -42,6 +42,9 @@ def get_payroll_with_fullname(db: Session, payroll_id: int):
 
     return result
 
+def get_payrolls_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
+    return db.query(Payroll).filter(Payroll.teacher_user_id == teacher_user_id).offset(skip).limit(limit).all()
+
 def update_payroll(db: Session, payroll_id: int, payroll_update: PayrollUpdate):
     db_payroll = db.query(Payroll).filter(Payroll.payroll_id == payroll_id).first()
     if db_payroll:

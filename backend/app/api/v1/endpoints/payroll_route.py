@@ -1,8 +1,6 @@
-import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timezone
 
 from app.crud import payroll_crud, teacher_crud
 from app.schemas import payroll_schema
@@ -56,15 +54,6 @@ def run_payrolls(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during payroll processing: {str(e)}"
         )
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.crud import payroll_crud, teacher_crud
-from app.schemas import payroll_schema
-from app.api import deps
-from app.api.auth.auth import get_current_active_user
-
-router = APIRouter()
 
 @router.get("/{payroll_id}", response_model=payroll_schema.PayrollView)
 def get_payroll(

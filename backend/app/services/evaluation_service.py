@@ -1,7 +1,20 @@
 # app/services/evaluation_service.py
+from typing import List
 from sqlalchemy.orm import Session
 from app.crud import evaluation_crud
-from app.schemas.evaluation_schema import EvaluationCreate
+from app.schemas.evaluation_schema import EvaluationCreate, EvaluationView
+
+def get_all_evaluations(db: Session, skip: int, limit: int) -> List[EvaluationView]:
+    """
+    Lấy tất cả evaluations cho manager.
+    """
+    return evaluation_crud.get_all_evaluations_with_names(db, skip=skip, limit=limit)
+
+def get_evaluations_by_teacher(db: Session, teacher_id: int, skip: int, limit: int) -> List[EvaluationView]:
+    """
+    Lấy evaluations cho một giáo viên cụ thể.
+    """
+    return evaluation_crud.get_evaluations_by_teacher_id_with_names(db, teacher_id, skip=skip, limit=limit)
 
 def calculate_total_points_for_student(db: Session, student_user_id: int):
     """

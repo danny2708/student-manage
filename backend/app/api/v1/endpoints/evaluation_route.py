@@ -9,13 +9,14 @@ from app.schemas import evaluation_schema
 from app.api import deps
 from app.services import evaluation_service
 from app.models.evaluation_model import Evaluation
+from app.schemas.auth_schema import AuthenticatedUser
 
 router = APIRouter()
 
 MANAGER_ONLY = has_roles(["manager"])
 TEACHER_ONLY = has_roles(["teacher"])
 MANAGER_TEACHER_AND_STUDENT = has_roles(["manager", "teacher", "student"])
-
+MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
 @router.post(
     "/",
@@ -54,6 +55,37 @@ def create_new_evaluation_record(
         evaluation=evaluation_in,
         teacher_user_id=current_user.user_id
     )
+
+@router.get(
+    "/",
+    response_model=List[evaluation_schema.EvaluationView],
+    summary="Lấy danh sách tất cả các đánh giá",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
+)
+def get_evaluations_by_role(
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
+    skip: int = 0,
+    limit: int = 100
+):
+    """
+    Lấy danh sách các đánh giá. Quản lý có thể xem tất cả,
+    giáo viên chỉ có thể xem đánh giá do mình tạo.
+    """
+    if "manager" in current_user.roles:
+        # Nếu là manager, trả về tất cả evaluations
+        return evaluation_service.get_all_evaluations(db, skip=skip, limit=limit)
+    
+    elif "teacher" in current_user.roles:
+        # Nếu là teacher, chỉ trả về evaluations của chính họ
+        teacher_id = current_user.user_id
+        return evaluation_service.get_evaluations_by_teacher(db, teacher_id, skip=skip, limit=limit)
+    
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền truy cập."
+        )
 
 @router.get(
     "/total_score/{student_user_id}",
@@ -145,7 +177,7 @@ def get_summary_and_counts(
 
 @router.get(
     "/{evaluation_id}",
-    response_model=evaluation_schema.EvaluationRead,
+    response_model=evaluation_schema.Evaluation,
     dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
 )
 def get_evaluation_record(
@@ -168,7 +200,7 @@ def get_evaluation_record(
 
 @router.get(
     "/student/{student_user_id}",
-    response_model=List[evaluation_schema.EvaluationRead],
+    response_model=List[evaluation_schema.Evaluation],
     dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
 )
 def get_evaluations_of_student(

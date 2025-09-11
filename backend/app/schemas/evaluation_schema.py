@@ -26,19 +26,13 @@ class EvaluationCreate(BaseModel):
     evaluation_date: date = date.today()
 
 # Lớp dùng để đọc/trả về dữ liệu từ cơ sở dữ liệu
-class EvaluationRead(EvaluationBase):
+class Evaluation(EvaluationBase):
     """
     Schema để đọc dữ liệu đánh giá từ cơ sở dữ liệu.
     Bao gồm trường evaluation_id.
     """
     evaluation_id: int
-
-# Lớp chính, cấu hình để tương thích với SQLAlchemy ORM
-class Evaluation(EvaluationRead):
-    """
-    Schema chính cho mô hình Evaluation, dùng để tương tác với SQLAlchemy.
-    """
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)    
 
 class EvaluationSummary(BaseModel):
     student_user_id: int
@@ -51,3 +45,11 @@ class EvaluationSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+class EvaluationView(BaseModel):
+    id: int
+    teacher: int
+    student: str
+    teacher: str
+    type: EvaluationType
+    date: date
