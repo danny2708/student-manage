@@ -33,7 +33,7 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">Payroll Management</h2>
@@ -87,7 +87,7 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-gradient-to-br from-gray-800 to-gray-900 divide-y divide-gray-200">
               {filteredPayrolls.map((payroll) => (
                 <tr key={payroll.payroll_id} className="hover:bg-gray-50 cursor-pointer">
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.payroll_id}</td>

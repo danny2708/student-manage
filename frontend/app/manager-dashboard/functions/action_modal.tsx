@@ -10,7 +10,7 @@ interface ActionModalProps {
 
 export function ActionModal({ onClose, onShowInfo, onDelete }: ActionModalProps) {
   return (
-    <div className="bg-white rounded-lg shadow-xl w-48 p-4">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-48 p-4">
       {/* Close button */}
       <button onClick={onClose} className="absolute top-2 right-2 text-red-500 hover:text-red-700 transition-colors" aria-label="Close user information modal" >
         <X className="h-4 w-4" />

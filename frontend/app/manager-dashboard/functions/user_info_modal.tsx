@@ -5,11 +5,12 @@ import { X, User, Calendar, Mail, Phone } from "lucide-react"
 interface UserInfoModalProps {
   user: any
   onClose: () => void
+  onChangeRole: (newRole: string) => void // Thêm dòng này
 }
 
-export function UserInfoModal({ user, onClose }: UserInfoModalProps) {
+export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProps) {
   return (
-    <div className="bg-white rounded-lg shadow-xl w-140 overflow-hidden">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900  rounded-lg shadow-xl w-140 overflow-hidden">
       {/* Close button */}
       <button
         onClick={onClose}
@@ -22,7 +23,7 @@ export function UserInfoModal({ user, onClose }: UserInfoModalProps) {
       <div className="flex">
         {/* Left panel with avatar and basic info */}
         <div className="bg-gradient-to-br from-red-400 to-red-500 text-white p-6 flex flex-col items-center justify-center w-40">
-          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-3">
+          <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 bg-opacity-20 rounded-full flex items-center justify-center mb-3">
             <User className="h-8 w-8 text-white" />
           </div>
           <h3 className="font-semibold text-sm mb-1">{user.username}</h3>

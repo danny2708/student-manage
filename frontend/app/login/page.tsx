@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card } from "../../components/ui/card"
 import { User, Lock, Mail, Eye, EyeOff, Phone, Calendar } from "lucide-react"
-import authService from "../../src/services/authService"
+import authService from "../../src/services/authService.ts"
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)

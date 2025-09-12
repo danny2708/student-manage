@@ -36,17 +36,19 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(authService.user)
+  const [user, setUser] = useState<User | null>(authService.user as User | null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setUser(authService.user)
+    // Ép kiểu (as User | null) để khớp với useState
+    setUser(authService.user as User | null)
     setLoading(false)
   }, [])
 
   const login = async (credentials: { username: string; password: string }) => {
     const result = await authService.login(credentials)
     if (result.success) {
+      // Ép kiểu (as User) để đảm bảo khớp với state User
       setUser(result.user as User)
     }
     return result

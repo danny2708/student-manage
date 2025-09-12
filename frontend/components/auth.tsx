@@ -8,7 +8,7 @@ import { Input } from "./ui/input"
 import { Card } from "./ui/card"
 import { User, Lock, Mail, Eye, EyeOff, Phone, Calendar } from "lucide-react"
 import { useRouter } from "next/navigation" // Import useRouter
-import authService from "../src/services/authService"
+import authService from "../src/services/authService.ts"
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)

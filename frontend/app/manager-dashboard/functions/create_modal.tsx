@@ -5,7 +5,6 @@ import type React from "react"
 import { X } from "lucide-react"
 import { useState } from "react"
 import { Input } from "../../../components/ui/input"
-import { Button } from "../../../components/ui/button"
 
 interface CreateModalProps {
   type: string
@@ -224,7 +223,7 @@ export function CreateModal({ type, onClose, onCreate }: CreateModalProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-xl w-80 p-6">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-80 p-6">
       {/* Close button */}
       <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" aria-label="Close modal">
         <X className="h-5 w-5" />

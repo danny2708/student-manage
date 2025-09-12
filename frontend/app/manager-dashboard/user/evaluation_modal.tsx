@@ -29,7 +29,7 @@ export function EvaluationModal({ evaluations, onClose }: EvaluationModalProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">Student Evaluations</h2>

@@ -16,9 +16,10 @@ interface RoleModalProps {
   user: User
   onClose: () => void
   onShowInfo?: () => void // Added onShowInfo prop to trigger user info modal
+  onDelete: () => void
 }
 
-export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
+export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProps) {
   const [showSubModal, setShowSubModal] = useState(false)
   const [subModalType, setSubModalType] = useState("")
 
@@ -117,7 +118,7 @@ export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto">
+      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto">
         {/* Close button */}
         <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10" aria-label="Close modal">
           <X className="h-5 w-5" />
@@ -157,7 +158,7 @@ export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
       {/* Sub Modal for Student Classes */}
       {showSubModal && subModalType === "add-class" && user.role === "student" && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto ml-80">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto ml-80">
             <button
               onClick={() => setShowSubModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
