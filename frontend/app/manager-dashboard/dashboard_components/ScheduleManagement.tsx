@@ -1,7 +1,7 @@
-// File: components/ScheduleManagement.tsx
+// components/ScheduleManagement.tsx
 import * as React from "react"
 import { Calendar, Settings } from "lucide-react"
-import { mockSchedules } from "../data/mockData"
+import { useSchedules } from "../../../src/hooks/useSchedule"
 
 interface ScheduleManagementProps {
   searchTerm: string
@@ -16,6 +16,12 @@ export default function ScheduleManagement({
   handleCreateNew,
   handleTableRowClick,
 }: ScheduleManagementProps) {
+  const { schedules, loading } = useSchedules()
+
+  const filtered = schedules.filter((s) =>
+    s.class_name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -43,64 +49,55 @@ export default function ScheduleManagement({
           Filter
         </button>
       </div>
-      <div className="bg-gray-800 rounded-lg overflow-x-auto">
-        <table className="w-full min-w-[700px]">
-          <thead className="bg-gray-700">
-            <tr>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">
-                ID
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                CLASS
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                DAY
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                ROOM
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">
-                DATE
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                TYPE
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                START
-              </th>
-              <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                END
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-600">
-            {mockSchedules.map((schedule) => (
-              <tr
-                key={schedule.schedule_id}
-                className="hover:bg-gray-700 transition-colors cursor-pointer"
-                onClick={() => handleTableRowClick("schedule", schedule)}
-              >
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.schedule_id}</td>
-                <td className="px-2 py-3 text-sm text-cyan-400">{schedule.class}</td>
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.day}</td>
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.room}</td>
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.date}</td>
-                <td className="px-2 py-3">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      schedule.type === "Weekly" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"
-                    }`}
-                  >
-                    {schedule.type}
-                  </span>
-                </td>
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.start}</td>
-                <td className="px-2 py-3 text-sm text-gray-300">{schedule.end}</td>
+
+      {loading ? (
+        <p className="text-gray-300">Đang tải...</p>
+      ) : (
+        <div className="bg-gray-800 rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">ID</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">CLASS</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">DAY</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">ROOM</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">DATE</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">TYPE</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">START</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">END</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-600">
+              {filtered.map((s) => (
+                <tr
+                  key={s.id}
+                  className="hover:bg-gray-700 transition-colors cursor-pointer"
+                  onClick={() => handleTableRowClick("schedule", s)}
+                >
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.id}</td>
+                  <td className="px-2 py-3 text-sm text-cyan-400">{s.class_name}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.day_of_week || "-"}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.room}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.date || "-"}</td>
+                  <td className="px-2 py-3">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        s.schedule_type === "WEEKLY"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-orange-100 text-orange-800"
+                      }`}
+                    >
+                      {s.schedule_type}
+                    </span>
+                  </td>
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.start_time}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">{s.end_time}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

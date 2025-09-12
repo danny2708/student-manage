@@ -1,76 +1,89 @@
-// File: components/ClassManagement.tsx
-import * as React from "react"
-import { BookOpen, Settings } from "lucide-react"
-import { mockClasses } from "../data/mockData"
+// components/SubjectManagement.tsx
+import { useState } from "react"
+import { useSubjects } from "../../../src/hooks/useSubject"
+import { SubjectCreate, SubjectUpdate } from "../../../src/services/api/subject"
 
-interface ClassManagementProps {
-  searchTerm: string
-  updateSearchTerm: (section: string, value: string) => void
-  handleCreateNew: (type: string) => void
-  handleClassCardClick: (classData: any) => void
-}
+export default function SubjectManagement() {
+  const { subjects, loading, addSubject, editSubject, removeSubject } = useSubjects()
+  const [form, setForm] = useState<SubjectCreate>({ name: "", description: "" })
+  const [editingId, setEditingId] = useState<number | null>(null)
 
-export default function ClassManagement({
-  searchTerm,
-  updateSearchTerm,
-  handleCreateNew,
-  handleClassCardClick,
-}: ClassManagementProps) {
-  // Đảm bảo tên thuộc tính trong filter khớp với dữ liệu của bạn
-  const filteredClasses = mockClasses.filter((cls) => cls.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingId) {
+      await editSubject(editingId, form as SubjectUpdate)
+      setEditingId(null)
+    } else {
+      await addSubject(form)
+    }
+    setForm({ name: "", description: "" })
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Class Management</h2>
-        <button
-          onClick={() => handleCreateNew("class")}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors flex items-center gap-2"
-        >
-          <BookOpen className="h-4 w-4" />
-          Create New Class
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">Subject Management</h1>
+
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Tên môn học"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="border p-2 rounded"
+          required
+        />
+        <input
+          type="text"
+          placeholder="Mô tả"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          className="border p-2 rounded"
+        />
+        <button type="submit" className="bg-cyan-500 text-white px-4 py-2 rounded">
+          {editingId ? "Cập nhật" : "Thêm"}
         </button>
-      </div>
-      <div className="text-gray-900 flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            placeholder="Search classes..."
-            value={searchTerm}
-            onChange={(e) => updateSearchTerm("class", e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-          />
-          <BookOpen className="absolute left-3 top-2.5 h-5 w-5 text-black" />
-        </div>
-        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          Filter
-        </button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClasses.map((cls) => (
-          <div
-            key={cls.class_id}
-            onClick={() => handleClassCardClick(cls)}
-            className="bg-gray-800 p-6 rounded-lg shadow-xl hover:bg-gray-700 transition-colors cursor-pointer space-y-4"
-          >
-            <div className="flex justify-between items-start">
-              <h3 className="text-xl font-bold text-cyan-400">{cls.name}</h3>
-              {/* Đã sửa: Giả định tên thuộc tính là `status` */}
-            </div>
-            <p className="text-gray-400">
-              Teacher: <span className="text-gray-300">{cls.teacher}</span>
-            </p>
-            {/* Đã sửa: Giả định tên thuộc tính là `studentCount` */}
-            <p className="text-gray-400">
-              Students: <span className="text-gray-300">{cls.studentCount}</span>
-            </p>
-            {/* Đã sửa: Giả định tên thuộc tính là `subject` và là một mảng */}
-            <p className="text-gray-400">
-              Subjects: <span className="text-gray-300">{cls.subject}</span>
-            </p>
-          </div>
-        ))}
-      </div>
+      </form>
+
+      {loading ? (
+        <p>Đang tải...</p>
+      ) : (
+        <table className="w-full border">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border p-2">ID</th>
+              <th className="border p-2">Tên</th>
+              <th className="border p-2">Mô tả</th>
+              <th className="border p-2">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {subjects.map((s) => (
+              <tr key={s.subject_id}>
+                <td className="border p-2">{s.subject_id}</td>
+                <td className="border p-2">{s.name}</td>
+                <td className="border p-2">{s.description}</td>
+                <td className="border p-2 space-x-2">
+                  <button
+                    onClick={() => {
+                      setForm({ name: s.name, description: s.description })
+                      setEditingId(s.subject_id)
+                    }}
+                    className="bg-yellow-400 px-2 py-1 rounded"
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => removeSubject(s.subject_id)}
+                    className="bg-red-500 text-white px-2 py-1 rounded"
+                  >
+                    Xoá
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

@@ -1,7 +1,6 @@
-// File: components/ClassManagement.tsx
 import * as React from "react"
 import { BookOpen, Settings } from "lucide-react"
-import { mockClasses } from "../data/mockData"
+import { useClasses } from "../../../src/hooks/useClass"
 
 interface ClassManagementProps {
   searchTerm: string
@@ -16,7 +15,15 @@ export default function ClassManagement({
   handleCreateNew,
   handleClassCardClick,
 }: ClassManagementProps) {
-  const filteredClasses = mockClasses.filter((cls) => cls.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  const { classes, loading, error } = useClasses()
+
+  const filteredClasses = classes.filter((cls) =>
+    cls.class_name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) return <p className="text-gray-500">Loading classes...</p>
+  if (error) return <p className="text-red-500">Error: {error}</p>
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -29,6 +36,7 @@ export default function ClassManagement({
           Create New Class
         </button>
       </div>
+
       <div className="text-gray-900 flex items-center gap-4 mb-6">
         <div className="relative flex-1">
           <input
@@ -45,6 +53,7 @@ export default function ClassManagement({
           Filter
         </button>
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClasses.map((cls) => (
           <div
@@ -52,14 +61,15 @@ export default function ClassManagement({
             onClick={() => handleClassCardClick(cls)}
             className="bg-gray-800 p-6 rounded-lg shadow-xl hover:bg-gray-700 transition-colors cursor-pointer space-y-4"
           >
+            <p className="text-lg font-semibold text-white">{cls.class_name}</p>
             <p className="text-gray-400">
-              Teacher: <span className="text-gray-300">{cls.teacher}</span>
+              Teacher: <span className="text-gray-300">{cls.teacher_name ?? "—"}</span>
             </p>
             <p className="text-gray-400">
-              Students: <span className="text-gray-300">{cls.studentCount}</span>
+              Max students: <span className="text-gray-300">{cls.max_students ?? "—"}</span>
             </p>
             <p className="text-gray-400">
-              Subjects: <span className="text-gray-300">{cls.subject}</span>
+              Fee: <span className="text-gray-300">{cls.fee ?? "—"}</span>
             </p>
           </div>
         ))}
