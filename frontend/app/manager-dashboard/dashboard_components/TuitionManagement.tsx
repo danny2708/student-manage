@@ -1,7 +1,6 @@
-// File: components/TuitionManagement.tsx
 import * as React from "react"
 import { DollarSign, Settings } from "lucide-react"
-import { mockTuitions } from "../data/mockData"
+import { useTuitions } from "../../../src/hooks/useTuition"
 
 interface TuitionManagementProps {
   searchTerm: string
@@ -16,6 +15,17 @@ export default function TuitionManagement({
   handleCreateNew,
   handleTableRowClick,
 }: TuitionManagementProps) {
+  const { tuitions, loading, error } = useTuitions()
+
+  const filteredTuitions = tuitions.filter(
+    (t) =>
+      t.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.status.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) return <div className="text-gray-300">Loading...</div>
+  if (error) return <div className="text-red-500">{error}</div>
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -47,51 +57,39 @@ export default function TuitionManagement({
         <table className="w-full min-w-[600px]">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">
-                ID
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-40">
-                STUDENT NAME
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                CLASS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">
-                AMOUNT
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                STATUS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">
-                DUE DATE
-              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">ID</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-40">STUDENT</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">AMOUNT</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">TERM</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">STATUS</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">DUE DATE</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
-            {mockTuitions.map((tuition) => (
+            {filteredTuitions.map((t) => (
               <tr
-                key={tuition.tuiton_id}
+                key={t.id}
                 className="hover:bg-gray-700 transition-colors cursor-pointer"
-                onClick={() => handleTableRowClick("tuition", tuition)}
+                onClick={() => handleTableRowClick("tuition", t)}
               >
-                <td className="px-3 py-3 text-sm text-gray-300">{tuition.tuiton_id}</td>
-                <td className="px-3 py-3 text-sm text-gray-300 break-words">{tuition.studentName}</td>
-                <td className="px-3 py-3 text-sm text-cyan-400">{tuition.className}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(tuition.amount / 1000).toFixed(0)}K ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{t.id}</td>
+                <td className="px-3 py-3 text-sm text-gray-300 break-words">{t.student}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{(t.amount / 1000).toFixed(0)}K ₫</td>
+                <td className="px-3 py-3 text-sm text-cyan-400">{t.term}</td>
                 <td className="px-3 py-3">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      tuition.status === "paid"
+                      t.status === "paid"
                         ? "bg-green-100 text-green-800"
-                        : tuition.status === "pending"
+                        : t.status === "pending"
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {tuition.status}
+                    {t.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-sm text-gray-300">{tuition.dueDate}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{t.due_date}</td>
               </tr>
             ))}
           </tbody>

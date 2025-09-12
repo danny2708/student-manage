@@ -28,7 +28,7 @@ def create_new_payroll(
 
 @router.get(
     "/",
-    response_model=List[payroll_schema.Payroll],
+    response_model=List[payroll_schema.PayrollView],
     dependencies=[Depends(MANAGER_ONLY)]
 )
 def get_all_payrolls(
@@ -36,7 +36,19 @@ def get_all_payrolls(
     limit: int = 100,
     db: Session = Depends(deps.get_db)
 ):
-    return payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
+    payrolls = payroll_crud.get_all_payrolls_with_fullname(db, skip=skip, limit=limit)
+    return [
+        payroll_schema.PayrollView(
+            id=p.payroll_id,
+            teacher=fullname,
+            base_salary=p.total_base_salary,
+            bonus=p.reward_bonus,
+            total=p.total,
+            status=p.payment_status,
+            sent_at=p.sent_at
+        )
+        for p, fullname in payrolls
+    ]
 
 @router.post(
     "/run_payrolls",
@@ -124,7 +136,7 @@ def delete_existing_payroll(
     payroll_crud.delete_payroll(db, payroll_id)
     return
 
-@router.get("/teacher/{teacher_user_id}", response_model=List[payroll_schema.Payroll])
+@router.get("/teacher/{teacher_user_id}", response_model=List[payroll_schema.PayrollView])
 def get_teacher_payrolls(
     teacher_user_id: int,
     skip: int = 0,
@@ -137,7 +149,20 @@ def get_teacher_payrolls(
         raise HTTPException(status_code=404, detail="Teacher not found")
     if "manager" not in current_user.roles and teacher.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="You do not have permission to view this teacher's payrolls")
-    payrolls = payroll_crud.get_payrolls_by_teacher_user_id(db, teacher_user_id, skip=skip, limit=limit)
+
+    payrolls = payroll_crud.get_payrolls_by_teacher_with_fullname(db, teacher_user_id, skip=skip, limit=limit)
     if not payrolls:
         raise HTTPException(status_code=404, detail="No payrolls found for this teacher")
-    return payrolls
+
+    return [
+        payroll_schema.PayrollView(
+            id=p.payroll_id,
+            teacher=fullname,
+            base_salary=p.total_base_salary,
+            bonus=p.reward_bonus,
+            total=p.total,
+            status=p.payment_status,
+            sent_at=p.sent_at
+        )
+        for p, fullname in payrolls
+    ]

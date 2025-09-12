@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from datetime import datetime
 from app.models.payroll_model import PaymentStatus
 
@@ -44,3 +44,7 @@ class PayrollView(BaseModel):
     total: float
     status: PaymentStatus
     sent_at: datetime
+
+    @field_serializer("sent_at")
+    def format_sent_at(self, sent_at: datetime, _info):
+        return sent_at.strftime("%d/%m/%Y")

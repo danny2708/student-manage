@@ -1,7 +1,6 @@
-// File: components/PayrollManagement.tsx
 import * as React from "react"
 import { FileText, Settings } from "lucide-react"
-import { mockPayrolls } from "../data/mockData"
+import { usePayrolls } from "../../../src/hooks/usePayroll"
 
 interface PayrollManagementProps {
   searchTerm: string
@@ -16,6 +15,12 @@ export default function PayrollManagement({
   handleCreateNew,
   handleTableRowClick,
 }: PayrollManagementProps) {
+  const { payrolls } = usePayrolls()
+
+  const filtered = payrolls.filter((p) =>
+  (p.teacher ?? "").toLowerCase().includes((searchTerm ?? "").toLowerCase())
+  )
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -47,53 +52,35 @@ export default function PayrollManagement({
         <table className="w-full min-w-[650px]">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">
-                ID
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-32">
-                TEACHER NAME
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                BASE SALARY
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                BONUS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                TOTAL
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
-                STATUS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">
-                SENT AT
-              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">TEACHER</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">BASE</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">BONUS</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">TOTAL</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">STATUS</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">SENT AT</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
-            {mockPayrolls.map((payroll) => (
+            {filtered.map((p) => (
               <tr
-                key={payroll.payroll_id}
+                key={p.id}
                 className="hover:bg-gray-700 transition-colors cursor-pointer"
-                onClick={() => handleTableRowClick("payroll", payroll)}
+                onClick={() => handleTableRowClick("payroll", p)}
               >
-                <td className="px-3 py-3 text-sm text-gray-300">{payroll.payroll_id}</td>
-                <td className="px-3 py-3 text-sm text-gray-300 break-words">{payroll.teacherName}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {(payroll.baseSalary / 1000000).toFixed(1)}M ₫
-                </td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(payroll.bonus / 1000).toFixed(0)}K ₫</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(payroll.total / 1000000).toFixed(1)}M ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{p.id}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{p.teacher}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{(p.base_salary / 1_000_000).toFixed(1)}M ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{(p.bonus / 1_000).toFixed(0)}K ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{(p.total / 1_000_000).toFixed(1)}M ₫</td>
                 <td className="px-3 py-3">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      payroll.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {payroll.status}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    p.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                  }`}>
+                    {p.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-sm text-gray-300">{payroll.sentAt}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{p.sent_at}</td>
               </tr>
             ))}
           </tbody>

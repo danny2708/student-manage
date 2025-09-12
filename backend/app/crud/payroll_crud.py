@@ -21,11 +21,16 @@ def create_payroll_record(db: Session, payroll_in: PayrollCreate):
     db.refresh(db_payroll)  # total được DB tính sẵn
     return db_payroll
 
-def get_all_payrolls(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Payroll).offset(skip).limit(limit).all()
-
-def get_payroll(db: Session, payroll_id: int) -> Payroll | None:
-    return db.query(Payroll).filter(Payroll.payroll_id == payroll_id).first()
+def get_all_payrolls_with_fullname(db: Session, skip: int = 0, limit: int = 100):
+    results = (
+        db.query(Payroll, User.full_name)
+        .join(Teacher, Payroll.teacher_user_id == Teacher.user_id)
+        .join(User, Teacher.user_id == User.user_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return results
 
 def get_payroll_with_fullname(db: Session, payroll_id: int):
     """
@@ -42,8 +47,17 @@ def get_payroll_with_fullname(db: Session, payroll_id: int):
 
     return result
 
-def get_payrolls_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
-    return db.query(Payroll).filter(Payroll.teacher_user_id == teacher_user_id).offset(skip).limit(limit).all()
+def get_payrolls_by_teacher_with_fullname(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
+    results = (
+        db.query(Payroll, User.full_name)
+        .join(Teacher, Payroll.teacher_user_id == Teacher.user_id)
+        .join(User, Teacher.user_id == User.user_id)
+        .filter(Payroll.teacher_user_id == teacher_user_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return results
 
 def update_payroll(db: Session, payroll_id: int, payroll_update: PayrollUpdate):
     db_payroll = db.query(Payroll).filter(Payroll.payroll_id == payroll_id).first()

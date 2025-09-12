@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from app.models.tuition_model import PaymentStatus 
 
 class TuitionBase(BaseModel):
@@ -39,3 +39,7 @@ class TuitionView(BaseModel):
     term: int
     status: PaymentStatus
     due_date: date
+
+    @field_serializer("due_date")
+    def format_due_date(self, due_date: date, _info):
+        return due_date.strftime("%d/%m/%Y")

@@ -1,7 +1,6 @@
-// File: components/EvaluationManagement.tsx
 import * as React from "react"
 import { Settings } from "lucide-react"
-import { mockEvaluations } from "../data/mockData"
+import { useEvaluations } from "../../../src/hooks/useEvaluation"
 
 interface EvaluationManagementProps {
   searchTerm: string
@@ -12,12 +11,24 @@ export default function EvaluationManagement({
   searchTerm,
   updateSearchTerm,
 }: EvaluationManagementProps) {
+  const { evaluations, loading, error } = useEvaluations()
+
+  const filteredEvaluations = evaluations.filter(
+    (e) =>
+      e.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.teacher.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.type.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) return <div className="text-gray-300">Loading...</div>
+  if (error) return <div className="text-red-500">{error}</div>
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Evaluation Management</h2>
       </div>
-      <div className="text-gray-900flex items-center gap-4 mb-6">
+      <div className="text-gray-900 flex items-center gap-4 mb-6">
         <div className="relative flex-1">
           <input
             type="text"
@@ -37,33 +48,25 @@ export default function EvaluationManagement({
         <table className="w-full">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                STUDENT
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                TEACHER
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                TYPE
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                DATE
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">STUDENT</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">TEACHER</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">TYPE</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">DATE</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
-            {mockEvaluations.map((evaluation) => (
-              <tr key={evaluation.evaluation_id} className="hover:bg-gray-700 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{evaluation.evaluation_id}</td>
+            {filteredEvaluations.map((evaluation) => (
+              <tr key={evaluation.id} className="hover:bg-gray-700 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{evaluation.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{evaluation.student}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{evaluation.teacher}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      evaluation.type === "discipline" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"
+                      evaluation.type === "discipline"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-blue-100 text-blue-800"
                     }`}
                   >
                     {evaluation.type}
