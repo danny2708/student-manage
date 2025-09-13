@@ -1,25 +1,36 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { Card } from "../../components/ui/card"
 import { User, Lock, Mail, Eye, EyeOff, Phone, Calendar } from "lucide-react"
-import authService from "../../src/services/authService.ts"
+import authService from "../../src/services/authService"
+
+type FormField =
+  | "username"
+  | "email"
+  | "password"
+  | "confirmPassword"
+  | "full_name"
+  | "phone_number"
+  | "date_of_birth"
+  | "gender"
 
 export default function Auth() {
+  const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    username: "", // Changed from email to username for login
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    full_name: "", // Changed from fullName to match backend
+    full_name: "",
     phone_number: "",
     date_of_birth: "",
     gender: "other",
@@ -43,45 +54,31 @@ export default function Auth() {
     })
   }
 
+  const handleInputChange = (field: FormField, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }))
+    if (errors.general) setErrors((prev) => ({ ...prev, general: "" }))
+  }
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
     if (isLogin) {
-      // Login validation
-      if (!formData.username) {
-        newErrors.username = "Username or email is required"
-      }
+      if (!formData.username) newErrors.username = "Username is required"
     } else {
-      // Registration validation
-      if (!formData.email) {
-        newErrors.email = "Email is required"
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Email is invalid"
-      }
+      if (!formData.email) newErrors.email = "Email is required"
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid"
 
-      if (!formData.full_name) {
-        newErrors.full_name = "Full name is required"
-      }
-
-      if (!formData.phone_number) {
-        newErrors.phone_number = "Phone number is required"
-      }
-
-      if (!formData.date_of_birth) {
-        newErrors.date_of_birth = "Date of birth is required"
-      }
+      if (!formData.full_name) newErrors.full_name = "Full name is required"
+      if (!formData.phone_number) newErrors.phone_number = "Phone number is required"
+      if (!formData.date_of_birth) newErrors.date_of_birth = "Date of birth is required"
     }
 
-    if (!formData.password) {
-      newErrors.password = "Password is required"
-    }
-    // } else if (formData.password.length < 6) {
-    //   newErrors.password = "Password must be at least 6 characters"
-    // }
+    if (!formData.password) newErrors.password = "Password is required"
+    // else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
 
-    if (!isLogin && formData.password !== formData.confirmPassword) {
+    if (!isLogin && formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match"
-    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -97,24 +94,16 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        // Login logic
         const result = await authService.login({
           username: formData.username,
           password: formData.password,
         })
-
         if (result.success) {
-          setSuccessMessage("Login successful! Redirecting to dashboard...")
-          // Redirect based on user role
-          setTimeout(() => {
-            const dashboardRoute = authService.getDashboardRoute()
-            window.location.href = dashboardRoute
-          }, 1500)
-        } else {
-          setErrors({ general: result.error || "Login failed" })
-        }
+          setSuccessMessage("Login successful! Redirecting...")
+          const dashboardRoute = authService.getDashboardRoute()
+          router.push(dashboardRoute)
+        } else setErrors({ general: result.error || "Login failed" })
       } else {
-        // Registration logic
         const result = await authService.register({
           email: formData.email,
           password: formData.password,
@@ -123,41 +112,15 @@ export default function Auth() {
           date_of_birth: formData.date_of_birth,
           gender: formData.gender,
         })
-
         if (result.success) {
-          setSuccessMessage("Account created successfully! Please login to continue.")
-          setTimeout(() => {
-            setIsLogin(true)
-            setFormData({
-              username: formData.email,
-              email: "",
-              password: "",
-              confirmPassword: "",
-              full_name: "",
-              phone_number: "",
-              date_of_birth: "",
-              gender: "other",
-            })
-          }, 2000)
-        } else {
-          setErrors({ general: result.error || "Registration failed" })
-        }
+          setSuccessMessage("Account created! Please login.")
+          setTimeout(() => toggleMode(), 1500)
+        } else setErrors({ general: result.error || "Registration failed" })
       }
     } catch (error) {
-      setErrors({ general: "An unexpected error occurred. Please try again." })
+      setErrors({ general: "Unexpected error occurred. Please try again." })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
-    }
-    // Clear general error when user starts typing
-    if (errors.general) {
-      setErrors((prev) => ({ ...prev, general: "" }))
     }
   }
 

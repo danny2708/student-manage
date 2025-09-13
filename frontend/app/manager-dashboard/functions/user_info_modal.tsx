@@ -65,7 +65,7 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
                 <User className="h-3 w-3" />
                 <span className="font-medium">Full name</span>
               </div>
-              <p className="text-gray-600">{user.fullName}</p>
+              <p className="text-gray-600">{user.full_name}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 text-green-500 mb-1">

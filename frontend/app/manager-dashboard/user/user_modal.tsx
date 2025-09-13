@@ -5,8 +5,8 @@ import { Badge } from "../../../components/ui/badge"
 interface User {
   user_id: number
   username: string
-  role: string
-  fullName: string
+  roles: string[]       // dùng array
+  full_name: string
   email: string
 }
 
@@ -16,7 +16,7 @@ interface UserModalProps {
   onClose: () => void
 }
 
-export function UserModal({ users, onUserClick }: UserModalProps) {
+export function UserModal({ users, onUserClick, onClose }: UserModalProps) {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "manager":
@@ -33,21 +33,15 @@ export function UserModal({ users, onUserClick }: UserModalProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Username
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Full Name
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
             </tr>
           </thead>
@@ -60,10 +54,18 @@ export function UserModal({ users, onUserClick }: UserModalProps) {
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.user_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600 font-medium">{user.username}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={getRoleBadgeColor(user.role)}>{user.role || "No role"}</Badge>
+                <td className="px-6 py-4 whitespace-nowrap flex gap-1 flex-wrap">
+                  {user.roles.length > 0 ? (
+                    user.roles.map((role) => (
+                      <Badge key={role} className={getRoleBadgeColor(role)}>
+                        {role}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Badge className="bg-gray-100 text-gray-800 border-gray-200">No role</Badge>
+                  )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.fullName}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.full_name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600">{user.email}</td>
               </tr>
             ))}
@@ -73,4 +75,3 @@ export function UserModal({ users, onUserClick }: UserModalProps) {
     </div>
   )
 }
-

@@ -8,7 +8,7 @@ import {
   getUserById,
   importUsers,
   User,
-} from "../services/api/user"
+} from "../services/api/users"
 
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([])

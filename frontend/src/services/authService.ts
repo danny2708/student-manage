@@ -1,7 +1,7 @@
-// Định nghĩa các Interface và Type cho dữ liệu
 export interface ILoginResponse {
   access_token: string;
-  user_id: number; // Hoặc number, tùy thuộc vào API của bạn
+  token_type: string;
+  user_id: number;
   username: string;
   email: string;
   full_name: string;
@@ -14,19 +14,22 @@ export interface IUser {
   email: string;
   full_name: string;
   roles: string[];
-  // Thêm các trường khác của user nếu cần
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 class AuthService {
   private _token: string | null = null;
   private _user: IUser | null = null;
+  private _ready = false;
 
   constructor() {
     if (typeof window !== "undefined") {
+      this._ready = true;
       this._token = localStorage.getItem("access_token");
       const storedUser = localStorage.getItem("user");
+      console.log("Init user", storedUser);
       if (storedUser) {
         try {
           this._user = JSON.parse(storedUser);
@@ -38,9 +41,14 @@ class AuthService {
     }
   }
 
+  isReady(): boolean {
+    return this._ready;
+  }
+
   get token(): string | null {
-    if (typeof window === "undefined") return this._token;
-    return this._token || localStorage.getItem("access_token");
+    if (typeof window === "undefined") return null;
+    if (!this._token) this._token = localStorage.getItem("access_token");
+    return this._token;
   }
 
   set token(value: string | null) {
@@ -52,20 +60,19 @@ class AuthService {
   }
 
   get user(): IUser | null {
-    if (typeof window === "undefined") return this._user;
-    if (this._user) return this._user;
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        this._user = parsedUser;
-        return this._user;
-      } catch (error) {
-        console.error("Failed to parse user from localStorage:", error);
-        localStorage.removeItem("user");
+    if (typeof window === "undefined") return null;
+    if (!this._user) {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          this._user = JSON.parse(storedUser);
+        } catch (error) {
+          console.error("Failed to parse user from localStorage:", error);
+          localStorage.removeItem("user");
+        }
       }
     }
-    return null;
+    return this._user;
   }
 
   set user(value: IUser | null) {
@@ -76,7 +83,7 @@ class AuthService {
     }
   }
 
-  async login({ username, password }: { username: string; password: string }): Promise<{ success: boolean; user?: IUser; error?: string }> {
+  async login({ username, password }: { username: string; password: string }) {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
@@ -90,6 +97,7 @@ class AuthService {
       }
 
       const data: ILoginResponse = await res.json();
+      console.log("Login API response", data);
       this.token = data.access_token;
       this.user = {
         user_id: data.user_id,
@@ -106,13 +114,25 @@ class AuthService {
     }
   }
 
-  logout(): void {
+  logout() {
     this.token = null;
     this.user = null;
   }
 
   isAuthenticated(): boolean {
+    if (!this._ready) return false; // ✅ Chặn SSR gọi
+    console.log("Check auth", { token: this.token, user: this.user });
     return !!this.token && !!this.user;
+  }
+
+  getRole(): string | null {
+    const u = this.user;
+    return u && u.roles.length > 0 ? u.roles[0] : null;
+  }
+
+  hasRole(role: string): boolean {
+    const u = this.user;
+    return !!u && u.roles.includes(role);
   }
 
   getDashboardRoute(): string {
@@ -125,6 +145,16 @@ class AuthService {
     if (user.roles.includes("parent")) return "/parent-dashboard";
 
     return "/login";
+  }
+
+  redirectToDashboardIfLoggedIn(): void {
+    if (!this._ready) return; // ✅ tránh SSR
+    if (this.isAuthenticated()) {
+      const route = this.getDashboardRoute();
+      if (window.location.pathname !== route) {
+        window.location.href = route;
+      }
+    }
   }
 }
 

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 from typing import List, Optional
-
+from datetime import date
 # Pydantic model cho payload của JWT
 class TokenData(BaseModel):
     user_id: Optional[int] = None
@@ -32,6 +32,26 @@ class LoginSuccess(BaseModel):
     message: str = Field(..., example="Đăng nhập thành công")
     user_id: int = Field(..., example=1)
     username: str = Field(..., example="johndoe")
+
+    class Config:
+        from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    message: Optional[str] = "Đăng nhập thành công"
+    user_id: int
+    username: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    roles: list = []
+    gender: Optional[str] = None
+    phone_number: Optional[str] = None
+    date_of_birth: Optional[date] = None
+
+    @field_serializer("date_of_birth")
+    def format_date_of_birth(self, date_of_birth: date, _info):
+        return date_of_birth.strftime("%d/%m/%Y")
 
     class Config:
         from_attributes = True

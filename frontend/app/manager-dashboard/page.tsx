@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useAuth } from "../../src/hooks/useAuth"
+import type { LoginResponse } from "../../src/services/api/auth"
+
 import {
   Users,
   DollarSign,
@@ -19,7 +22,7 @@ import {
   UserCheck,
   School,
   LogOut,
-  User,
+  User as UserIcon,
 } from "lucide-react"
 import { RoleModal } from "./user/role_modal"
 import { UserInfoModal } from "./functions/user_info_modal"
@@ -27,19 +30,6 @@ import { ActionModal } from "./functions/action_modal"
 import { CreateModal } from "./functions/create_modal"
 import { ShowInfoModal } from "./functions/show_info_modal"
 import { UserAccountModal } from "../user_account"
-
-// Import mock data
-import {
-  mockUserAccount,
-  mockUsers,
-  mockTuitions,
-  mockSchedules,
-  mockPayrolls,
-  mockTeacherReviews,
-  mockEvaluations,
-  mockClasses,
-  mockSubjects,
-} from "./data/mockData"
 
 // Import components
 import DashboardContent from "./dashboard_components/DashboardContent"
@@ -53,6 +43,7 @@ import ClassManagement from "./dashboard_components/ClassManagement"
 import SubjectManagement from "./dashboard_components/SubjectManagement"
 
 export default function ManagerDashboard() {
+  const { user } = useAuth() as { user: LoginResponse | null } 
   const [activeSection, setActiveSection] = useState("dashboard")
   const [searchTerms, setSearchTerms] = useState({
     user: "",
@@ -224,13 +215,15 @@ export default function ManagerDashboard() {
           </div>
 
           {/* User Profile */}
-          <div className="flex flex-col items-center gap-2 mb-6 text-center">
-            <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center">
-              <User className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-sm text-gray-300">User Account</span>
-          </div>
-
+          <div
+        className="flex flex-col items-center gap-2 mb-6 text-center cursor-pointer"
+        onClick={() => handleAccountClick()}
+      >
+        <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center">
+          <UserIcon className="h-6 w-6 text-white" />
+        </div>
+        <span className="text-sm text-gray-300">{user?.username ?? "User Account"}</span>
+      </div>
           <nav className="space-y-2">
             <div>
               <button
@@ -526,20 +519,20 @@ export default function ManagerDashboard() {
             </div>
           </div>
         )}
-        {showAccountModal && (
-          <div
-            className="fixed inset-0 flex items-center justify-center z-50"
-            onClick={handleCloseAccountModal}
-          >
-            <div onClick={(e) => e.stopPropagation()}>
-              <UserAccountModal
-                user={mockUserAccount}
-                onClose={handleCloseAccountModal}
-              />
-            </div>
+        {showAccountModal && user && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black/30"
+          onClick={handleCloseAccountModal} // click ngoài đóng modal
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <UserAccountModal
+              user={user} // dùng luôn user từ hook, đã có roles
+              onClose={handleCloseAccountModal}
+            />
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
     </div>
   )
 }

@@ -3,7 +3,15 @@ import { useState } from "react"
 import { useSubjects } from "../../../src/hooks/useSubject"
 import { SubjectCreate, SubjectUpdate } from "../../../src/services/api/subject"
 
-export default function SubjectManagement() {
+// Define the type for the props this component expects
+interface SubjectManagementProps {
+  searchTerm: string;
+  updateSearchTerm: (section: string, value: string) => void;
+  handleCreateNew: (type: string) => void;
+}
+
+// Update the component to accept the props
+export default function SubjectManagement({ searchTerm, updateSearchTerm, handleCreateNew }: SubjectManagementProps) {
   const { subjects, loading, addSubject, editSubject, removeSubject } = useSubjects()
   const [form, setForm] = useState<SubjectCreate>({ name: "", description: "" })
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -19,9 +27,31 @@ export default function SubjectManagement() {
     setForm({ name: "", description: "" })
   }
 
+  // Filter subjects based on the search term
+  const filteredSubjects = subjects.filter(subject =>
+    subject.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">Subject Management</h1>
+      
+      {/* Search and Create Buttons Section */}
+      <div className="flex justify-between items-center mb-4">
+        <input
+          type="text"
+          placeholder="Search subjects..."
+          value={searchTerm}
+          onChange={(e) => updateSearchTerm('subject', e.target.value)}
+          className="border p-2 rounded w-full max-w-xs dark:bg-gray-800 dark:border-gray-700"
+        />
+        <button
+          onClick={() => handleCreateNew("subject")}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+        >
+          Create New Subject
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <input
@@ -49,7 +79,7 @@ export default function SubjectManagement() {
       ) : (
         <table className="w-full border">
           <thead>
-            <tr className="bg-gray-100">
+            <tr className="bg-gray-100 dark:bg-gray-700">
               <th className="border p-2">ID</th>
               <th className="border p-2">Tên</th>
               <th className="border p-2">Mô tả</th>
@@ -57,8 +87,8 @@ export default function SubjectManagement() {
             </tr>
           </thead>
           <tbody>
-            {subjects.map((s) => (
-              <tr key={s.subject_id}>
+            {filteredSubjects.map((s) => (
+              <tr key={s.subject_id} className="dark:bg-gray-800">
                 <td className="border p-2">{s.subject_id}</td>
                 <td className="border p-2">{s.name}</td>
                 <td className="border p-2">{s.description}</td>

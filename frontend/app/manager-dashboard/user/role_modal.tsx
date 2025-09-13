@@ -8,7 +8,7 @@ interface User {
   user_id: number
   username: string
   role: string
-  fullName: string
+  full_name: string
   email: string
 }
 
@@ -129,7 +129,7 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
           <h3 className="font-semibold text-center">
             {user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "No role"}
           </h3>
-          <p className="text-center text-sm opacity-90 mt-1">{user.fullName}</p>
+          <p className="text-center text-sm opacity-90 mt-1">{user.full_name}</p>
         </div>
 
         {/* Action buttons */}
@@ -169,7 +169,7 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
 
             <div className="bg-green-500 text-white p-4 rounded-t-lg">
               <h3 className="font-semibold text-center">Student</h3>
-              <p className="text-center text-sm opacity-90 mt-1">{user.fullName}</p>
+              <p className="text-center text-sm opacity-90 mt-1">{user.full_name}</p>
             </div>
 
             <div className="p-4 space-y-2">

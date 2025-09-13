@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Users, Settings } from "lucide-react"
-import { useUsers } from "../../../src/hooks/useUser"
+import { useUsers } from "../../../src/hooks/useUsers"
 
 interface UserManagementProps {
   searchTerm: string
@@ -107,8 +107,8 @@ export default function UserManagement({
                         {user.roles.join(", ")}
                       </span>
                     ) : (
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                        No role
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-cyan-500 text-gray-800">
+                        User
                       </span>
                     )}
                   </td>
