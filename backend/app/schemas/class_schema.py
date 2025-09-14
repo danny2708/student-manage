@@ -28,6 +28,6 @@ class ClassView(BaseModel):
     class_id: int
     class_name: str 
     teacher_name: Optional[str] 
-    subject_id: Optional[int] 
-    max_students: Optional[int]
+    subject_name: Optional[str] 
+    capacity: Optional[int]
     fee: Optional[int] 

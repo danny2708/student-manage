@@ -8,9 +8,9 @@ import { X, Search, Filter, Plus } from "lucide-react"
 
 interface Class {
   class_id: number
-  name: string
-  teacher: string
-  subject: string
+  class_name: string
+  teacher_name: string
+  subject_name: string
   capacity: number
   fee: number
 }
@@ -25,9 +25,9 @@ export function ClassModal({ classes, onClose }: ClassModalProps) {
 
   const filteredClasses = classes.filter(
     (classItem) =>
-      classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classItem.teacher.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classItem.subject.toLowerCase().includes(searchTerm.toLowerCase()),
+      classItem.class_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      classItem.teacher_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      classItem.subject_name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatCurrency = (amount: number) => {
@@ -74,9 +74,9 @@ export function ClassModal({ classes, onClose }: ClassModalProps) {
               >
                 <CardContent className="p-4">
                   <div className="space-y-2">
-                    <div className="text-lg font-bold">{classItem.name}</div>
-                    <div className="text-sm opacity-90">Teacher: {classItem.teacher}</div>
-                    <div className="text-sm opacity-90">Subject: {classItem.subject}</div>
+                    <div className="text-lg font-bold">{classItem.class_name}</div>
+                    <div className="text-sm opacity-90">Teacher: {classItem.teacher_name}</div>
+                    <div className="text-sm opacity-90">Subject: {classItem.subject_name}</div>
                     <div className="text-sm opacity-90">Capacity: {classItem.capacity}</div>
                     <div className="text-sm font-semibold">Fee: {formatCurrency(classItem.fee)}</div>
                   </div>

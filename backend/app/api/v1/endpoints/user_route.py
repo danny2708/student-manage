@@ -14,6 +14,11 @@ from app.schemas.user_schema import UserCreate, UserUpdate, UserOut, UserView, U
 from app.crud import user_crud
 from app.api.auth.auth import get_current_active_user
 from app.schemas.auth_schema import AuthenticatedUser
+from app.database import get_db
+from app.models.user_model import User
+from passlib.context import CryptContext # type: ignore
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter()
 
@@ -141,3 +146,27 @@ def import_users_from_sheet(
         logging.exception("Import failed")
         raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
 
+class UpdatePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.put("/{user_id}/password", status_code=200)
+def update_password(
+    user_id: int,
+    body: UpdatePasswordRequest,
+    db: Session = Depends(get_db)
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Xác thực mật khẩu cũ
+    if not pwd_context.verify(body.old_password, user.password):
+        raise HTTPException(status_code=400, detail="Mật khẩu cũ không đúng")
+
+    # Hash và cập nhật mật khẩu mới
+    hashed = pwd_context.hash(body.new_password)
+    user.password = hashed
+    db.add(user)
+    db.commit()
+    return {"message": "Password updated successfully"}

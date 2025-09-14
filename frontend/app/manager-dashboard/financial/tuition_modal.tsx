@@ -7,12 +7,12 @@ import { X, Search, Filter } from "lucide-react"
 import { useState } from "react"
 
 interface Tuition {
-  tuition_id: number
-  studentName: string
-  className: string
+  id: number
+  student: string
+  term: string
   amount: number
   status: string
-  dueDate: string
+  due_date: string
 }
 
 interface TuitionModalProps {
@@ -25,8 +25,8 @@ export function TuitionModal({ tuitions, onClose }: TuitionModalProps) {
 
   const filteredTuitions = tuitions.filter(
     (tuition) =>
-      tuition.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tuition.className.toLowerCase().includes(searchTerm.toLowerCase()),
+      tuition.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tuition.term.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const getStatusBadgeColor = (status: string) => {
@@ -104,17 +104,17 @@ export function TuitionModal({ tuitions, onClose }: TuitionModalProps) {
             </thead>
             <tbody className="bg-gradient-to-br from-gray-800 to-gray-900 divide-y divide-gray-200">
               {filteredTuitions.map((tuition) => (
-                <tr key={tuition.tuition_id} className="hover:bg-gray-50 cursor-pointer transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.tuition_id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.studentName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600 font-medium">{tuition.className}</td>
+                <tr key={tuition.id} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.student}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-600 font-medium">{tuition.term}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {formatCurrency(tuition.amount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge className={getStatusBadgeColor(tuition.status)}>{tuition.status}</Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.dueDate}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tuition.due_date}</td>
                 </tr>
               ))}
             </tbody>

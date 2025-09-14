@@ -6,13 +6,13 @@ import { Input } from "../../../components/ui/input"
 import { X, Search, Filter } from "lucide-react"
 
 interface Payroll {
-  payroll_id: number
-  teacherName: string
-  baseSalary: number
+  id: number
+  teacher: string
+  base_salary: number
   bonus: number
   total: number
   status: "paid" | "pending"
-  sentAt: string
+  sent_at: string
 }
 
 interface PayrollModalProps {
@@ -24,7 +24,7 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredPayrolls = payrolls.filter((payroll) =>
-    payroll.teacherName.toLowerCase().includes(searchTerm.toLowerCase()),
+    payroll.teacher.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const formatCurrency = (amount: number) => {
@@ -89,13 +89,13 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
             </thead>
             <tbody className="bg-gradient-to-br from-gray-800 to-gray-900 divide-y divide-gray-200">
               {filteredPayrolls.map((payroll) => (
-                <tr key={payroll.payroll_id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.payroll_id}</td>
+                <tr key={payroll.id} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.id}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                    {payroll.teacherName}
+                    {payroll.teacher}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(payroll.baseSalary)}
+                    {formatCurrency(payroll.base_salary)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(payroll.bonus)}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
@@ -110,7 +110,7 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
                       {payroll.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.sentAt}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.sent_at}</td>
                 </tr>
               ))}
             </tbody>

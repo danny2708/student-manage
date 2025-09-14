@@ -1,13 +1,24 @@
 "use client"
 
 import { Button } from "../../../components/ui/button"
-import { X, UserPlus, Eye, Trash2, Users, BookOpen, Star, FileText, Calendar, GraduationCap } from "lucide-react"
+import {
+  X,
+  UserPlus,
+  Eye,
+  Trash2,
+  Users,
+  BookOpen,
+  Star,
+  FileText,
+  Calendar,
+  GraduationCap,
+} from "lucide-react"
 import { useState } from "react"
 
 interface User {
   user_id: number
   username: string
-  role: string
+  roles: string[]        // ✅ đổi từ role sang roles
   full_name: string
   email: string
 }
@@ -15,13 +26,15 @@ interface User {
 interface RoleModalProps {
   user: User
   onClose: () => void
-  onShowInfo?: () => void // Added onShowInfo prop to trigger user info modal
+  onShowInfo?: () => void
   onDelete: () => void
 }
 
 export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProps) {
   const [showSubModal, setShowSubModal] = useState(false)
   const [subModalType, setSubModalType] = useState("")
+
+  const role = user.roles?.[0] || ""  // ✅ lấy role đầu tiên
 
   const handleSubModalClick = (type: string) => {
     if (type === "info" && onShowInfo) {
@@ -33,18 +46,13 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
   }
 
   const getRoleButtons = () => {
-    switch (user.role) {
+    switch (role) {
       case "parent":
         return [
           { label: "Children", icon: Users, onClick: () => handleSubModalClick("children") },
           { label: "Tuitions", icon: FileText, onClick: () => handleSubModalClick("tuitions") },
           { label: "Show info", icon: Eye, onClick: () => handleSubModalClick("info") },
-          {
-            label: "Delete",
-            icon: Trash2,
-            onClick: () => handleSubModalClick("delete"),
-            variant: "destructive" as const,
-          },
+          { label: "Delete", icon: Trash2, onClick: onDelete, variant: "destructive" as const },
         ]
       case "teacher":
         return [
@@ -54,12 +62,7 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
           { label: "Class taught", icon: GraduationCap, onClick: () => handleSubModalClick("classes") },
           { label: "Payroll", icon: FileText, onClick: () => handleSubModalClick("payroll") },
           { label: "Show info", icon: Eye, onClick: () => handleSubModalClick("info") },
-          {
-            label: "Delete",
-            icon: Trash2,
-            onClick: () => handleSubModalClick("delete"),
-            variant: "destructive" as const,
-          },
+          { label: "Delete", icon: Trash2, onClick: onDelete, variant: "destructive" as const },
         ]
       case "student":
         return [
@@ -68,39 +71,24 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
           { label: "Teacher reviews", icon: FileText, onClick: () => handleSubModalClick("reviews") },
           { label: "Enrollments", icon: Calendar, onClick: () => handleSubModalClick("enrollments") },
           { label: "Show info", icon: Eye, onClick: () => handleSubModalClick("info") },
-          {
-            label: "Delete",
-            icon: Trash2,
-            onClick: () => handleSubModalClick("delete"),
-            variant: "destructive" as const,
-          },
+          { label: "Delete", icon: Trash2, onClick: onDelete, variant: "destructive" as const },
         ]
       case "manager":
         return [
           { label: "Show info", icon: Eye, onClick: () => handleSubModalClick("info") },
-          {
-            label: "Delete",
-            icon: Trash2,
-            onClick: () => handleSubModalClick("delete"),
-            variant: "destructive" as const,
-          },
+          { label: "Delete", icon: Trash2, onClick: onDelete, variant: "destructive" as const },
         ]
       default:
         return [
           { label: "Add a role", icon: UserPlus, onClick: () => handleSubModalClick("add-role") },
           { label: "Show info", icon: Eye, onClick: () => handleSubModalClick("info") },
-          {
-            label: "Delete",
-            icon: Trash2,
-            onClick: () => handleSubModalClick("delete"),
-            variant: "destructive" as const,
-          },
+          { label: "Delete", icon: Trash2, onClick: onDelete, variant: "destructive" as const },
         ]
     }
   }
 
   const getRoleColor = () => {
-    switch (user.role) {
+    switch (role) {
       case "parent":
         return "bg-blue-500"
       case "teacher":
@@ -120,16 +108,20 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
       <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto">
         {/* Close button */}
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10" aria-label="Close modal">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
+          aria-label="Close modal"
+        >
           <X className="h-5 w-5" />
         </button>
 
         {/* Header */}
         <div className={`${getRoleColor()} text-white p-4 rounded-t-lg`}>
           <h3 className="font-semibold text-center">
-            {user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "No role"}
+            {role ? role.charAt(0).toUpperCase() + role.slice(1) : "No role"}
           </h3>
-          <p className="text-center text-sm opacity-90 mt-1">{user.full_name}</p>
+          <p className="text-center text-sm opacity-360 mt-1">{user.full_name}</p>
         </div>
 
         {/* Action buttons */}
@@ -156,9 +148,9 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
       </div>
 
       {/* Sub Modal for Student Classes */}
-      {showSubModal && subModalType === "add-class" && user.role === "student" && (
+      {showSubModal && subModalType === "add-class" && role === "student" && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto ml-80">
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl max-w-sm w-full mx-4 relative pointer-events-auto ml-80">
             <button
               onClick={() => setShowSubModal(false)}
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 z-10"
@@ -174,7 +166,7 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
 
             <div className="p-4 space-y-2">
               <div className="mb-3">
-                <h4 className="font-medium text-gray-700 mb-2">Classes</h4>
+                <h4 className="font-medium text-gray-800 mb-2">Classes</h4>
                 <div className="space-y-1">
                   {["1A1", "1A2", "1A3"].map((className) => (
                     <Button
@@ -187,11 +179,6 @@ export function RoleModal({ user, onShowInfo, onClose, onDelete }: RoleModalProp
                   ))}
                 </div>
               </div>
-
-              <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white">
-                <FileText className="h-4 w-4 mr-2" />
-                Tuitions
-              </Button>
             </div>
           </div>
         </div>

@@ -48,72 +48,87 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
 
     switch (type) {
       case "tuition":
-        const tuitionData = currentData as Tuition;
-        return (
-          <>
-            {renderIdField(String(tuitionData.tuition_id))}
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Student name</span>
-              <Input
-                type="text"
-                value={tuitionData.studentName || ""}
-                onChange={(e) => handleInputChange("studentName", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Class</span>
-              <Input
-                type="text"
-                value={tuitionData.className || ""}
-                onChange={(e) => handleInputChange("className", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Amount</span>
-              <Input
-                type="text"
-                value={`${tuitionData.amount?.toLocaleString() || ""} vnd`}
-                onChange={(e) => handleInputChange("amount", e.target.value.replace(/[^\d]/g, ""))}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Status</span>
-              <select
-                aria-label="Status"
-                value={tuitionData.status || ""}
-                onChange={(e) => handleInputChange("status", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              >
-                <option value="paid">paid</option>
-                <option value="pending">pending</option>
-                <option value="overdue">overdue</option>
-              </select>
-            </div>
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-cyan-400 font-medium">Due date</span>
-              <Input
-                type="date"
-                value={tuitionData.dueDate || ""}
-                onChange={(e) => handleInputChange("dueDate", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-          </>
-        )
+  const tuitionData = currentData as Tuition;
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    return d.toISOString().split("T")[0];
+  };
+
+  return (
+    <>
+      {renderIdField(String(tuitionData.id))}
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-cyan-400 font-medium">Student name</span>
+            <Input
+              type="text"
+              value={tuitionData.student || ""}
+              onChange={(e) => handleInputChange("student", e.target.value)}
+              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+            />
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-cyan-400 font-medium">Term</span>
+            <Input
+              type="text"
+              value={tuitionData.term || ""}
+              onChange={(e) => handleInputChange("term", e.target.value)}
+              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+            />
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-cyan-400 font-medium">Amount</span>
+            <Input
+              type="text"
+              value={`${tuitionData.amount?.toLocaleString() || ""} vnd`}
+              onChange={(e) =>
+                handleInputChange("amount", e.target.value.replace(/[^\d]/g, ""))
+              }
+              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+            />
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-cyan-400 font-medium">Status</span>
+            <select
+              aria-label="Status"
+              value={tuitionData.status || ""}
+              onChange={(e) => handleInputChange("status", e.target.value)}
+              className="bg-white text-gray-800 px-3 py-2 rounded border outline-none w-48 rounded"
+            >
+              <option value="">-- Select status --</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-cyan-400 font-medium">Due date</span>
+            <Input
+              type="date"
+              value={formatDate(tuitionData.due_date)}
+              onChange={(e) => handleInputChange("due_date", e.target.value)}
+              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+            />
+          </div>
+        </>
+      );
       case "payroll":
         const payrollData = currentData as Payroll;
         return (
           <>
-            {renderIdField(String(payrollData.payroll_id))}
+            {renderIdField(String(payrollData.id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Teacher name</span>
               <Input
                 type="text"
-                value={payrollData.teacherName || ""}
-                onChange={(e) => handleInputChange("teacherName", e.target.value)}
+                value={payrollData.teacher || ""}
+                onChange={(e) => handleInputChange("teacher_name", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -121,8 +136,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Base salary</span>
               <Input
                 type="text"
-                value={`${payrollData.baseSalary?.toLocaleString() || ""} vnd`}
-                onChange={(e) => handleInputChange("baseSalary", e.target.value.replace(/[^\d]/g, ""))}
+                value={`${payrollData.base_salary?.toLocaleString() || ""} vnd`}
+                onChange={(e) => handleInputChange("base_salary", e.target.value.replace(/[^\d]/g, ""))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -160,7 +175,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Sent at</span>
               <Input
                 type="date"
-                value={payrollData.sentAt || ""}
+                value={payrollData.sent_at || ""}
                 onChange={(e) => handleInputChange("sentAt", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
@@ -171,13 +186,13 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
         const scheduleData = currentData as Schedule;
         return (
           <>
-            {renderIdField(String(scheduleData.schedule_id))}
+            {renderIdField(String(scheduleData.id))}
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Class</span>
               <Input
                 type="text"
-                value={scheduleData.class || ""}
-                onChange={(e) => handleInputChange("class", e.target.value)}
+                value={scheduleData.class_name || ""}
+                onChange={(e) => handleInputChange("class_name", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -185,8 +200,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Day</span>
               <select
                 aria-label="Day"
-                value={scheduleData.day || ""}
-                onChange={(e) => handleInputChange("day", e.target.value)}
+                value={scheduleData.day_of_week || ""}
+                onChange={(e) => handleInputChange("day_of_week", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               >
                 <option value="Monday">Monday</option>
@@ -220,8 +235,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Type</span>
               <select
                 aria-label="Type"
-                value={scheduleData.type || ""}
-                onChange={(e) => handleInputChange("type", e.target.value)}
+                value={scheduleData.schedule_type || ""}
+                onChange={(e) => handleInputChange("schedule_type", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               >
                 <option value="Weekly">Weekly</option>
@@ -232,8 +247,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Start</span>
               <Input
                 type="time"
-                value={scheduleData.start || ""}
-                onChange={(e) => handleInputChange("start", e.target.value)}
+                value={scheduleData.start_time || ""}
+                onChange={(e) => handleInputChange("start_time", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -241,8 +256,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">End</span>
               <Input
                 type="time"
-                value={scheduleData.end || ""}
-                onChange={(e) => handleInputChange("end", e.target.value)}
+                value={scheduleData.end_time || ""}
+                onChange={(e) => handleInputChange("end_time", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -257,8 +272,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Class name</span>
               <Input
                 type="text"
-                value={classData.name || ""}
-                onChange={(e) => handleInputChange("name", e.target.value)}
+                value={classData.class_name || ""}
+                onChange={(e) => handleInputChange("class_name", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -266,8 +281,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Teacher</span>
               <Input
                 type="text"
-                value={classData.teacher || ""}
-                onChange={(e) => handleInputChange("teacher", e.target.value)}
+                value={classData.teacher_name || ""}
+                onChange={(e) => handleInputChange("teacher_name", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -275,8 +290,8 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Subject</span>
               <Input
                 type="text"
-                value={classData.subject || ""}
-                onChange={(e) => handleInputChange("subject", e.target.value)}
+                value={classData.subject_name || ""}
+                onChange={(e) => handleInputChange("subject_name", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>
@@ -285,7 +300,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <Input
                 type="number"
                 value={classData.capacity || ""}
-                onChange={(e) => handleInputChange("capacity", e.target.value)}
+                onChange={(e) => handleInputChange("capacity", Number(e.target.value))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
             </div>

@@ -5,12 +5,25 @@ import { X, User, Calendar, Mail, Phone } from "lucide-react"
 interface UserInfoModalProps {
   user: any
   onClose: () => void
-  onChangeRole: (newRole: string) => void // Thêm dòng này
+  onChangeRole: (newRole: string) => void
 }
 
 export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProps) {
+  const roleColors: Record<string, string> = {
+    parent: "#3B82F6",
+    teacher: "#F97316",
+    student: "#22C55E",
+    manager: "#A855F7",
+  }
+
+  const userRoles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean)
+  const bgStyle =
+    userRoles.length > 1
+      ? `linear-gradient(135deg, ${userRoles.map((r: string | number) => roleColors[r] || "#6B7280").join(", ")})`
+      : (roleColors[userRoles[0]] || "#6B7280")
+
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900  rounded-lg shadow-xl w-140 overflow-hidden">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-140 overflow-hidden relative">
       {/* Close button */}
       <button
         onClick={onClose}
@@ -21,22 +34,22 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
       </button>
 
       <div className="flex">
-        {/* Left panel with avatar and basic info */}
-        <div className="bg-gradient-to-br from-red-400 to-red-500 text-white p-6 flex flex-col items-center justify-center w-40">
-          <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 bg-opacity-20 rounded-full flex items-center justify-center mb-3">
+        {/* Left panel */}
+        <div
+          className="text-white p-6 flex flex-col items-center justify-center w-40"
+          style={{ background: bgStyle }}
+        >
+          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
             <User className="h-8 w-8 text-white" />
           </div>
           <h3 className="font-semibold text-sm mb-1">{user.username}</h3>
-          <p className="text-xs opacity-90 mb-3">{user.role || "No role"}</p>
-          <button className="text-white hover:bg-white hover:bg-opacity-10 p-1 rounded" aria-label="Edit user information">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-            </svg>
-          </button>
+          <p className="text-xs opacity-90 mb-3">
+            {userRoles.length > 0 ? userRoles.join(", ") : "No role"}
+          </p>
         </div>
 
-        {/* Right panel with detailed information */}
-        <div className="p-6 flex-1 bg-white">
+        {/* Right panel */}
+        <div className="p-8 flex-1 bg-white">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Information</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -44,21 +57,21 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
                 <span className="text-xs">📋</span>
                 <span className="font-medium">ID</span>
               </div>
-              <p className="text-gray-600">{user.user_id.toString().padStart(2, "0")}</p>
+              <p className="text-gray-600">{user.user_id?.toString().padStart(2, "0")}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 text-pink-500 mb-1">
                 <span className="text-xs">⚥</span>
                 <span className="font-medium">Gender</span>
               </div>
-              <p className="text-gray-600">Male</p>
+              <p className="text-gray-600">{user.gender || "Male"}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 text-blue-500 mb-1">
                 <Calendar className="h-3 w-3" />
                 <span className="font-medium">Date of birth</span>
               </div>
-              <p className="text-gray-600">23/02/2012</p>
+              <p className="text-gray-600">{user.dob || "23/02/2012"}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 text-purple-500 mb-1">
@@ -79,7 +92,7 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
                 <Phone className="h-3 w-3" />
                 <span className="font-medium">Phone</span>
               </div>
-              <p className="text-gray-600">0123456789</p>
+              <p className="text-gray-600">{user.phone || "0123456789"}</p>
             </div>
           </div>
         </div>

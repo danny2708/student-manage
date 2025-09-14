@@ -1,13 +1,13 @@
 from datetime import timedelta
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from pydantic import BaseModel
 from passlib.context import CryptContext # type: ignore
 from app.api.deps import get_db
 from app.models.user_model import User
-from app.schemas.auth_schema import LoginRequest, TokenResponse, AuthenticatedUser
+from app.schemas.auth_schema import LoginRequest
 from app.api.auth.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
@@ -28,6 +28,9 @@ class LoginResponse(BaseModel):
     full_name: str
     email: str
     roles: List[str]
+    phone: str
+    dob: Optional[str] = None
+    gender: Optional[str] = None
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
@@ -58,5 +61,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         username=user.username,
         full_name=user.full_name,
         email=user.email,
-        roles=roles
+        roles=roles,
+        phone=user.phone_number,
+        dob=user.date_of_birth.isoformat() if user.date_of_birth else None,
+        gender=user.gender
     )
+

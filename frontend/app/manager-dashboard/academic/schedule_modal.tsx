@@ -6,14 +6,14 @@ import { Input } from "../../../components/ui/input"
 import { X, Search, Filter } from "lucide-react"
 
 interface Schedule {
-  schedule_id: number
-  class: string
-  day: string
+  id: number
+  class_name: string
+  day_of_week: string
   room: string
   date: string
-  type: "Weekly" | "Once"
-  start: string
-  end: string
+  schedule_type: "Weekly" | "Once"
+  start_time: string
+  end_time: string
 }
 
 interface ScheduleModalProps {
@@ -26,8 +26,8 @@ export function ScheduleModal({ schedules, onClose }: ScheduleModalProps) {
 
   const filteredSchedules = schedules.filter(
     (schedule) =>
-      schedule.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.day.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.class_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.day_of_week.toLowerCase().includes(searchTerm.toLowerCase()) ||
       schedule.room.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -82,23 +82,23 @@ export function ScheduleModal({ schedules, onClose }: ScheduleModalProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSchedules.map((schedule) => (
-                <tr key={schedule.schedule_id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.schedule_id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">{schedule.class}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.day}</td>
+                <tr key={schedule.id} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">{schedule.class_name}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.day_of_week}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.room}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.date}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        schedule.type === "Weekly" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                        schedule.schedule_type === "Weekly" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {schedule.type}
+                      {schedule.schedule_type}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.start}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.end}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.start_time}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.end_time}</td>
                 </tr>
               ))}
             </tbody>
