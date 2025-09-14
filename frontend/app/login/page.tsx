@@ -37,6 +37,8 @@ export default function Auth() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState("")
+  const [availableRoles, setAvailableRoles] = useState<string[]>([])
+  const [showRoleModal, setShowRoleModal] = useState(false)
 
   const toggleMode = () => {
     setIsLogin(!isLogin)
@@ -75,13 +77,31 @@ export default function Auth() {
     }
 
     if (!formData.password) newErrors.password = "Password is required"
-    // else if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters"
 
     if (!isLogin && formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match"
+    // } else if (formData.password.length < 6) {
+    //   newErrors.password = "Password must be at least 6 characters"
+    // }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
+  }
+
+  const handleLoginSuccess = (roles: string[]) => {
+    if (roles.length === 1) {
+      // Chỉ có 1 role → chuyển thẳng
+      router.push(`/${roles[0]}-dashboard`)
+    } else if (roles.length > 1) {
+      // Có nhiều role → hiển thị modal chọn
+      setAvailableRoles(roles)
+      setShowRoleModal(true)
+    }
+  }
+
+  const handleRoleSelect = (role: string) => {
+    setShowRoleModal(false)
+    router.push(`/${role}-dashboard`)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,10 +118,9 @@ export default function Auth() {
           username: formData.username,
           password: formData.password,
         })
-        if (result.success) {
+        if (result.success && result.user?.roles) {
           setSuccessMessage("Login successful! Redirecting...")
-          const dashboardRoute = authService.getDashboardRoute()
-          router.push(dashboardRoute)
+          handleLoginSuccess(result.user?.roles)
         } else setErrors({ general: result.error || "Login failed" })
       } else {
         const result = await authService.register({
@@ -146,6 +165,29 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+
+      {/* Modal chọn role */}
+      {showRoleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              Select a role to continue
+            </h2>
+            <div className="space-y-2">
+              {availableRoles.map((r) => (
+                <Button
+                  key={r}
+                  onClick={() => handleRoleSelect(r)}
+                  className="w-full"
+                >
+                  {r}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="absolute inset-0 bg-gradient-to-br from-[#0072ff] via-[#0080ff] to-[#00c6ff]">
         <motion.div
           className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"

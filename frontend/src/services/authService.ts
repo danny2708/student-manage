@@ -29,12 +29,10 @@ class AuthService {
       this._ready = true;
       this._token = localStorage.getItem("access_token");
       const storedUser = localStorage.getItem("user");
-      console.log("Init user", storedUser);
       if (storedUser) {
         try {
           this._user = JSON.parse(storedUser);
-        } catch (error) {
-          console.error("Failed to parse user from localStorage:", error);
+        } catch {
           localStorage.removeItem("user");
         }
       }
@@ -66,8 +64,7 @@ class AuthService {
       if (storedUser) {
         try {
           this._user = JSON.parse(storedUser);
-        } catch (error) {
-          console.error("Failed to parse user from localStorage:", error);
+        } catch {
           localStorage.removeItem("user");
         }
       }
@@ -97,7 +94,6 @@ class AuthService {
       }
 
       const data: ILoginResponse = await res.json();
-      console.log("Login API response", data);
       this.token = data.access_token;
       this.user = {
         user_id: data.user_id,
@@ -109,7 +105,6 @@ class AuthService {
 
       return { success: true, user: this.user as IUser };
     } catch (err) {
-      console.error("Login error:", err);
       return { success: false, error: (err as Error).message };
     }
   }
@@ -120,14 +115,7 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    if (!this._ready) return false; // ✅ Chặn SSR gọi
-    console.log("Check auth", { token: this.token, user: this.user });
-    return !!this.token && !!this.user;
-  }
-
-  getRole(): string | null {
-    const u = this.user;
-    return u && u.roles.length > 0 ? u.roles[0] : null;
+    return this._ready && !!this.token && !!this.user;
   }
 
   hasRole(role: string): boolean {
@@ -158,4 +146,7 @@ class AuthService {
   }
 }
 
+
 export default new AuthService();
+
+  
