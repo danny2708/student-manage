@@ -28,8 +28,8 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
   )
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount)
-  }
+    return `${amount?.toLocaleString("vi-VN") || ""} vnđ`;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

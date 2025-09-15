@@ -6,7 +6,7 @@ export interface Class {
   class_name: string
   teacher_name?: string
   subject_id?: number
-  max_students?: number
+  capacity?: number
   fee?: number
 }
 
@@ -14,7 +14,7 @@ export interface ClassCreate {
   class_name: string
   teacher_user_id?: number
   subject_id?: number
-  max_students?: number
+  capacity?: number
   fee?: number
 }
 
@@ -22,7 +22,7 @@ export interface ClassUpdate {
   class_name?: string
   teacher_user_id?: number
   subject_id?: number
-  max_students?: number
+  capacity?: number
   fee?: number
 }
 

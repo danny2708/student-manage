@@ -2,10 +2,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class Stats(BaseModel):
-    total_class: int
-    total_teacher: int
-    total_student: int
-    total_schedule: int
+    total_classes: int
+    total_teachers: int
+    total_students: int
+    total_schedules: int
 
     class Config:
         from_attributes = True

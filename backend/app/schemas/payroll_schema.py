@@ -46,5 +46,5 @@ class PayrollView(BaseModel):
     sent_at: datetime
 
     @field_serializer("sent_at")
-    def format_sent_at(self, sent_at: datetime, _info):
+    def format_sent_at(self, sent_at: datetime,):
         return sent_at.strftime("%d/%m/%Y")

@@ -66,7 +66,7 @@ export default function ClassManagement({
               Teacher: <span className="text-gray-300">{cls.teacher_name ?? "—"}</span>
             </p>
             <p className="text-gray-400">
-              Max students: <span className="text-gray-300">{cls.max_students ?? "—"}</span>
+              Capacity: <span className="text-gray-300">{cls.capacity ?? "—"}</span>
             </p>
             <p className="text-gray-400">
               Fee: <span className="text-gray-300">{cls.fee ?? "—"}</span>

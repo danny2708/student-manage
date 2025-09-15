@@ -180,7 +180,7 @@ export default function Auth() {
                   onClick={() => handleRoleSelect(r)}
                   className="w-full"
                 >
-                  {r}
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
                 </Button>
               ))}
             </div>

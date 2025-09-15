@@ -21,6 +21,10 @@ export default function PayrollManagement({
   (p.teacher ?? "").toLowerCase().includes((searchTerm ?? "").toLowerCase())
   )
 
+  const formatCurrency = (amount: number) => {
+    return `${amount?.toLocaleString("en-US") || ""} vnđ`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -70,9 +74,9 @@ export default function PayrollManagement({
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{p.id}</td>
                 <td className="px-3 py-3 text-sm text-gray-300">{p.teacher}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(p.base_salary / 1_000_000).toFixed(1)}M ₫</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(p.bonus / 1_000).toFixed(0)}K ₫</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(p.total / 1_000_000).toFixed(1)}M ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.base_salary)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.bonus)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.total)}</td>
                 <td className="px-3 py-3">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     p.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"

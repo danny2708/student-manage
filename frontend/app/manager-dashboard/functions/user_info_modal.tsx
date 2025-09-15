@@ -16,7 +16,13 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
     manager: "#A855F7",
   }
 
+  const capitalizeFirstLetter = (string: string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
   const userRoles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean)
+  
   const bgStyle =
     userRoles.length > 1
       ? `linear-gradient(135deg, ${userRoles.map((r: string | number) => roleColors[r] || "#6B7280").join(", ")})`
@@ -44,7 +50,7 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
           </div>
           <h3 className="font-semibold text-sm mb-1">{user.username}</h3>
           <p className="text-xs opacity-90 mb-3">
-            {userRoles.length > 0 ? userRoles.join(", ") : "No role"}
+            {userRoles.length > 0 ? userRoles.map(capitalizeFirstLetter).join(", ") : "No role"}
           </p>
         </div>
 

@@ -24,6 +24,11 @@ export default function UserManagement({
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const capitalizeFirstLetter = (string: string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -104,7 +109,7 @@ export default function UserManagement({
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {user.roles.join(", ")}
+                        {user.roles.map(r => capitalizeFirstLetter(r)).join(", ")}
                       </span>
                     ) : (
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-cyan-500 text-gray-800">

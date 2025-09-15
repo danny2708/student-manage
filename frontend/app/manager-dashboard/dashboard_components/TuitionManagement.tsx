@@ -23,6 +23,10 @@ export default function TuitionManagement({
       t.status.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const formatCurrency = (amount: number) => {
+    return `${amount?.toLocaleString("en-US") || ""} vnđ`;
+  };
+
   if (loading) return <div className="text-gray-300">Loading...</div>
   if (error) return <div className="text-red-500">{error}</div>
 
@@ -74,7 +78,7 @@ export default function TuitionManagement({
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{t.id}</td>
                 <td className="px-3 py-3 text-sm text-gray-300 break-words">{t.student}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{(t.amount / 1000).toFixed(0)}K ₫</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(t.amount)}</td>
                 <td className="px-3 py-3 text-sm text-cyan-400">{t.term}</td>
                 <td className="px-3 py-3">
                   <span

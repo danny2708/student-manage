@@ -40,6 +40,11 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
     setUserData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const capitalizeFirstLetter = (string: string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("access_token");
@@ -118,7 +123,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
           <div className="flex flex-wrap gap-1 mb-3">
             {user.roles.length > 0 ? (
               user.roles.map((role) => (
-                <Badge key={role} className={getRoleBadgeColor(role)}>{role}</Badge>
+                <Badge key={role} className={getRoleBadgeColor(role)}>{capitalizeFirstLetter(role)}</Badge>
               ))
             ) : (
               <Badge className="bg-gray-100 text-gray-800 border-gray-200">No role</Badge>

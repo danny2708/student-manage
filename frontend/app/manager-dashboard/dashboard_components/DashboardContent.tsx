@@ -1,8 +1,69 @@
 // File: components/DashboardContent.tsx
-import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card"
+"use client";
+
+import * as React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { useState, useEffect } from "react";
 
 export default function DashboardContent() {
+  const [stats, setStats] = useState({
+    total_classes: 0,
+    total_teachers: 0,
+    total_students: 0,
+    total_schedules: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/v1/managers/stats");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        setStats(data);
+      } catch (error: any) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Calendar logic
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  const currentDay = today.getDate();
+
+  const daysOfWeek = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  // Điều chỉnh để Thứ Hai là 0, Thứ Ba là 1, ...
+  const startDayIndex = (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1);
+  
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(today);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p className="text-gray-600">Loading stats...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p className="text-red-600">Error fetching stats: {error}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <style jsx>{`
@@ -37,7 +98,7 @@ export default function DashboardContent() {
               <h3 className="text-sm font-medium opacity-90">Class</h3>
             </div>
             <div>
-              <div className="text-3xl font-bold">4</div>
+              <div className="text-3xl font-bold">{stats.total_classes}</div>
               <p className="text-xs opacity-80 mt-1">Active classes</p>
             </div>
           </div>
@@ -47,7 +108,7 @@ export default function DashboardContent() {
               <h3 className="text-sm font-medium opacity-90">Teacher</h3>
             </div>
             <div>
-              <div className="text-3xl font-bold">5</div>
+              <div className="text-3xl font-bold">{stats.total_teachers}</div>
               <p className="text-xs opacity-80 mt-1">Active teachers</p>
             </div>
           </div>
@@ -57,7 +118,7 @@ export default function DashboardContent() {
               <h3 className="text-sm font-medium opacity-90">Student</h3>
             </div>
             <div>
-              <div className="text-3xl font-bold">4</div>
+              <div className="text-3xl font-bold">{stats.total_students}</div>
               <p className="text-xs opacity-80 mt-1">Enrolled students</p>
             </div>
           </div>
@@ -67,7 +128,7 @@ export default function DashboardContent() {
               <h3 className="text-sm font-medium opacity-90">Schedule</h3>
             </div>
             <div>
-              <div className="text-3xl font-bold">2</div>
+              <div className="text-3xl font-bold">{stats.total_schedules}</div>
               <p className="text-xs opacity-80 mt-1">Today's classes</p>
             </div>
           </div>
@@ -80,15 +141,25 @@ export default function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-center text-emerald-700">
-              <div className="text-lg font-semibold mb-2">February 2024</div>
+              <div className="text-lg font-semibold mb-2">{monthName} {currentYear}</div>
               <div className="grid grid-cols-7 gap-2 text-sm">
-                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                {daysOfWeek.map((day) => (
                   <div key={day} className="font-medium p-2">
                     {day}
                   </div>
                 ))}
-                {Array.from({ length: 28 }, (_, i) => (
-                  <div key={i} className="p-2 hover:bg-emerald-200 rounded cursor-pointer">
+                {Array.from({ length: startDayIndex }, (_, i) => (
+                  <div key={`empty-${i}`} className="p-2"></div>
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`p-2 rounded cursor-pointer ${
+                      i + 1 === currentDay 
+                        ? 'bg-emerald-500 text-white font-bold' 
+                        : 'hover:bg-emerald-200'
+                    }`}
+                  >
                     {i + 1}
                   </div>
                 ))}
@@ -98,5 +169,5 @@ export default function DashboardContent() {
         </Card>
       </div>
     </>
-  )
+  );
 }

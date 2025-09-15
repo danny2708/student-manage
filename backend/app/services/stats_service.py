@@ -20,25 +20,25 @@ def get_stats(db: Session) -> Stats:
         Stats: Một đối tượng Pydantic chứa các số liệu thống kê.
     """
     # Đếm tổng số lớp học
-    total_class = db.query(func.count(Class.class_id)).scalar()
+    total_classes = db.query(func.count(Class.class_id)).scalar()
     
     # Đếm tổng số giáo viên
-    total_teacher = db.query(func.count(Teacher.user_id)).scalar()
+    total_teachers = db.query(func.count(Teacher.user_id)).scalar()
     
     # Đếm tổng số học sinh
-    total_student = db.query(func.count(Student.user_id)).scalar()
+    total_students = db.query(func.count(Student.user_id)).scalar()
     
     # Đếm tổng số lịch học trong ngày hôm nay
     # datetime.date.today() cần được import
     from datetime import date
-    total_schedule = db.query(func.count(Schedule.schedule_id)).scalar()
+    total_schedules = db.query(func.count(Schedule.schedule_id)).scalar()
 
     # Tạo một dictionary từ các kết quả truy vấn
     stats_data = {
-        "total_class": total_class,
-        "total_teacher": total_teacher,
-        "total_student": total_student,
-        "total_schedule": total_schedule,
+        "total_classes": total_classes,
+        "total_teachers": total_teachers,
+        "total_students": total_students,
+        "total_schedules": total_schedules,
     }
     
     # Chuyển đổi dictionary thành đối tượng Pydantic Stats

@@ -48,76 +48,78 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
 
     switch (type) {
       case "tuition":
-  const tuitionData = currentData as Tuition;
+      const tuitionData = currentData as Tuition;
+        return (
+          <>
+            {renderIdField(String(tuitionData.id))}
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "";
-    const d = new Date(dateString);
-    return d.toISOString().split("T")[0];
-  };
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-cyan-400 font-medium">Student name</span>
+                  <Input
+                    type="text"
+                    value={tuitionData.student || ""}
+                    onChange={(e) => handleInputChange("student", e.target.value)}
+                    className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+                  />
+                </div>
 
-  return (
-    <>
-      {renderIdField(String(tuitionData.id))}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-cyan-400 font-medium">Term</span>
+                  <Input
+                    type="text"
+                    value={tuitionData.term || ""}
+                    onChange={(e) => handleInputChange("term", e.target.value)}
+                    className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+                  />
+                </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-cyan-400 font-medium">Student name</span>
-            <Input
-              type="text"
-              value={tuitionData.student || ""}
-              onChange={(e) => handleInputChange("student", e.target.value)}
-              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-            />
-          </div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-cyan-400 font-medium">Amount</span>
+                  <Input
+                    type="text"
+                    value={`${tuitionData.amount?.toLocaleString() || ""} vnđ`}
+                    onChange={(e) =>
+                      handleInputChange("amount", e.target.value.replace(/[^\d]/g, ""))
+                    }
+                    className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+                  />
+                </div>
 
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-cyan-400 font-medium">Term</span>
-            <Input
-              type="text"
-              value={tuitionData.term || ""}
-              onChange={(e) => handleInputChange("term", e.target.value)}
-              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-            />
-          </div>
-
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-cyan-400 font-medium">Amount</span>
-            <Input
-              type="text"
-              value={`${tuitionData.amount?.toLocaleString() || ""} vnd`}
-              onChange={(e) =>
-                handleInputChange("amount", e.target.value.replace(/[^\d]/g, ""))
-              }
-              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-            />
-          </div>
-
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-cyan-400 font-medium">Status</span>
-            <select
-              aria-label="Status"
-              value={tuitionData.status || ""}
-              onChange={(e) => handleInputChange("status", e.target.value)}
-              className="bg-white text-gray-800 px-3 py-2 rounded border outline-none w-48 rounded"
-            >
-              <option value="">-- Select status --</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-cyan-400 font-medium">Status</span>
+                  <select
+                    aria-label="Status"
+                    value={tuitionData.status || ""}
+                    onChange={(e) => handleInputChange("status", e.target.value)}
+                    className="bg-white text-gray-800 px-3 py-2 rounded border outline-none w-48 rounded"
+                  >
+                    <option value="">-- Select status --</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
+            <div className="flex items-center justify-between mb-6">
             <span className="text-cyan-400 font-medium">Due date</span>
             <Input
               type="date"
-              value={formatDate(tuitionData.due_date)}
-              onChange={(e) => handleInputChange("due_date", e.target.value)}
+              value={
+                tuitionData.due_date
+                  ? (() => {
+                      const [m, d, y] = tuitionData.due_date.split("/");
+                      return `${y}-${m}-${d}`; // dd/MM/yyyy → yyyy-MM-dd
+                    })()
+                  : ""
+              }
+              onChange={(e) => {
+                const [y, m, d] = e.target.value.split("-");
+                handleInputChange("due_date", `${d}/${m}/${y}`); // yyyy-MM-dd → dd/MM/yyyy
+              }}
               className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
             />
           </div>
-        </>
-      );
+              </>
+            );
       case "payroll":
         const payrollData = currentData as Payroll;
         return (
@@ -136,7 +138,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Base salary</span>
               <Input
                 type="text"
-                value={`${payrollData.base_salary?.toLocaleString() || ""} vnd`}
+                value={`${payrollData.base_salary?.toLocaleString() || ""} vnđ`}
                 onChange={(e) => handleInputChange("base_salary", e.target.value.replace(/[^\d]/g, ""))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
@@ -145,7 +147,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Reward bonus</span>
               <Input
                 type="text"
-                value={`${payrollData.bonus?.toLocaleString() || ""} vnd`}
+                value={`${payrollData.bonus?.toLocaleString() || ""} vnđ`}
                 onChange={(e) => handleInputChange("bonus", e.target.value.replace(/[^\d]/g, ""))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
@@ -154,7 +156,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Total</span>
               <Input
                 type="text"
-                value={`${payrollData.total?.toLocaleString() || ""} vnd`}
+                value={`${payrollData.total?.toLocaleString() || ""} vnđ`}
                 onChange={(e) => handleInputChange("total", e.target.value.replace(/[^\d]/g, ""))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
@@ -162,7 +164,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
             <div className="flex items-center justify-between mb-4">
               <span className="text-cyan-400 font-medium">Status</span>
               <select
-                aria-label="User Role"
+                aria-label="Status"
                 value={payrollData.status || ""}
                 onChange={(e) => handleInputChange("status", e.target.value)}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
@@ -172,14 +174,24 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               </select>
             </div>
             <div className="flex items-center justify-between mb-6">
-              <span className="text-cyan-400 font-medium">Sent at</span>
-              <Input
-                type="date"
-                value={payrollData.sent_at || ""}
-                onChange={(e) => handleInputChange("sentAt", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
+            <span className="text-cyan-400 font-medium">Sent at</span>
+            <Input
+              type="date"
+              value={
+                payrollData.sent_at
+                  ? (() => {
+                      const [m, d, y] = payrollData.sent_at.split("/");
+                      return `${y}-${m}-${d}`; // dd/MM/yyyy → yyyy-MM-dd
+                    })()
+                  : ""
+              }
+              onChange={(e) => {
+                const [y, m, d] = e.target.value.split("-");
+                handleInputChange("sent_at", `${d}/${m}/${y}`); // yyyy-MM-dd → dd/MM/yyyy
+              }}
+              className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
+            />
+          </div>
           </>
         )
       case "schedule":
@@ -308,7 +320,7 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
               <span className="text-cyan-400 font-medium">Fee</span>
               <Input
                 type="text"
-                value={`${classData.fee?.toLocaleString() || ""} vnd`}
+                value={`${classData.fee?.toLocaleString() || ""} vnđ`}
                 onChange={(e) => handleInputChange("fee", e.target.value.replace(/[^\d]/g, ""))}
                 className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
               />
