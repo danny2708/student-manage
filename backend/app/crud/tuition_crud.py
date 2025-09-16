@@ -49,7 +49,7 @@ def create_tuition(db: Session, tuition: TuitionCreate):
     """
     db_tuition = Tuition(
         **tuition.model_dump(),
-        payment_status=PaymentStatus.unpaid
+        payment_status=PaymentStatus.pending
     )
     db.add(db_tuition)
     db.commit()
@@ -57,7 +57,7 @@ def create_tuition(db: Session, tuition: TuitionCreate):
     return db_tuition
 
 
-def update_tuition_details(db: Session, tuition_id: int, tuition_update: TuitionUpdate):
+def update_tuition(db: Session, tuition_id: int, tuition_update: TuitionUpdate):
     """Cập nhật các chi tiết về học phí như amount, term, due_date."""
     # Sửa: Lấy tuple và kiểm tra. db_tuition là phần tử đầu tiên của tuple.
     result = get_tuition(db, tuition_id)
@@ -80,31 +80,11 @@ def update_tuition_details(db: Session, tuition_id: int, tuition_update: Tuition
     db.refresh(db_tuition)
     return db_tuition
 
-# Trong file app/crud/tuition_crud.py
-
-def update_tuition_payment_status(db: Session, tuition_id: int, new_status: PaymentStatus):
-    """Cập nhật trạng thái thanh toán và ngày thanh toán."""
-    # Sửa: Lấy tuple và kiểm tra
-    result = get_tuition(db, tuition_id)
-    if not result:
-        return None
-        
-    db_tuition, _ = result # Giải nén tuple
-
-    if db_tuition.payment_status == PaymentStatus.unpaid and new_status == PaymentStatus.paid:
-        db_tuition.payment_status = PaymentStatus.paid
-        db_tuition.payment_date = date.today()
-    elif db_tuition.payment_status == PaymentStatus.paid and new_status == PaymentStatus.unpaid:
-        db_tuition.payment_status = PaymentStatus.unpaid
-        db_tuition.payment_date = None
-
-    db.commit()
-    db.refresh(db_tuition)
-    return db_tuition
 
 def delete_tuition(db: Session, tuition_id: int):
-    db_tuition = get_tuition(db, tuition_id)
-    if db_tuition:
-        db.delete(db_tuition)
-        db.commit()
-    return db_tuition
+    db_tuition = db.query(Tuition).filter(Tuition.tuition_id == tuition_id).first()
+    if not db_tuition:
+        return None
+    db.delete(db_tuition)
+    db.commit()
+    return True

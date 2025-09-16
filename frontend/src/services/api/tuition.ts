@@ -38,22 +38,20 @@ export async function createTuition(data: TuitionCreate): Promise<Tuition> {
   return res.data
 }
 
+
 export async function updateTuition(id: number, data: TuitionUpdate): Promise<Tuition> {
-  const res = await api.put<Tuition>(`/tuitions/${id}`, data)
-  return res.data
+  // Change the endpoint URL to match the backend
+  const res = await api.put<Tuition>(`/tuitions/${id}`, data);
+  return res.data;
 }
 
 export async function updateTuitionStatus(
   id: number,
   body: { payment_status: "paid" | "pending" | "overdue" }
 ) {
-  return fetch(`/api/v1/tuitions/${id}/status`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).then(res => res.json());
+  const res = await api.patch(`/tuitions/${id}/status`, body)
+  return res.data
 }
-
 
 export async function deleteTuition(id: number): Promise<void> {
   await api.delete(`/tuitions/${id}`)

@@ -1,48 +1,58 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { DollarSign, Settings } from "lucide-react"
-import { useTuitions } from "../../../src/hooks/useTuition"
-import { ShowInfoModal } from "../functions/show_info_modal"
-import { ActionModal } from "../functions/action_modal"
+import * as React from "react";
+import { DollarSign, Settings } from "lucide-react";
+import { useTuitions } from "../../../../src/hooks/useTuition";
+import { ShowInfoModal } from "../../functions/show_info_modal";
+import { ActionModal } from "../../functions/action_modal";
+
+// Import component form tạo mới
+import { CreateTuitionForm } from "./CreateTuitionForm";
 
 interface TuitionManagementProps {
-  searchTerm: string
-  updateSearchTerm: (section: string, value: string) => void
-  handleCreateNew: (type: string) => void
+  searchTerm: string;
+  updateSearchTerm: (section: string, value: string) => void;
 }
 
 export default function TuitionManagement({
   searchTerm,
   updateSearchTerm,
-  handleCreateNew,
 }: TuitionManagementProps) {
-  const { tuitions, loading, error, refetch } = useTuitions()
-  const [selected, setSelected] = React.useState<any>(null)
-  const [showActionModal, setShowActionModal] = React.useState(false)
-  const [showInfoModal, setShowInfoModal] = React.useState(false)
+  const { tuitions, refetch, removeTuition } = useTuitions();
+  const [selected, setSelected] = React.useState<any>(null);
+  const [showActionModal, setShowActionModal] = React.useState(false);
+  const [showInfoModal, setShowInfoModal] = React.useState(false);
+  const [showCreateModal, setShowCreateModal] = React.useState(false); // Thêm state để quản lý modal tạo mới
 
   const filteredTuitions = tuitions.filter(
     (t) =>
       t.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.status.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  );
 
   const formatCurrency = (amount: number) =>
-    `${amount?.toLocaleString("en-US") || ""} vnđ`
+    `${amount?.toLocaleString("en-US") || ""} vnđ`;
 
   const handleRowClick = (t: any) => {
-    setSelected(t)
-    setShowActionModal(true)
-  }
+    setSelected(t);
+    setShowActionModal(true);
+  };
 
   const handleDelete = async () => {
-    if (!selected) return
-    console.log("Deleting tuition", selected.id)
-    // TODO: gọi API xóa ở đây
-    setShowActionModal(false)
-    await refetch()
-  }
+    if (!selected) return;
+    try {
+      await removeTuition(selected.id);
+      alert("Xoá học phí thành công!");
+      setShowActionModal(false);
+    } catch (err) {
+      console.error(err);
+      alert("Xoá học phí thất bại!");
+    }
+  };
+
+  const handleCreatedOrUpdated = async () => {
+    await refetch();
+  };
 
   return (
     <div className="space-y-4">
@@ -52,8 +62,8 @@ export default function TuitionManagement({
           <ActionModal
             onClose={() => setShowActionModal(false)}
             onShowInfo={() => {
-              setShowActionModal(false)
-              setShowInfoModal(true)
+              setShowActionModal(false);
+              setShowInfoModal(true);
             }}
             onDelete={handleDelete}
           />
@@ -67,16 +77,28 @@ export default function TuitionManagement({
             type="tuition"
             data={selected}
             onClose={() => setShowInfoModal(false)}
-            onUpdated={refetch}
+            onUpdated={handleCreatedOrUpdated}
+          />
+        </div>
+      )}
+
+      {/* 🖼 Create Tuition Form Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <CreateTuitionForm
+            onClose={() => setShowCreateModal(false)}
+            onCreated={handleCreatedOrUpdated}
           />
         </div>
       )}
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Tuition Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Tuition Management
+        </h2>
         <button
-          onClick={() => handleCreateNew("tuition")}
+          onClick={() => setShowCreateModal(true)} // Mở modal tạo mới
           className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
         >
           Create New Tuition
@@ -106,12 +128,24 @@ export default function TuitionManagement({
         <table className="w-full min-w-[600px]">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-12">ID</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-40">STUDENT</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">AMOUNT</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">TERM</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">STATUS</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">DUE DATE</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-12">
+                ID
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-40">
+                STUDENT
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">
+                AMOUNT
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">
+                TERM
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">
+                STATUS
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">
+                DUE DATE
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
@@ -122,8 +156,12 @@ export default function TuitionManagement({
                 onClick={() => handleRowClick(t)}
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{t.id}</td>
-                <td className="px-3 py-3 text-sm text-gray-300 break-words">{t.student}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(t.amount)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300 break-words">
+                  {t.student}
+                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">
+                  {formatCurrency(t.amount)}
+                </td>
                 <td className="px-3 py-3 text-sm text-cyan-400">{t.term}</td>
                 <td className="px-3 py-3">
                   <span
@@ -138,12 +176,14 @@ export default function TuitionManagement({
                     {t.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-sm text-gray-300">{t.due_date}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">
+                  {t.due_date}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </div>
-  )
+  );
 }

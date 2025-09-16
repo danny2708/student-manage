@@ -52,7 +52,7 @@ def run_monthly_payroll(db: Session) -> list[Payroll]:
             total_base_salary=total_classes * base_salary_per_class,
             reward_bonus=reward_bonus,
             sent_at=today,
-            payment_status= PaymentStatus.unpaid  # Đảm bảo gán giá trị mặc định cho schema
+            status= PaymentStatus.pending  # Đảm bảo gán giá trị mặc định cho schema
         )
         result = create_payroll(db, teacher, payroll_in)
         results.append(result)

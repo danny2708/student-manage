@@ -28,8 +28,8 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
   )
 
   const formatCurrency = (amount: number) => {
-    return `${amount?.toLocaleString("vi-VN") || ""} vnđ`;
-  };
+    return `${amount?.toLocaleString("vi-VN") || ""} vnđ`
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -62,43 +62,43 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
         </div>
 
         {/* Table */}
-        <div className="overflow-auto max-h-[60vh]">
+        <div className="overflow-auto max-h-[60vh] bg-gray-800">
           <table className="w-full">
-            <thead className="bg-gray-50 sticky top-0">
+            <thead className="bg-gray-700 sticky top-0">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Teacher Name
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Base Salary
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Bonus
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Sent At
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-gradient-to-br from-gray-800 to-gray-900 divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-600">
               {filteredPayrolls.map((payroll) => (
-                <tr key={payroll.id} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                <tr key={payroll.id} className="hover:bg-gray-700 cursor-pointer">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{payroll.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-cyan-400 font-medium">
                     {payroll.teacher}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
                     {formatCurrency(payroll.base_salary)}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(payroll.bonus)}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{formatCurrency(payroll.bonus)}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-300">
                     {formatCurrency(payroll.total)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -110,7 +110,7 @@ export function PayrollModal({ payrolls, onClose }: PayrollModalProps) {
                       {payroll.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{payroll.sent_at}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{payroll.sent_at}</td>
                 </tr>
               ))}
             </tbody>

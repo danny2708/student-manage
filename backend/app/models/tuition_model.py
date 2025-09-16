@@ -9,7 +9,7 @@ class PaymentStatus(str, enum.Enum):
     """
     Enum để đại diện cho trạng thái thanh toán.
     """
-    unpaid = "unpaid"
+    pending = "pending"
     paid = "paid"
     overdue = "overdue"
 
@@ -30,7 +30,7 @@ class Tuition(Base):
 
     # Trường mới để lưu hạn thanh toán và trạng thái
     due_date = Column(Date, nullable=False)
-    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.unpaid, nullable=False)
+    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.pending, nullable=False)
 
     # Quan hệ với bảng student
     student = relationship("Student", back_populates="tuitions")

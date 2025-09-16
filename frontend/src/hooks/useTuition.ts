@@ -7,41 +7,90 @@ export function useTuitions() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Hàm fetch data ban đầu
   async function fetchTuitions() {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
       const data = await getTuitions()
       setTuitions(data)
     } catch (err) {
-      setError("Failed to fetch tuitions")
+      setError("Không thể tải danh sách học phí.")
     } finally {
       setLoading(false)
     }
   }
 
+  // Hàm thêm học phí với xử lý lỗi
   async function addTuition(newData: any) {
-    const created = await createTuition(newData)
-    setTuitions((prev) => [...prev, created])
+    try {
+      setLoading(true)
+      const created = await createTuition(newData)
+      setTuitions((prev) => [...prev, created])
+      setError(null) // Xóa lỗi nếu thao tác thành công
+    } catch (err) {
+      setError("Thêm học phí thất bại.")
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // Hàm chỉnh sửa học phí với xử lý lỗi
   async function editTuition(id: number, updatedData: any) {
-    const updated = await updateTuition(id, updatedData)
-    setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    try {
+      setLoading(true)
+      const updated = await updateTuition(id, updatedData)
+      setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)))
+      setError(null)
+    } catch (err) {
+      setError("Chỉnh sửa học phí thất bại.")
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // Hàm thay đổi trạng thái với xử lý lỗi
   async function changeStatus(id: number, status: "paid" | "pending" | "overdue") {
-    const updated = await updateTuitionStatus(id, status)
-    setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    try {
+      setLoading(true)
+      const updated = await updateTuitionStatus(id, { payment_status: status })
+      setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)))
+      setError(null)
+    } catch (err) {
+      setError("Cập nhật trạng thái thất bại.")
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // Hàm xóa học phí với xử lý lỗi
   async function removeTuition(id: number) {
-    await deleteTuition(id)
-    setTuitions((prev) => prev.filter((t) => t.id !== id))
+    try {
+      setLoading(true)
+      await deleteTuition(id)
+      setTuitions((prev) => prev.filter((t) => t.id !== id))
+      setError(null)
+    } catch (err) {
+      setError("Xóa học phí thất bại.")
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // Fetch dữ liệu khi component được mount
   useEffect(() => {
     fetchTuitions()
   }, [])
 
-  return { tuitions, loading, error, addTuition, editTuition, removeTuition, changeStatus, refetch: fetchTuitions }
+  // Trả về state và các hàm thao tác
+  return { 
+    tuitions, 
+    loading, 
+    error, 
+    addTuition, 
+    editTuition, 
+    removeTuition, 
+    changeStatus, 
+    refetch: fetchTuitions 
+  }
 }

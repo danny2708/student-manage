@@ -36,15 +36,16 @@ def get_all_payrolls(
     limit: int = 100,
     db: Session = Depends(deps.get_db)
 ):
-    payrolls = payroll_crud.get_all_payrolls_with_fullname(db, skip=skip, limit=limit)
+    payrolls = payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
     return [
         payroll_schema.PayrollView(
             id=p.payroll_id,
+            month=p.month,
             teacher=fullname,
             base_salary=p.total_base_salary,
             bonus=p.reward_bonus,
             total=p.total,
-            status=p.payment_status,
+            status=p.status,
             sent_at=p.sent_at
         )
         for p, fullname in payrolls
@@ -74,7 +75,7 @@ def get_payroll(
     current_user=Depends(get_current_active_user)
 ):
     # Sử dụng hàm CRUD mới để lấy dữ liệu
-    payroll_data = payroll_crud.get_payroll_with_fullname(db, payroll_id)
+    payroll_data = payroll_crud.get_payroll(db, payroll_id)
 
     if not payroll_data:
         raise HTTPException(status_code=404, detail="Payroll not found")
@@ -86,11 +87,12 @@ def get_payroll(
     if "manager" in current_user.roles:
         return payroll_schema.PayrollView(
             id=db_payroll.payroll_id,
+            month=db_payroll.month,
             teacher=teacher_fullname,
             base_salary=db_payroll.total_base_salary,
             bonus=db_payroll.reward_bonus,
             total=db_payroll.total,
-            status=db_payroll.payment_status,
+            status=db_payroll.status,
             sent_at=db_payroll.sent_at
         )
 
@@ -105,7 +107,7 @@ def get_payroll(
         base_salary=db_payroll.total_base_salary,
         bonus=db_payroll.reward_bonus,
         total=db_payroll.total,
-        status=db_payroll.payment_status,
+        status=db_payroll.status,
         sent_at=db_payroll.sent_at
     )
 
@@ -150,7 +152,7 @@ def get_teacher_payrolls(
     if "manager" not in current_user.roles and teacher.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="You do not have permission to view this teacher's payrolls")
 
-    payrolls = payroll_crud.get_payrolls_by_teacher_with_fullname(db, teacher_user_id, skip=skip, limit=limit)
+    payrolls = payroll_crud.get_payrolls_by_teacher(db, teacher_user_id, skip=skip, limit=limit)
     if not payrolls:
         raise HTTPException(status_code=404, detail="No payrolls found for this teacher")
 
@@ -161,7 +163,7 @@ def get_teacher_payrolls(
             base_salary=p.total_base_salary,
             bonus=p.reward_bonus,
             total=p.total,
-            status=p.payment_status,
+            status=p.status,
             sent_at=p.sent_at
         )
         for p, fullname in payrolls

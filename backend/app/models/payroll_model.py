@@ -18,7 +18,7 @@ class Payroll(Base):
     reward_bonus = Column(Float, nullable=False, default=0.0)
     total = Column(Float, Computed("total_base_salary + reward_bonus"), nullable=False)
     sent_at = Column(DateTime, nullable=False)
-    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.unpaid, nullable=False)
+    status = Column(Enum(PaymentStatus), default=PaymentStatus.pending, nullable=False)
     
     # Mối quan hệ với giáo viên (many-to-one, vì một giáo viên có thể có nhiều bản lương theo tháng)
     teacher = relationship("Teacher", back_populates="payroll")

@@ -9,7 +9,6 @@ from app.schemas.tuition_schema import (
     TuitionUpdate,
     TuitionRead,
     TuitionView,
-    TuitionPaymentStatusUpdate
 )
 from app.services import tuition_service
 from app.api.auth.auth import has_roles, get_current_active_user
@@ -159,33 +158,15 @@ def get_tuitions_by_parent(
     summary="Cập nhật chi tiết học phí",
     dependencies=[Depends(MANAGER_ONLY)]
 )
-def update_tuition_details(
+def update_tuition(
     tuition_id: int,
     tuition_in: TuitionUpdate,
     db: Session = Depends(deps.get_db)
 ):
-    updated = tuition_crud.update_tuition_details(db, tuition_id, tuition_in)
+    updated = tuition_crud.update_tuition(db, tuition_id, tuition_in)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tuition not found hoặc đã thanh toán")
     return updated
-
-
-@router.patch(
-    "/{tuition_id}/status",
-    response_model=TuitionRead,
-    summary="Cập nhật trạng thái thanh toán học phí",
-    dependencies=[Depends(MANAGER_ONLY)]
-)
-def update_tuition_payment_status(
-    tuition_id: int,
-    status_in: TuitionPaymentStatusUpdate,
-    db: Session = Depends(deps.get_db)
-):
-    updated = tuition_crud.update_tuition_payment_status(db, tuition_id, status_in.payment_status)
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tuition not found")
-    return updated
-
 
 @router.delete(
     "/{tuition_id}",
@@ -201,7 +182,6 @@ def delete_tuition(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tuition not found")
     return {
         "message": "Bản ghi học phí đã được xóa thành công.",
-        "deleted_tuition_id": deleted.tuition_id,
         "status": "success"
     }
 

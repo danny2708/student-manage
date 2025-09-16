@@ -9,7 +9,7 @@ import { useState } from "react"
 interface Tuition {
   id: number
   student: string
-  term: string
+  term: number
   amount: number
   status: string
   due_date: string
@@ -26,7 +26,7 @@ export function TuitionModal({ tuitions, onClose }: TuitionModalProps) {
   const filteredTuitions = tuitions.filter(
     (tuition) =>
       tuition.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tuition.term.toLowerCase().includes(searchTerm.toLowerCase()),
+      String(tuition.term).includes(searchTerm.toLowerCase()),
   )
 
   const getStatusBadgeColor = (status: string) => {

@@ -9,13 +9,17 @@ class PayrollBase(BaseModel):
     total_base_salary: float = 0.0
     reward_bonus: float = 0.0
     sent_at: datetime
-    payment_status: PaymentStatus = Field("paid")
+    status: PaymentStatus = Field("paid")
 
     class Config:
         from_attributes = True
 
-class PayrollCreate(PayrollBase):
-    pass
+class PayrollCreate(BaseModel):
+    teacher_user_id: int
+    month: int
+    total_base_salary: float = 0.0
+    reward_bonus: float = 0.0
+    sent_at: datetime
 
 
 class PayrollUpdate(BaseModel):
@@ -23,7 +27,7 @@ class PayrollUpdate(BaseModel):
     total_base_salary: Optional[float] = None
     reward_bonus: Optional[float] = None
     sent_at: Optional[datetime] = None
-    payment_status: Optional[PaymentStatus] = None
+    status: Optional[PaymentStatus] = None
     class Config:
         from_attributes = True
 
@@ -31,7 +35,7 @@ class PayrollUpdate(BaseModel):
 class Payroll(PayrollBase):
     payroll_id: int
     total: float   # chỉ xuất hiện ở response
-    payment_status: PaymentStatus 
+    status: PaymentStatus 
     
     class Config:
         from_attributes = True
@@ -39,6 +43,7 @@ class Payroll(PayrollBase):
 class PayrollView(BaseModel):
     id: int
     teacher: str
+    month: int
     base_salary: float
     bonus: float
     total: float

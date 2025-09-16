@@ -27,10 +27,8 @@ class TuitionUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
     term: Optional[int] = None
     due_date: Optional[date] = None
-
-# Schema dùng để cập nhật trạng thái thanh toán
-class TuitionPaymentStatusUpdate(BaseModel):
     payment_status: PaymentStatus  = Field("paid")
+
 
 class TuitionView(BaseModel):
     id: int

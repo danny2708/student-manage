@@ -1,32 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Input } from "../../../components/ui/input";
-
-import { Payroll } from "../financial/payroll_modal";
-import { Tuition } from "../financial/tuition_modal";
-import { Schedule } from "../academic/schedule_modal";
-import { Class } from "../academic/class_modal";
-
+import { usePayrolls } from "../../../src/hooks/usePayroll";
+import { ActionModal} from "./action_modal";
 import {
+  Tuition,
   updateTuition,
-  updateTuitionStatus,
+  getTuitions,
+  deleteTuition,
 } from "../../../src/services/api/tuition";
-import { updatePayroll } from "../../../src/services/api/payroll";
-import { ConfirmModal } from "../dashboard_components/ConfirmModal"; // <-- dùng component mới
+import {
+  Payroll,
+  updatePayroll,
+} from "../../../src/services/api/payroll";
 
-type ModalDataType = Tuition | Payroll | Schedule | Class;
+// Định nghĩa lại các loại dữ liệu cho rõ ràng hơn
+type ModalDataType = Tuition | Payroll;
 
 interface ShowInfoModalProps {
-  type: string;
+  type: "tuition" | "payroll";
   data: ModalDataType;
   onClose: () => void;
-  onUpdated?: () => Promise<void>;
+  onUpdated: () => Promise<void>;
 }
 
-export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
-  const [editedData, setEditedData] = useState(data);
+export function ShowInfoModal({
+  type,
+  data,
+  onClose,
+  onUpdated,
+}: ShowInfoModalProps) {
+  const [editedData, setEditedData] = useState<ModalDataType>(data);
 
   const handleInputChange = (field: string, value: string | number) => {
     setEditedData((prev) => ({ ...prev, [field]: value }));
@@ -34,223 +40,362 @@ export function ShowInfoModal({ type, data, onClose }: ShowInfoModalProps) {
 
   const handleSave = async () => {
     try {
-      
       if (type === "tuition") {
-        const { id, amount, term, due_date, status } = editedData as Tuition;
+        const t = editedData as Tuition;
+        const [d, m, y] = t.due_date.split("/");
+        const formattedDate = `${y}-${m}-${d}`;
 
-        let formattedDate = due_date;
-        if (due_date.includes("/")) {
-          const [d, m, y] = due_date.split("/");
-          formattedDate = `${y}-${m}-${d}`;
-        }
-
-        await updateTuition(id, {
-          amount: Number(amount),
-          term: Number(term),
+        const tuitionPayload = {
+          amount: Number(t.amount),
+          term: Number(t.term),
           due_date: formattedDate,
-        });
-
-        if (status === "paid" || status === "pending" || status === "overdue") {
-          await updateTuitionStatus(id, {
-            payment_status: status as "paid" | "pending" | "overdue",
-          });
-        }
+          payment_status: t.status,
+        };
+        await updateTuition(t.id, tuitionPayload);
       } else if (type === "payroll") {
-        const { id, ...payload } = editedData as Payroll;
-        await updatePayroll(id, payload);
+        const p = editedData as Payroll;
+        const updatedMonth = p.month ?? new Date(p.sent_at).getMonth() + 1;
+
+        const payrollPayload = {
+          month: updatedMonth,
+          total_base_salary: p.base_salary,
+          reward_bonus: p.bonus,
+          sent_at: p.sent_at,
+          status: p.status,
+        };
+
+        await updatePayroll(p.id, payrollPayload);
       }
 
-      alert("Lưu thành công!");
+      await onUpdated();
       onClose();
+      alert("Lưu thành công!");
     } catch (err) {
-      console.error(err);
+      console.error("Failed to save data:", err);
       alert("Có lỗi xảy ra khi lưu!");
     }
   };
 
   const renderFields = () => {
-    const currentData = editedData;
-
-    const renderIdField = (id: string) => (
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-cyan-400 font-medium">ID</span>
-        <div className="flex-1 flex justify-center">
-          <span className="text-white">{id}</span>
+    if (type === "tuition") {
+      const t = editedData as Tuition;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <span className="text-cyan-400 font-medium w-24 shrink-0">
+              Student
+            </span>
+            <span className="text-white ml-6">{t.student}</span>
+          </div>
+          <div className="flex items-center">
+            <span className="text-cyan-400 font-medium w-24 shrink-0">
+              Term
+            </span>
+            <Input
+              type="text"
+              value={t.term}
+              onChange={(e) => handleInputChange("term", Number(e.target.value))}
+              className="w-48 ml-6"
+            />
+          </div>
+          <div className="flex items-center">
+            <span className="text-cyan-400 font-medium w-24 shrink-0">
+              Amount
+            </span>
+            <Input
+              type="text"
+              value={t.amount}
+              onChange={(e) =>
+                handleInputChange("amount", Number(e.target.value))
+              }
+              className="w-48 ml-6"
+            />
+          </div>
+          <div className="flex items-center">
+            <span className="text-cyan-400 font-medium w-24 shrink-0">
+              Status
+            </span>
+            <select
+              value={t.status}
+              onChange={(e) => handleInputChange("status", e.target.value)}
+              className="w-48 ml-6"
+              aria-label="Select status"
+            >
+              <option value="pending" className="text-black">
+                Pending
+              </option>
+              <option value="paid" className="text-black">
+                Paid
+              </option>
+              <option value="overdue" className="text-black">
+                Overdue
+              </option>
+            </select>
+          </div>
+          <div className="flex items-center">
+            <span className="text-cyan-400 font-medium w-24 shrink-0">
+              Due date
+            </span>
+            <Input
+              type="date"
+              value={
+                t.due_date
+                  ? (() => {
+                      const [d, m, y] = t.due_date.split("/");
+                      return `${y}-${m}-${d}`;
+                    })()
+                  : ""
+              }
+              onChange={(e) => {
+                const [y, m, d] = e.target.value.split("-");
+                handleInputChange("due_date", `${d}/${m}/${y}`);
+              }}
+              className="w-48 ml-6"
+            />
+          </div>
         </div>
-      </div>
-    );
+      );
+    } else if (type === "payroll") {
+      const p = editedData as Payroll;
+      const currentMonthValue = p.month ?? new Date(p.sent_at).getMonth() + 1;
+      const calculatedTotal = (p.base_salary || 0) + (p.bonus || 0);
 
-    switch (type) {
-      case "tuition":
-        const tuitionData = currentData as Tuition;
-        return (
-          <>
-            {renderIdField(String(tuitionData.id))}
-
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Student name</span>
-              <span className="text-white font-semibold px-3 py-2 rounded border-none w-48 text-left">
-                {tuitionData.student || "N/A"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Term</span>
-              <Input
-                type="text"
-                value={tuitionData.term || ""}
-                onChange={(e) => handleInputChange("term", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Amount</span>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  value={tuitionData.amount || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "amount",
-                      e.target.value.replace(/[^\d]/g, "")
-                    )
-                  }
-                  className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-36"
-                />
-                <span className="text-white">vnđ</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-cyan-400 font-medium">Status</span>
-              <select
-                aria-label="Status"
-                value={tuitionData.status || ""}
-                onChange={(e) => handleInputChange("status", e.target.value)}
-                className="bg-white text-gray-800 px-3 py-2 rounded border outline-none w-48 rounded"
-              >
-                <option value="">-- Select status --</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-cyan-400 font-medium">Due date</span>
-              <Input
-                type="date"
-                value={
-                  tuitionData.due_date
-                    ? (() => {
-                        const [m, d, y] = tuitionData.due_date.split("/");
-                        return `${y}-${m}-${d}`;
-                      })()
-                    : ""
-                }
-                onChange={(e) => {
-                  const [y, m, d] = e.target.value.split("-");
-                  handleInputChange("due_date", `${d}/${m}/${y}`);
-                }}
-                className="bg-white text-gray-800 px-3 py-2 rounded border-none outline-none w-48"
-              />
-            </div>
-          </>
-        );
-      default:
-        return <div className="text-white">No information available</div>;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">ID</span>
+            <span className="text-white w-48 text-center">{p.id}</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Teacher
+            </span>
+            <span className="text-white w-48 text-center">{p.teacher}</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Month
+            </span>
+            <select
+              value={currentMonthValue}
+              onChange={(e) =>
+                handleInputChange("month", Number(e.target.value))
+              }
+              className="w-48 text-white text-center bg-transparent border border-gray-600 rounded-md py-1"
+              aria-label="Select month"
+            >
+              {[...Array(12)].map((_, i) => (
+                <option key={i + 1} value={i + 1} className="text-black">
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Base Salary
+            </span>
+            <Input
+              type="text"
+              value={p.base_salary}
+              onChange={(e) =>
+                handleInputChange("base_salary", Number(e.target.value))
+              }
+              className="w-48 text-center"
+            />
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Bonus
+            </span>
+            <Input
+              type="text"
+              value={p.bonus}
+              onChange={(e) =>
+                handleInputChange("bonus", Number(e.target.value))
+              }
+              className="w-48 text-center"
+            />
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Total
+            </span>
+            <Input
+              type="text"
+              value={calculatedTotal}
+              readOnly
+              className="w-48 text-center"
+            />
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-cyan-400 font-medium w-32 shrink-0">
+              Status
+            </span>
+            <select
+              value={p.status}
+              onChange={(e) => handleInputChange("status", e.target.value)}
+              className="w-48 text-white text-center bg-transparent border border-gray-600 rounded-md py-1"
+              aria-label="Select status"
+            >
+              <option value="pending" className="text-black">
+                Pending
+              </option>
+              <option value="paid" className="text-black">
+                Paid
+              </option>
+            </select>
+          </div>
+        </div>
+      );
     }
+    return <div className="text-white">No information available</div>;
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative">
+    <div className="bg-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative">
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors"
+        className="absolute top-4 right-4 text-red-500 hover:text-red-700"
         aria-label="Close modal"
       >
         <X className="h-5 w-5" />
       </button>
-      <div className="mt-2">
-        {renderFields()}
-        <div className="flex justify-center">
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors font-medium"
-          >
-            Save changes
-          </button>
-        </div>
+      {renderFields()}
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={handleSave}
+          className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg"
+        >
+          Save
+        </button>
       </div>
     </div>
   );
 }
 
-export function ShowInfoFlow({ rows }: { rows: any[] }) {
-  const [selectedRow, setSelectedRow] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState<string>("");
+
+export function ShowInfoFlow() {
+  const { payrolls, fetchPayrolls, removePayroll } = usePayrolls();
+  const [tuitionRows, setTuitionRows] = useState<Tuition[]>([]);
+  const [selectedRow, setSelectedRow] = useState<ModalDataType | null>(null);
+  const [selectedType, setSelectedType] = useState<"tuition" | "payroll">(
+    "tuition"
+  );
   const [showConfirm, setShowConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  const handleRowClick = (row: any, type: string) => {
+  const reloadTuitionData = async () => {
+    const data = await getTuitions();
+    setTuitionRows(data);
+  };
+
+  useEffect(() => {
+    reloadTuitionData();
+    fetchPayrolls();
+  }, [fetchPayrolls]);
+
+  const handleRowClick = (row: ModalDataType, type: "tuition" | "payroll") => {
     setSelectedRow(row);
     setSelectedType(type);
     setShowConfirm(true);
   };
 
-  const handleShowInfo = () => {
-    setShowConfirm(false);
-    setShowInfo(true);
+  const handleDelete = async () => {
+    try {
+      if (!selectedRow) return;
+
+      if (selectedType === "tuition") {
+        await deleteTuition((selectedRow as Tuition).id);
+        alert("Tuition deleted successfully!");
+        await reloadTuitionData();
+      } else if (selectedType === "payroll") {
+        await removePayroll((selectedRow as Payroll).id);
+        alert("Payroll deleted successfully!");
+        // Không cần gọi fetchPayrolls() ở đây vì hook đã tự cập nhật state
+      }
+
+      setShowConfirm(false);
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed!");
+    }
   };
 
-  const handleDelete = async () => {
-    alert(`Xoá ${selectedType} id=${selectedRow.id}`);
-    setShowConfirm(false);
+  const handleUpdated = async () => {
+    await reloadTuitionData();
+    await fetchPayrolls();
   };
 
   return (
     <div className="text-white">
-      <table className="w-full">
+      <h3 className="text-lg font-bold mb-2">Tuitions</h3>
+      <table className="w-full mb-6">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Tên</th>
+            <th>Student</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {tuitionRows.map((t) => (
             <tr
-              key={row.id}
-              onClick={() => handleRowClick(row, row.type)}
+              key={t.id}
               className="hover:bg-gray-700 cursor-pointer"
+              onClick={() => handleRowClick(t, "tuition")}
             >
-              <td>{row.id}</td>
-              <td>{row.name}</td>
+              <td>{t.id}</td>
+              <td>{t.student}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {showConfirm && (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-        <ConfirmModal
-          onClose={() => setShowConfirm(false)}
-          onShowInfo={handleShowInfo}
-          onDelete={handleDelete}
-        />
-      </div>
-    )}
+      <h3 className="text-lg font-bold mb-2">Payrolls</h3>
+      <table className="w-full mb-6">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Teacher</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payrolls.map((p) => (
+            <tr
+              key={p.id}
+              className="hover:bg-gray-700 cursor-pointer"
+              onClick={() => handleRowClick(p, "payroll")}
+            >
+              <td>{p.id}</td>
+              <td>{p.teacher}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-    {showInfo && selectedRow && (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-        <ShowInfoModal
-          type={selectedType}
-          data={selectedRow}
-          onClose={() => setShowInfo(false)}
-        />
-      </div>
-    )}
+      {showConfirm && selectedRow && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <ActionModal
+            onClose={() => setShowConfirm(false)}
+            onShowInfo={() => {
+              setShowConfirm(false);
+              setShowInfo(true);
+            }}
+            onDelete={handleDelete}
+          />
+        </div>
+      )}
+
+      {showInfo && selectedRow && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <ShowInfoModal
+            type={selectedType}
+            data={selectedRow}
+            onClose={() => setShowInfo(false)}
+            onUpdated={handleUpdated}
+          />
+        </div>
+      )}
     </div>
   );
 }

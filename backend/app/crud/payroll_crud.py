@@ -1,11 +1,10 @@
 from sqlalchemy.orm import Session
 from app.models import Payroll
 from app.schemas.payroll_schema import PayrollCreate, PayrollUpdate
-from app.models.class_model import Class
 from app.crud import notification_crud
-from app.crud import teacher_crud
 from app.models.user_model import User
 from app.models.teacher_model import Teacher
+from app.models.tuition_model import PaymentStatus
 
 def create_payroll_record(db: Session, payroll_in: PayrollCreate):
     db_payroll = Payroll(
@@ -14,14 +13,14 @@ def create_payroll_record(db: Session, payroll_in: PayrollCreate):
         total_base_salary=payroll_in.total_base_salary,
         reward_bonus=payroll_in.reward_bonus,
         sent_at=payroll_in.sent_at,
-        payment_status=payroll_in.payment_status,
+        status=PaymentStatus.pending,
     )
     db.add(db_payroll)
     db.commit()
     db.refresh(db_payroll)  # total được DB tính sẵn
     return db_payroll
 
-def get_all_payrolls_with_fullname(db: Session, skip: int = 0, limit: int = 100):
+def get_all_payrolls(db: Session, skip: int = 0, limit: int = 100):
     results = (
         db.query(Payroll, User.full_name)
         .join(Teacher, Payroll.teacher_user_id == Teacher.user_id)
@@ -32,7 +31,7 @@ def get_all_payrolls_with_fullname(db: Session, skip: int = 0, limit: int = 100)
     )
     return results
 
-def get_payroll_with_fullname(db: Session, payroll_id: int):
+def get_payroll(db: Session, payroll_id: int):
     """
     Lấy một bản ghi payroll và tên đầy đủ của giáo viên dựa trên payroll_id.
     """
@@ -47,7 +46,7 @@ def get_payroll_with_fullname(db: Session, payroll_id: int):
 
     return result
 
-def get_payrolls_by_teacher_with_fullname(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
+def get_payrolls_by_teacher(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
     results = (
         db.query(Payroll, User.full_name)
         .join(Teacher, Payroll.teacher_user_id == Teacher.user_id)
