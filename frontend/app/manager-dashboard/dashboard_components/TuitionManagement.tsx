@@ -1,21 +1,26 @@
+"use client"
+
 import * as React from "react"
 import { DollarSign, Settings } from "lucide-react"
 import { useTuitions } from "../../../src/hooks/useTuition"
+import { ShowInfoModal } from "../functions/show_info_modal"
+import { ActionModal } from "../functions/action_modal"
 
 interface TuitionManagementProps {
   searchTerm: string
   updateSearchTerm: (section: string, value: string) => void
   handleCreateNew: (type: string) => void
-  handleTableRowClick: (type: string, data: any) => void
 }
 
 export default function TuitionManagement({
   searchTerm,
   updateSearchTerm,
   handleCreateNew,
-  handleTableRowClick,
 }: TuitionManagementProps) {
-  const { tuitions, loading, error } = useTuitions()
+  const { tuitions, loading, error, refetch } = useTuitions()
+  const [selected, setSelected] = React.useState<any>(null)
+  const [showActionModal, setShowActionModal] = React.useState(false)
+  const [showInfoModal, setShowInfoModal] = React.useState(false)
 
   const filteredTuitions = tuitions.filter(
     (t) =>
@@ -23,15 +28,51 @@ export default function TuitionManagement({
       t.status.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const formatCurrency = (amount: number) => {
-    return `${amount?.toLocaleString("en-US") || ""} vnđ`;
-  };
+  const formatCurrency = (amount: number) =>
+    `${amount?.toLocaleString("en-US") || ""} vnđ`
 
-  if (loading) return <div className="text-gray-300">Loading...</div>
-  if (error) return <div className="text-red-500">{error}</div>
+  const handleRowClick = (t: any) => {
+    setSelected(t)
+    setShowActionModal(true)
+  }
+
+  const handleDelete = async () => {
+    if (!selected) return
+    console.log("Deleting tuition", selected.id)
+    // TODO: gọi API xóa ở đây
+    setShowActionModal(false)
+    await refetch()
+  }
 
   return (
     <div className="space-y-4">
+      {/* 🖼 Action modal */}
+      {showActionModal && selected && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <ActionModal
+            onClose={() => setShowActionModal(false)}
+            onShowInfo={() => {
+              setShowActionModal(false)
+              setShowInfoModal(true)
+            }}
+            onDelete={handleDelete}
+          />
+        </div>
+      )}
+
+      {/* 🖼 Show Info modal */}
+      {showInfoModal && selected && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <ShowInfoModal
+            type="tuition"
+            data={selected}
+            onClose={() => setShowInfoModal(false)}
+            onUpdated={refetch}
+          />
+        </div>
+      )}
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Tuition Management</h2>
         <button
@@ -41,6 +82,8 @@ export default function TuitionManagement({
           Create New Tuition
         </button>
       </div>
+
+      {/* SEARCH */}
       <div className="text-gray-900 flex items-center gap-4 mb-6">
         <div className="relative flex-1">
           <input
@@ -57,16 +100,18 @@ export default function TuitionManagement({
           Filter
         </button>
       </div>
+
+      {/* TABLE */}
       <div className="bg-gray-800 rounded-lg overflow-x-auto">
         <table className="w-full min-w-[600px]">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">ID</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-40">STUDENT</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">AMOUNT</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">TERM</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-20">STATUS</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">DUE DATE</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-12">ID</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-40">STUDENT</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">AMOUNT</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">TERM</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-20">STATUS</th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase w-24">DUE DATE</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
@@ -74,7 +119,7 @@ export default function TuitionManagement({
               <tr
                 key={t.id}
                 className="hover:bg-gray-700 transition-colors cursor-pointer"
-                onClick={() => handleTableRowClick("tuition", t)}
+                onClick={() => handleRowClick(t)}
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{t.id}</td>
                 <td className="px-3 py-3 text-sm text-gray-300 break-words">{t.student}</td>

@@ -77,7 +77,7 @@ export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProp
                 <Calendar className="h-3 w-3" />
                 <span className="font-medium">Date of birth</span>
               </div>
-              <p className="text-gray-600">{user.dob || "23/02/2012"}</p>
+              <p className="text-gray-600">{user.dob || ""}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 text-purple-500 mb-1">

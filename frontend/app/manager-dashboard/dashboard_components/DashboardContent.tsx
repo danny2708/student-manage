@@ -63,77 +63,80 @@ export default function DashboardContent() {
       </div>
     );
   }
-
-  return (
-    <>
-      <style jsx>{`
-        .stat-card-emerald {
-          background: #10b981 !important;
-          color: white !important;
-        }
-        .stat-card-orange {
-          background: #f97316 !important;
-          color: white !important;
-        }
-        .stat-card-cyan {
-          background: #06b6d4 !important;
-          color: white !important;
-        }
-        .stat-card-red {
-          background: #ef4444 !important;
-          color: white !important;
-        }
-        .stat-card-emerald *,
-        .stat-card-orange *,
-        .stat-card-cyan *,
-        .stat-card-red * {
-          color: white !important;
-        }
-      `}</style>
-      <div className="space-y-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="stat-card-emerald rounded-lg shadow-lg p-6">
-            <div className="pb-2">
-              <h3 className="text-sm font-medium opacity-90">Class</h3>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{stats.total_classes}</div>
-              <p className="text-xs opacity-80 mt-1">Active classes</p>
-            </div>
+return (
+  <>
+    <style jsx>{`
+      .stat-card-emerald {
+        background: #10b981 !important;
+        color: white !important;
+      }
+      .stat-card-orange {
+        background: #f97316 !important;
+        color: white !important;
+      }
+      .stat-card-cyan {
+        background: #06b6d4 !important;
+        color: white !important;
+      }
+      .stat-card-red {
+        background: #ef4444 !important;
+        color: white !important;
+      }
+      .stat-card-emerald *,
+      .stat-card-orange *,
+      .stat-card-cyan *,
+      .stat-card-red * {
+        color: white !important;
+      }
+    `}</style>
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Card 1: Class */}
+        <div className="stat-card-emerald rounded-lg shadow-lg p-6 flex flex-col items-center text-center">
+          <div className="pb-2">
+            <h3 className="text-sm font-medium opacity-90">Class</h3>
           </div>
-
-          <div className="stat-card-orange rounded-lg shadow-lg p-6">
-            <div className="pb-2">
-              <h3 className="text-sm font-medium opacity-90">Teacher</h3>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{stats.total_teachers}</div>
-              <p className="text-xs opacity-80 mt-1">Active teachers</p>
-            </div>
-          </div>
-
-          <div className="stat-card-cyan rounded-lg shadow-lg p-6">
-            <div className="pb-2">
-              <h3 className="text-sm font-medium opacity-90">Student</h3>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{stats.total_students}</div>
-              <p className="text-xs opacity-80 mt-1">Enrolled students</p>
-            </div>
-          </div>
-
-          <div className="stat-card-red rounded-lg shadow-lg p-6">
-            <div className="pb-2">
-              <h3 className="text-sm font-medium opacity-90">Schedule</h3>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">{stats.total_schedules}</div>
-              <p className="text-xs opacity-80 mt-1">Today's classes</p>
-            </div>
+          <div>
+            <div className="text-3xl font-bold">{stats.total_classes}</div>
+            <p className="text-xs opacity-80 mt-1">Active classes</p>
           </div>
         </div>
 
+        {/* Card 2: Teacher */}
+        <div className="stat-card-orange rounded-lg shadow-lg p-6 flex flex-col items-center text-center">
+          <div className="pb-2">
+            <h3 className="text-sm font-medium opacity-90">Teacher</h3>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{stats.total_teachers}</div>
+            <p className="text-xs opacity-80 mt-1">Active teachers</p>
+          </div>
+        </div>
+
+        {/* Card 3: Student */}
+        <div className="stat-card-cyan rounded-lg shadow-lg p-6 flex flex-col items-center text-center">
+          <div className="pb-2">
+            <h3 className="text-sm font-medium opacity-90">Student</h3>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{stats.total_students}</div>
+            <p className="text-xs opacity-80 mt-1">Enrolled students</p>
+          </div>
+        </div>
+
+        {/* Card 4: Schedule */}
+        <div className="stat-card-red rounded-lg shadow-lg p-6 flex flex-col items-center text-center">
+          <div className="pb-2">
+            <h3 className="text-sm font-medium opacity-90">Schedule</h3>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{stats.total_schedules}</div>
+            <p className="text-xs opacity-80 mt-1">Today's classes</p>
+          </div>
+        </div>
+      </div>
+  
         {/* Calendar Widget */}
         <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
           <CardHeader>

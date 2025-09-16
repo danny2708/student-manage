@@ -43,10 +43,17 @@ export async function updateTuition(id: number, data: TuitionUpdate): Promise<Tu
   return res.data
 }
 
-export async function updateTuitionStatus(id: number, status: "paid" | "pending" | "overdue"): Promise<Tuition> {
-  const res = await api.patch<Tuition>(`/tuitions/${id}/status`, { payment_status: status })
-  return res.data
+export async function updateTuitionStatus(
+  id: number,
+  body: { payment_status: "paid" | "pending" | "overdue" }
+) {
+  return fetch(`/api/v1/tuitions/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then(res => res.json());
 }
+
 
 export async function deleteTuition(id: number): Promise<void> {
   await api.delete(`/tuitions/${id}`)

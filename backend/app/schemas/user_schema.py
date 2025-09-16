@@ -16,6 +16,12 @@ class UserBase(BaseModel):
     gender: Optional[GenderEnum] = Field(None, example="male")
     phone_number: Optional[str] = Field(None, example="0901234567")
 
+    @staticmethod
+    def format_date_of_birth(date_of_birth: Optional[date]):
+        # Kiểm tra nếu date_of_birth có giá trị, nếu không thì trả về None
+        if date_of_birth:
+            return date_of_birth.strftime("%d/%m/%Y")
+        return None
 
 # -------------------------------
 # Schema cho CRUD User
@@ -48,10 +54,22 @@ class UserView(BaseModel):
     email: Optional[EmailStr]
     phone_number: Optional[str]
 
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            date: UserBase.format_date_of_birth
+        }
+    
 class UserViewDetails(UserBase):
     user_id: int
     user_roles: List[str]
     password_changed: bool
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            date: UserBase.format_date_of_birth
+        }
 # -------------------------------
 # Schema cho import từ Google Sheet
 # -------------------------------

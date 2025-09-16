@@ -31,8 +31,8 @@ def get_user(db: Session, user_id: int) -> Optional[UserViewDetails]:
         email=db_user.email,
         phone_number=db_user.phone_number,
         password_changed=db_user.password_changed,
-        # Các trường khác từ UserViewDetails cần được ánh xạ nếu có
-        # Ví dụ: created_at=db_user.created_at, updated_at=db_user.updated_at
+        date_of_birth=db_user.date_of_birth,
+        gender=db_user.gender,
     )
 
 # Trong app/crud/user_crud.py
