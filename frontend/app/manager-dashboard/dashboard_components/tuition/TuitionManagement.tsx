@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { DollarSign, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTuitions } from "../../../../src/hooks/useTuition";
 import { ShowInfoModal } from "../../functions/show_info_modal";
 import { ActionModal } from "../../functions/action_modal";
-
-// Import component form tạo mới
 import { CreateTuitionForm } from "./CreateTuitionForm";
 
 interface TuitionManagementProps {
@@ -22,7 +21,7 @@ export default function TuitionManagement({
   const [selected, setSelected] = React.useState<any>(null);
   const [showActionModal, setShowActionModal] = React.useState(false);
   const [showInfoModal, setShowInfoModal] = React.useState(false);
-  const [showCreateModal, setShowCreateModal] = React.useState(false); // Thêm state để quản lý modal tạo mới
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
 
   const filteredTuitions = tuitions.filter(
     (t) =>
@@ -54,52 +53,78 @@ export default function TuitionManagement({
     await refetch();
   };
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>, close: () => void) => {
+    if (e.target === e.currentTarget) close();
+  };
+
   return (
     <div className="space-y-4">
       {/* 🖼 Action modal */}
-      {showActionModal && selected && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <ActionModal
-            onClose={() => setShowActionModal(false)}
-            onShowInfo={() => {
-              setShowActionModal(false);
-              setShowInfoModal(true);
-            }}
-            onDelete={handleDelete}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showActionModal && selected && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowActionModal(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ActionModal
+              onClose={() => setShowActionModal(false)}
+              onShowInfo={() => {
+                setShowActionModal(false);
+                setShowInfoModal(true);
+              }}
+              onDelete={handleDelete}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 🖼 Show Info modal */}
-      {showInfoModal && selected && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <ShowInfoModal
-            type="tuition"
-            data={selected}
-            onClose={() => setShowInfoModal(false)}
-            onUpdated={handleCreatedOrUpdated}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showInfoModal && selected && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowInfoModal(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ShowInfoModal
+              type="tuition"
+              data={selected}
+              onClose={() => setShowInfoModal(false)}
+              onUpdated={handleCreatedOrUpdated}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 🖼 Create Tuition Form Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <CreateTuitionForm
-            onClose={() => setShowCreateModal(false)}
-            onCreated={handleCreatedOrUpdated}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <CreateTuitionForm
+              onClose={() => setShowCreateModal(false)}
+              onCreated={handleCreatedOrUpdated}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Tuition Management
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900">Tuition Management</h2>
         <button
-          onClick={() => setShowCreateModal(true)} // Mở modal tạo mới
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
         >
           Create New Tuition
         </button>
@@ -117,7 +142,7 @@ export default function TuitionManagement({
           />
           <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-black" />
         </div>
-        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2">
+        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 cursor-pointer">
           <Settings className="h-4 w-4" />
           Filter
         </button>
@@ -176,9 +201,7 @@ export default function TuitionManagement({
                     {t.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {t.due_date}
-                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">{t.due_date}</td>
               </tr>
             ))}
           </tbody>

@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { FileText, Settings } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ActionModal } from "../../functions/action_modal";
 import { ShowInfoModal } from "../../functions/show_info_modal";
 import { usePayrolls } from "../../../../src/hooks/usePayroll";
-
-// Import component form tạo mới
 import { CreatePayrollForm } from "./CreatePayrollForm";
 
 export default function PayrollManagement() {
@@ -17,7 +16,6 @@ export default function PayrollManagement() {
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
 
-  // Filter payrolls by search term
   const filteredPayrolls = payrolls.filter((p) =>
     (p.teacher ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -36,7 +34,6 @@ export default function PayrollManagement() {
         await removePayroll(selectedRow.id);
         alert("Xoá thành công!");
         setShowAction(false);
-        // Không cần gọi fetchPayrolls() ở đây vì hook đã tự cập nhật
       }
     } catch (err) {
       console.error(err);
@@ -50,7 +47,11 @@ export default function PayrollManagement() {
   };
 
   const handleCreated = async () => {
-    await fetchPayrolls(); // Cập nhật lại danh sách sau khi tạo thành công
+    await fetchPayrolls();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>, close: () => void) => {
+    if (e.target === e.currentTarget) close();
   };
 
   return (
@@ -59,8 +60,8 @@ export default function PayrollManagement() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Payroll Management</h2>
         <button
-          onClick={() => setShowCreateModal(true)} // Mở modal tạo mới
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
         >
           Create New Payroll
         </button>
@@ -78,7 +79,7 @@ export default function PayrollManagement() {
           />
           <FileText className="absolute left-3 top-2.5 h-5 w-5 text-black" />
         </div>
-        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
+        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 cursor-pointer">
           <Settings className="h-4 w-4" />
           Filter
         </button>
@@ -120,18 +121,10 @@ export default function PayrollManagement() {
                 onClick={() => handleRowClick(p)}
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{p.id}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {p.teacher}
-                </td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {formatCurrency(p.base_salary)}
-                </td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {formatCurrency(p.bonus)}
-                </td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {formatCurrency(p.total)}
-                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">{p.teacher}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.base_salary)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.bonus)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.total)}</td>
                 <td className="px-3 py-3">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -143,9 +136,7 @@ export default function PayrollManagement() {
                     {p.status}
                   </span>
                 </td>
-                <td className="px-3 py-3 text-sm text-gray-300">
-                  {p.sent_at}
-                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">{p.sent_at}</td>
               </tr>
             ))}
           </tbody>
@@ -153,37 +144,61 @@ export default function PayrollManagement() {
       </div>
 
       {/* Action Modal */}
-      {showAction && selectedRow && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <ActionModal
-            onClose={() => setShowAction(false)}
-            onShowInfo={handleShowInfo}
-            onDelete={handleDelete}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showAction && selectedRow && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ActionModal
+              onClose={() => setShowAction(false)}
+              onShowInfo={handleShowInfo}
+              onDelete={handleDelete}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Show Info Modal */}
-      {showInfo && selectedRow && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <ShowInfoModal
-            type="payroll"
-            data={selectedRow}
-            onClose={() => setShowInfo(false)}
-            onUpdated={fetchPayrolls}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showInfo && selectedRow && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowInfo(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ShowInfoModal
+              type="payroll"
+              data={selectedRow}
+              onClose={() => setShowInfo(false)}
+              onUpdated={fetchPayrolls}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Payroll Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <CreatePayrollForm
-            onClose={() => setShowCreateModal(false)}
-            onCreated={handleCreated}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <CreatePayrollForm
+              onClose={() => setShowCreateModal(false)}
+              onCreated={handleCreated}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
