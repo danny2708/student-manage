@@ -83,6 +83,8 @@ export function useTuitions() {
   }, [])
 
   // Trả về state và các hàm thao tác
+  // hooks/useTuitions.ts
+
   return { 
     tuitions, 
     loading, 
@@ -91,6 +93,6 @@ export function useTuitions() {
     editTuition, 
     removeTuition, 
     changeStatus, 
-    refetch: fetchTuitions 
+    fetchTuitions, 
   }
 }

@@ -10,15 +10,56 @@ import { CreatePayrollForm } from "./CreatePayrollForm";
 
 export default function PayrollManagement() {
   const { payrolls, fetchPayrolls, removePayroll } = usePayrolls();
+
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
 
-  const filteredPayrolls = payrolls.filter((p) =>
-    (p.teacher ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter UI states
+  const [showFilterPanel, setShowFilterPanel] = React.useState(false);
+  const [filterTeacher, setFilterTeacher] = React.useState("");
+  const [filterStatus, setFilterStatus] = React.useState("");
+  const [baseMin, setBaseMin] = React.useState("");
+  const [baseMax, setBaseMax] = React.useState("");
+  const [bonusMin, setBonusMin] = React.useState("");
+  const [bonusMax, setBonusMax] = React.useState("");
+  const [totalMin, setTotalMin] = React.useState("");
+  const [totalMax, setTotalMax] = React.useState("");
+
+  // Lấy danh sách giáo viên duy nhất
+  const teacherOptions = Array.from(new Set(payrolls.map((p) => p.teacher)));
+
+  // Lọc payrolls theo toàn bộ tiêu chí
+  const filteredPayrolls = payrolls.filter((p) => {
+    const matchesSearch = (p.teacher ?? "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesTeacher = filterTeacher ? p.teacher === filterTeacher : true;
+    const matchesStatus = filterStatus ? p.status === filterStatus : true;
+
+    const matchesBase =
+      (!baseMin || p.base_salary >= Number(baseMin)) &&
+      (!baseMax || p.base_salary <= Number(baseMax));
+
+    const matchesBonus =
+      (!bonusMin || p.bonus >= Number(bonusMin)) &&
+      (!bonusMax || p.bonus <= Number(bonusMax));
+
+    const matchesTotal =
+      (!totalMin || p.total >= Number(totalMin)) &&
+      (!totalMax || p.total <= Number(totalMax));
+
+    return (
+      matchesSearch &&
+      matchesTeacher &&
+      matchesStatus &&
+      matchesBase &&
+      matchesBonus &&
+      matchesTotal
+    );
+  });
 
   const formatCurrency = (amount: number) =>
     `${amount?.toLocaleString("en-US") || ""} vnđ`;
@@ -50,8 +91,22 @@ export default function PayrollManagement() {
     await fetchPayrolls();
   };
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>, close: () => void) => {
+  const handleBackdropClick = (
+    e: React.MouseEvent<HTMLDivElement>,
+    close: () => void
+  ) => {
     if (e.target === e.currentTarget) close();
+  };
+
+  const resetFilters = () => {
+    setFilterTeacher("");
+    setFilterStatus("");
+    setBaseMin("");
+    setBaseMax("");
+    setBonusMin("");
+    setBonusMax("");
+    setTotalMin("");
+    setTotalMax("");
   };
 
   return (
@@ -68,7 +123,7 @@ export default function PayrollManagement() {
       </div>
 
       {/* Search + Filter */}
-      <div className="text-gray-900 flex items-center gap-4 mb-6">
+      <div className="text-gray-900 flex items-center gap-4 mb-2">
         <div className="relative flex-1">
           <input
             type="text"
@@ -79,38 +134,155 @@ export default function PayrollManagement() {
           />
           <FileText className="absolute left-3 top-2.5 h-5 w-5 text-black" />
         </div>
-        <button className="px-4 py-2 bg-gray-500 border border-black rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 cursor-pointer">
+        <button
+          onClick={() => setShowFilterPanel((s) => !s)}
+          className="px-4 py-2 bg-gray-500 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 cursor-pointer"
+        >
           <Settings className="h-4 w-4" />
           Filter
         </button>
       </div>
+
+      {/* Filter Panel */}
+      <AnimatePresence>
+        {showFilterPanel && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-gray-100 p-4 rounded-lg shadow-inner space-y-4"
+          >
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Teacher */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Teacher</label>
+                <select
+                  aria-label="Filter by teacher"
+                  value={filterTeacher}
+                  onChange={(e) => setFilterTeacher(e.target.value)}
+                  className="border p-2 rounded"
+                >
+                  <option value="">All</option>
+                  {teacherOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Status</label>
+                <select
+                  aria-label="Filter by status"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="border p-2 rounded"
+                >
+                  <option value="">All</option>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Base */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Base Salary</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={baseMin}
+                    onChange={(e) => setBaseMin(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={baseMax}
+                    onChange={(e) => setBaseMax(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Bonus */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Bonus</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={bonusMin}
+                    onChange={(e) => setBonusMin(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={bonusMax}
+                    onChange={(e) => setBonusMax(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="flex flex-col">
+                <label className="text-sm font-semibold">Total</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={totalMin}
+                    onChange={(e) => setTotalMin(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={totalMax}
+                    onChange={(e) => setTotalMax(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={resetFilters}
+                className="px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Table */}
       <div className="bg-gray-800 rounded-lg overflow-x-auto">
         <table className="w-full min-w-[650px]">
           <thead className="bg-gray-700">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                TEACHER
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                BASE
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                BONUS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                TOTAL
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                STATUS
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                SENT AT
-              </th>
+              {[
+                "ID",
+                "TEACHER",
+                "BASE",
+                "BONUS",
+                "TOTAL",
+                "STATUS",
+                "SENT AT",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-600">
@@ -122,9 +294,15 @@ export default function PayrollManagement() {
               >
                 <td className="px-3 py-3 text-sm text-gray-300">{p.id}</td>
                 <td className="px-3 py-3 text-sm text-gray-300">{p.teacher}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.base_salary)}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.bonus)}</td>
-                <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(p.total)}</td>
+                <td className="px-3 py-3 text-sm text-gray-300">
+                  {formatCurrency(p.base_salary)}
+                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">
+                  {formatCurrency(p.bonus)}
+                </td>
+                <td className="px-3 py-3 text-sm text-gray-300">
+                  {formatCurrency(p.total)}
+                </td>
                 <td className="px-3 py-3">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
