@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "../../../../components/ui/input";
-import { useUsers } from "../../../../src/hooks/useUsers";
+import { useUsers, User } from "../../../../src/contexts/UsersContext";
 import { createTuition } from "../../../../src/services/api/tuition";
 
 interface CreateTuitionFormProps {
@@ -16,7 +16,7 @@ export function CreateTuitionForm({
   onClose,
   onCreated,
 }: CreateTuitionFormProps) {
-  const { users, fetchUsers, loading } = useUsers();
+  const { users, loading } = useUsers();
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
 
   const [term, setTerm] = useState("");
@@ -26,11 +26,8 @@ export function CreateTuitionForm({
   const [dueDate, setDueDate] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const students = users.filter((user) => user.roles.includes("student"));
+  // Filter only students
+  const students: User[] = users.filter((user) => user.roles?.includes("student"));
 
   const handleNumberInput = (
     e: ChangeEvent<HTMLInputElement>,
@@ -44,7 +41,10 @@ export function CreateTuitionForm({
     }
   };
 
-  const handleFormatOnBlur = (display: string, setDisplay: (s: string) => void) => {
+  const handleFormatOnBlur = (
+    display: string,
+    setDisplay: (s: string) => void
+  ) => {
     const raw = display.replace(/,/g, "");
     const numValue = Number(raw || 0);
     if (!isNaN(numValue) && numValue > 0) {
@@ -123,7 +123,7 @@ export function CreateTuitionForm({
                 <option value="" className="text-white">
                   -- Chọn học sinh --
                 </option>
-                {students.map((student) => (
+                {students.map((student: User) => (
                   <option
                     key={student.user_id}
                     value={student.user_id}
@@ -174,9 +174,7 @@ export function CreateTuitionForm({
         </div>
 
         {errorMessage && (
-          <p className="text-red-500 text-sm mt-4 text-center">
-            {errorMessage}
-          </p>
+          <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
         )}
 
         <div className="flex justify-center mt-6">

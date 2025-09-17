@@ -24,7 +24,7 @@ import {
   LogOut,
   User as UserIcon,
 } from "lucide-react"
-import { RoleModal } from "./user/role_modal"
+import { RoleModal } from "./users_management/role_modal"
 import { UserInfoModal } from "./functions/user_info_modal"
 import { ActionModal } from "./functions/action_modal"
 import { CreateModal } from "./functions/create_modal"
@@ -33,7 +33,7 @@ import { UserAccountModal } from "../user_account"
 
 // Import components
 import DashboardContent from "./dashboard_components/DashboardContent"
-import UserManagement from "./dashboard_components/UserManagement"
+import UserManagement from "./dashboard_components/user/UserManagement"
 import TuitionManagement from "./dashboard_components/tuition/TuitionManagement"
 import ScheduleManagement from "./dashboard_components/ScheduleManagement"
 import PayrollManagement from "./dashboard_components/payroll/PayrollManagement"
@@ -74,6 +74,7 @@ export default function ManagerDashboard() {
   // Hàm xử lý đăng xuất
   const handleLogout = () => {
     console.log("Đăng xuất thành công!")
+    localStorage.removeItem("token");
     router.push("/login")
   }
 

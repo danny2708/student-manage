@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "../../../../components/ui/input";
-import { useUsers } from "../../../../src/hooks/useUsers";
+import { useUsers, User } from "../../../../src/contexts/UsersContext";
 import { createPayroll, PayrollCreate } from "../../../../src/services/api/payroll";
 
 interface CreatePayrollFormProps {
@@ -16,7 +16,7 @@ export function CreatePayrollForm({
   onClose,
   onCreated,
 }: CreatePayrollFormProps) {
-  const { users, loading, fetchUsers } = useUsers();
+  const { users, loading } = useUsers();
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [month, setMonth] = useState("");
 
@@ -28,11 +28,8 @@ export function CreatePayrollForm({
 
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const teachers = users.filter((user) => user.roles.includes("teacher"));
+  // Filter only teachers
+  const teachers: User[] = users.filter((user) => user.roles?.includes("teacher"));
 
   const handleNumberInput = (
     e: ChangeEvent<HTMLInputElement>,
@@ -46,7 +43,10 @@ export function CreatePayrollForm({
     }
   };
 
-  const handleFormatOnBlur = (display: string, setDisplay: (s: string) => void) => {
+  const handleFormatOnBlur = (
+    display: string,
+    setDisplay: (s: string) => void
+  ) => {
     const raw = display.replace(/,/g, "");
     const numValue = Number(raw || 0);
     if (!isNaN(numValue) && numValue > 0) {
@@ -108,25 +108,25 @@ export function CreatePayrollForm({
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Create new payroll</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Tạo bảng lương mới</h2>
 
         <div className="space-y-4">
           {/* Teacher Select */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Teacher</label>
+            <label className="text-cyan-400 font-medium mb-1">Giáo viên</label>
             {loading ? (
-              <p className="text-gray-400">Loading teacher list...</p>
+              <p className="text-gray-400">Đang tải danh sách giáo viên...</p>
             ) : (
               <select
-                aria-label="Select Teacher"
+                aria-label="Chọn giáo viên"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
                 className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
               >
                 <option value="" className="text-black">
-                  -- Choose teacher --
+                  -- Chọn giáo viên --
                 </option>
-                {teachers.map((teacher) => (
+                {teachers.map((teacher: User) => (
                   <option
                     key={teacher.user_id}
                     value={teacher.user_id}
@@ -154,7 +154,7 @@ export function CreatePayrollForm({
 
           {/* Base Salary Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Total base salary</label>
+            <label className="text-cyan-400 font-medium mb-1">Lương cơ bản</label>
             <Input
               type="text"
               value={baseSalaryDisplay}
@@ -168,7 +168,7 @@ export function CreatePayrollForm({
 
           {/* Bonus Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Reward bonus</label>
+            <label className="text-cyan-400 font-medium mb-1">Thưởng</label>
             <Input
               type="text"
               value={bonusDisplay}
@@ -182,9 +182,7 @@ export function CreatePayrollForm({
         </div>
 
         {errorMessage && (
-          <p className="text-red-500 text-sm mt-4 text-center">
-            {errorMessage}
-          </p>
+          <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
         )}
 
         <div className="flex justify-center mt-6">
@@ -192,7 +190,7 @@ export function CreatePayrollForm({
             onClick={handleCreatePayroll}
             className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg cursor-pointer"
           >
-            Create
+            Tạo mới
           </button>
         </div>
       </motion.div>

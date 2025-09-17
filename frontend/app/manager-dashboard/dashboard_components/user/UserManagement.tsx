@@ -1,12 +1,15 @@
-import * as React from "react"
-import { Users, Settings } from "lucide-react"
-import { useUsers } from "../../../src/hooks/useUsers"
+"use client";
+
+import * as React from "react";
+import { Users, Settings, Upload } from "lucide-react";
+import { useUsers } from "../../../../src/contexts/UsersContext";
+import ImportUsersModal from "./ImportUsersModal";
 
 interface UserManagementProps {
-  searchTerm: string
-  updateSearchTerm: (section: string, value: string) => void
-  handleCreateNew: (type: string) => void
-  handleTableRowClick: (type: string, data: any) => void
+  searchTerm: string;
+  updateSearchTerm: (section: string, value: string) => void;
+  handleCreateNew: (type: string) => void;
+  handleTableRowClick: (type: string, data: any) => void;
 }
 
 export default function UserManagement({
@@ -15,36 +18,46 @@ export default function UserManagement({
   handleCreateNew,
   handleTableRowClick,
 }: UserManagementProps) {
-  const { users, loading, error } = useUsers()
-  const [selectedRole, setSelectedRole] = React.useState<string>("")
-  const [showFilter, setShowFilter] = React.useState(false)
+  const { users, loading, error } = useUsers();
+  const [selectedRole, setSelectedRole] = React.useState<string>("");
+  const [showFilter, setShowFilter] = React.useState(false);
+  const [showImportModal, setShowImportModal] = React.useState(false);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = selectedRole ? user.roles?.includes(selectedRole) : true
+    const matchesRole = selectedRole ? user.roles?.includes(selectedRole) : true;
 
-    return matchesSearch && matchesRole
-  })
+    return matchesSearch && matchesRole;
+  });
 
   const capitalizeFirstLetter = (string: string) => {
-    if (!string) return ""
-    return string.charAt(0).toUpperCase() + string.slice(1)
-  }
+    if (!string) return "";
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-        <button
-          onClick={() => handleCreateNew("user")}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
-        >
-          Create New User
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import from File
+          </button>
+          <button
+            onClick={() => handleCreateNew("user")}
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
+          >
+            Create New User
+          </button>
+        </div>
       </div>
 
       <div className="text-gray-900 flex items-center gap-3 mb-6 relative">
@@ -67,7 +80,7 @@ export default function UserManagement({
         </button>
 
         {showFilter && (
-          <div className="absolute top-14 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-48 z-10">
+          <div className="absolute top-14 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-48 z-10 animate-fadeIn">
             <h4 className="font-semibold mb-2 text-gray-800">Filter by Role</h4>
             <select
               aria-label="Filter by Role"
@@ -134,7 +147,6 @@ export default function UserManagement({
                 >
                   <td className="px-3 py-3 text-sm text-gray-300">{user.user_id}</td>
                   <td className="px-3 py-3 text-sm text-cyan-400 break-words">{user.username}</td>
-
                   <td className="px-3 py-3">
                     {user.roles && user.roles.length > 0 ? (
                       <span
@@ -158,7 +170,6 @@ export default function UserManagement({
                       </span>
                     )}
                   </td>
-
                   <td className="px-3 py-3 text-sm text-gray-300 break-words max-w-32">{user.full_name}</td>
                   <td className="px-3 py-3 text-sm text-cyan-400 break-words max-w-40">{user.email}</td>
                 </tr>
@@ -167,6 +178,8 @@ export default function UserManagement({
           </table>
         </div>
       )}
+
+      <ImportUsersModal open={showImportModal} onClose={() => setShowImportModal(false)} />
     </div>
-  )
+  );
 }
