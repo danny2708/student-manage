@@ -3,8 +3,8 @@
 import * as React from "react";
 import { FileText, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ActionModal } from "../../functions/action_modal";
-import { ShowInfoModal } from "../../functions/show_info_modal";
+import { ActionModal } from "../../showInfo/action_modal";
+import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
 import { usePayrolls } from "../../../../src/hooks/usePayroll";
 import { CreatePayrollForm } from "./CreatePayrollForm";
 

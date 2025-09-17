@@ -1,7 +1,7 @@
 // components/ScheduleManagement.tsx
 import * as React from "react"
 import { Calendar, Settings } from "lucide-react"
-import { useSchedules } from "../../../src/hooks/useSchedule"
+import { useSchedules } from "../../../../src/hooks/useSchedule"
 
 interface ScheduleManagementProps {
   searchTerm: string

@@ -25,21 +25,21 @@ import {
   User as UserIcon,
 } from "lucide-react"
 import { RoleModal } from "./users_management/role_modal"
-import { UserInfoModal } from "./functions/user_info_modal"
-import { ActionModal } from "./functions/action_modal"
-import { CreateModal } from "./functions/create_modal"
-import { ShowInfoModal } from "./functions/show_info_modal"
+import { UserInfoModal } from "./showInfo/user_info_modal"
+import { ActionModal } from "./showInfo/action_modal"
+import { CreateModal } from "./showInfo/create_modal"
+import { ShowInfoModal } from "./showInfo/ShowInfoModal"
 import { UserAccountModal } from "../user_account"
 
 // Import components
 import DashboardContent from "./dashboard_components/DashboardContent"
 import UserManagement from "./dashboard_components/user/UserManagement"
 import TuitionManagement from "./dashboard_components/tuition/TuitionManagement"
-import ScheduleManagement from "./dashboard_components/ScheduleManagement"
+import ScheduleManagement from "./dashboard_components/schedule/ScheduleManagement"
 import PayrollManagement from "./dashboard_components/payroll/PayrollManagement"
 import TeacherReviewManagement from "./dashboard_components/TeacherReviewManagement"
 import EvaluationManagement from "./dashboard_components/EvaluationManagement"
-import ClassManagement from "./dashboard_components/ClassManagement"
+import ClassManagement from "./dashboard_components/class/ClassManagement"
 import SubjectManagement from "./dashboard_components/SubjectManagement"
 
 export default function ManagerDashboard() {

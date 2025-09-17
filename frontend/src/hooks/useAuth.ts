@@ -39,7 +39,10 @@ export function useAuth() {
     setUser(null)
   }
 
-  const isAuthenticated = !!user
+  // ✅ Fix: Chuyển isAuthenticated thành một hàm
+  const isAuthenticated = (): boolean => {
+    return !!user
+  }
 
   return { user, loading, error, login, logout, isAuthenticated }
 }

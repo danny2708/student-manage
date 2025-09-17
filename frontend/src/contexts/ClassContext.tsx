@@ -1,5 +1,6 @@
-// hooks/useClasses.ts
-import { useEffect, useState } from "react"
+"use client"
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react"
 import {
   Class,
   ClassCreate,
@@ -8,14 +9,27 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  exportClass,
 } from "../services/api/class"
 
-export function useClasses() {
+interface ClassContextType {
+  classes: Class[]
+  loading: boolean
+  error: string | null
+  fetchClasses: () => Promise<void>
+  addClass: (data: ClassCreate) => Promise<Class>
+  editClass: (id: number, data: ClassUpdate) => Promise<Class>
+  removeClass: (id: number) => Promise<void>
+  exportClassData: (id: number) => Promise<void>
+}
+
+const ClassContext = createContext<ClassContextType | null>(null)
+
+export const ClassesProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<Class[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Gọi API lấy danh sách lớp học
   const fetchClasses = async () => {
     setLoading(true)
     setError(null)
@@ -29,7 +43,6 @@ export function useClasses() {
     }
   }
 
-  // Thêm mới lớp học
   const addClass = async (data: ClassCreate) => {
     try {
       const newClass = await createClass(data)
@@ -40,7 +53,6 @@ export function useClasses() {
     }
   }
 
-  // Cập nhật lớp học
   const editClass = async (id: number, data: ClassUpdate) => {
     try {
       const updated = await updateClass(id, data)
@@ -51,7 +63,6 @@ export function useClasses() {
     }
   }
 
-  // Xoá lớp học
   const removeClass = async (id: number) => {
     try {
       await deleteClass(id)
@@ -61,17 +72,38 @@ export function useClasses() {
     }
   }
 
+  const exportClassData = async (id: number) => {
+    try {
+      await exportClass(id)
+    } catch (err: any) {
+      throw new Error(err.message || "Không thể xuất danh sách lớp")
+    }
+  }
+
   useEffect(() => {
     fetchClasses()
   }, [])
 
-  return {
-    classes,
-    loading,
-    error,
-    fetchClasses,
-    addClass,
-    editClass,
-    removeClass,
-  }
+  return (
+    <ClassContext.Provider
+      value={{
+        classes,
+        loading,
+        error,
+        fetchClasses,
+        addClass,
+        editClass,
+        removeClass,
+        exportClassData,
+      }}
+    >
+      {children}
+    </ClassContext.Provider>
+  )
+}
+
+export const useClasses = (): ClassContextType => {
+  const context = useContext(ClassContext)
+  if (!context) throw new Error("useClasses must be used within <ClassesProvider>")
+  return context
 }

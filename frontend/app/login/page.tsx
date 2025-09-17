@@ -41,7 +41,7 @@ export default function Auth() {
   const [showRoleModal, setShowRoleModal] = useState(false)
 
   const toggleMode = () => {
-    setIsLogin(!isLogin)
+    setIsLogin((prev) => !prev)
     setErrors({})
     setSuccessMessage("")
     setFormData({
@@ -58,8 +58,7 @@ export default function Auth() {
 
   const handleInputChange = (field: FormField, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }))
-    if (errors.general) setErrors((prev) => ({ ...prev, general: "" }))
+    setErrors((prev) => ({ ...prev, [field]: "", general: "" }))
   }
 
   const validateForm = () => {
@@ -68,8 +67,11 @@ export default function Auth() {
     if (isLogin) {
       if (!formData.username) newErrors.username = "Username is required"
     } else {
-      if (!formData.email) newErrors.email = "Email is required"
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid"
+      if (!formData.email) {
+        newErrors.email = "Email is required"
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = "Email is invalid"
+      }
 
       if (!formData.full_name) newErrors.full_name = "Full name is required"
       if (!formData.phone_number) newErrors.phone_number = "Phone number is required"
@@ -77,12 +79,14 @@ export default function Auth() {
     }
 
     if (!formData.password) newErrors.password = "Password is required"
-
-    if (!isLogin && formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match"
-    // } else if (formData.password.length < 6) {
+    // Thêm validate độ dài password nếu cần
+    // if (formData.password.length < 6) {
     //   newErrors.password = "Password must be at least 6 characters"
     // }
+
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -90,10 +94,8 @@ export default function Auth() {
 
   const handleLoginSuccess = (roles: string[]) => {
     if (roles.length === 1) {
-      // Chỉ có 1 role → chuyển thẳng
       router.push(`/${roles[0]}-dashboard`)
     } else if (roles.length > 1) {
-      // Có nhiều role → hiển thị modal chọn
       setAvailableRoles(roles)
       setShowRoleModal(true)
     }
@@ -120,8 +122,10 @@ export default function Auth() {
         })
         if (result.success && result.user?.roles) {
           setSuccessMessage("Login successful! Redirecting...")
-          handleLoginSuccess(result.user?.roles)
-        } else setErrors({ general: result.error || "Login failed" })
+          handleLoginSuccess(result.user.roles)
+        } else {
+          setErrors({ general: result.error || "Login failed" })
+        }
       } else {
         const result = await authService.register({
           email: formData.email,
@@ -134,7 +138,9 @@ export default function Auth() {
         if (result.success) {
           setSuccessMessage("Account created! Please login.")
           setTimeout(() => toggleMode(), 1500)
-        } else setErrors({ general: result.error || "Registration failed" })
+        } else {
+          setErrors({ general: result.error || "Registration failed" })
+        }
       }
     } catch (error) {
       setErrors({ general: "Unexpected error occurred. Please try again." })
@@ -165,7 +171,6 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-
       {/* Modal chọn role */}
       {showRoleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -187,7 +192,7 @@ export default function Auth() {
           </div>
         </div>
       )}
-      
+
       <div className="absolute inset-0 bg-gradient-to-br from-[#0072ff] via-[#0080ff] to-[#00c6ff]">
         <motion.div
           className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"

@@ -16,7 +16,7 @@ def get_class_with_teacher_name_query():
             Class.class_name,
             User.full_name.label("teacher_name"),
             Subject.name.label("subject_name"),          # 🆕 lấy subject_name
-            Class.max_students.label("capacity"),
+            Class.capacity.label("capacity"),
             Class.fee
         )
         .select_from(

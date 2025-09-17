@@ -5,7 +5,7 @@ class ClassBase(BaseModel):
     class_name: str = Field(..., example="Class 1A")
     teacher_user_id: Optional[int] = Field(None, example=1)
     subject_id: Optional[int] = Field(None, example=1)
-    max_students: Optional[int] = Field(None, example=30)
+    capacity: Optional[int] = Field(None, example=30)
     fee: Optional[int] = Field(None, example=1000)
 
 class ClassCreate(ClassBase):
@@ -15,7 +15,7 @@ class ClassUpdate(BaseModel):
     class_name: Optional[str] = Field(None, example="Class 1A")
     teacher_user_id: Optional[int] = Field(None, example=1)
     subject_id: Optional[int] = Field(None, example=1)
-    max_students: Optional[int] = Field(None, example=30)
+    capacity: Optional[int] = Field(None, example=30)
     fee: Optional[int] = Field(None, example=1000)
 
 class Class(ClassBase):

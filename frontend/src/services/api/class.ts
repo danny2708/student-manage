@@ -1,11 +1,12 @@
-// services/api/class.ts
 import api from "./api"
 
 export interface Class {
   class_id: number
   class_name: string
   teacher_name?: string
+  teacher_user_id?: number
   subject_id?: number
+  subject_name?: string
   capacity?: number
   fee?: number
 }
@@ -26,31 +27,41 @@ export interface ClassUpdate {
   fee?: number
 }
 
-// Lấy danh sách tất cả lớp học
 export async function getClasses(): Promise<Class[]> {
   const res = await api.get<Class[]>("/classes")
   return res.data
 }
 
-// Lấy chi tiết 1 lớp học
 export async function getClassById(id: number): Promise<Class> {
   const res = await api.get<Class>(`/classes/${id}`)
   return res.data
 }
 
-// Tạo mới lớp học
 export async function createClass(data: ClassCreate): Promise<Class> {
   const res = await api.post<Class>("/classes", data)
   return res.data
 }
 
-// Cập nhật lớp học
 export async function updateClass(id: number, data: ClassUpdate): Promise<Class> {
   const res = await api.put<Class>(`/classes/${id}`, data)
   return res.data
 }
 
-// Xoá lớp học
 export async function deleteClass(id: number): Promise<void> {
   await api.delete(`/classes/${id}`)
+}
+
+export async function exportClass(classId: number): Promise<void> {
+  const res = await api.get(`/classes/export/${classId}`, {
+    responseType: "blob",
+  })
+
+  const url = window.URL.createObjectURL(new Blob([res.data]))
+  const link = document.createElement("a")
+  link.href = url
+  link.setAttribute("download", `danh_sach_lop_${classId}.xlsx`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 }

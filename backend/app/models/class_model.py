@@ -11,7 +11,7 @@ class Class(Base):
 
     teacher_user_id = Column(Integer, ForeignKey('teachers.user_id', ondelete="CASCADE"), nullable=False)
     subject_id = Column(Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"), nullable=False)
-    max_students = Column(Integer, nullable=False)
+    capacity = Column(Integer, nullable=False)
     fee = Column(Integer, nullable=False)
 
     # Quan hệ với Teacher và Subject
