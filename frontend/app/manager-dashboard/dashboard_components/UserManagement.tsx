@@ -16,18 +16,24 @@ export default function UserManagement({
   handleTableRowClick,
 }: UserManagementProps) {
   const { users, loading, error } = useUsers()
+  const [selectedRole, setSelectedRole] = React.useState<string>("")
+  const [showFilter, setShowFilter] = React.useState(false)
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+
+    const matchesRole = selectedRole ? user.roles?.includes(selectedRole) : true
+
+    return matchesSearch && matchesRole
+  })
 
   const capitalizeFirstLetter = (string: string) => {
-    if (!string) return '';
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
+    if (!string) return ""
+    return string.charAt(0).toUpperCase() + string.slice(1)
+  }
 
   return (
     <div className="space-y-4">
@@ -35,14 +41,14 @@ export default function UserManagement({
         <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
         <button
           onClick={() => handleCreateNew("user")}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
         >
           Create New User
         </button>
       </div>
 
-      <div className="text-gray-900 flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
+      <div className="text-gray-900 flex items-center gap-3 mb-6 relative">
+        <div className="relative flex-[2]">
           <input
             type="text"
             placeholder="Search users..."
@@ -52,10 +58,45 @@ export default function UserManagement({
           />
           <Users className="absolute left-3 top-2.5 h-5 w-5 text-black" />
         </div>
-        <button className="px-4 py-2 bg-gray-500 border border-gray-300 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
+        <button
+          onClick={() => setShowFilter(!showFilter)}
+          className="px-4 py-2 bg-gray-500 border border-gray-300 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 cursor-pointer"
+        >
           <Settings className="h-4 w-4" />
           Filter
         </button>
+
+        {showFilter && (
+          <div className="absolute top-14 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-48 z-10">
+            <h4 className="font-semibold mb-2 text-gray-800">Filter by Role</h4>
+            <select
+              aria-label="Filter by Role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="w-full px-2 py-1 border border-gray-300 rounded-md mb-3"
+            >
+              <option value="">All Roles</option>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="parent">Parent</option>
+              <option value="manager">Manager</option>
+            </select>
+            <div className="flex justify-between">
+              <button
+                onClick={() => setSelectedRole("")}
+                className="px-2 py-1 bg-red-400 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowFilter(false)}
+                className="px-2 py-1 bg-cyan-500 text-white rounded hover:bg-cyan-600 transition-colors cursor-pointer"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -109,7 +150,7 @@ export default function UserManagement({
                             : "bg-gray-100 text-gray-800"
                         }`}
                       >
-                        {user.roles.map(r => capitalizeFirstLetter(r)).join(", ")}
+                        {user.roles.map((r) => capitalizeFirstLetter(r)).join(", ")}
                       </span>
                     ) : (
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-cyan-500 text-gray-800">
