@@ -3,61 +3,130 @@ from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy import select, insert, delete
 from sqlalchemy.orm import Session
-from app.schemas.enrollment_schema import EnrollmentCreate
+from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentView
 from app.models.enrollment_model import Enrollment, EnrollmentStatus
 from app.models.user_model import User
+from app.models.class_model import Class # Import Class model
 
-
-def get_enrollment(db: Session, student_user_id: int, class_id: int) -> Optional[Enrollment]:
-    """Lấy bản ghi enrollment dựa trên student_user_id và class_id."""
+def get_enrollment(db: Session, student_user_id: int, class_id: int) -> Optional[EnrollmentView]:
+    """Lấy bản ghi enrollment dựa trên student_user_id và class_id và trả về dưới dạng EnrollmentView."""
     stmt = (
-        select(Enrollment)
+        select(
+            User.full_name.label("student_name"),
+            Class.class_name,
+            Enrollment.enrollment_date,
+            Enrollment.enrollment_status
+        )
+        .join(User, Enrollment.student_user_id == User.user_id)
+        .join(Class, Enrollment.class_id == Class.class_id)
         .where(
             Enrollment.student_user_id == student_user_id,
             Enrollment.class_id == class_id
         )
     )
-    return db.execute(stmt).scalars().first()
-
+    result = db.execute(stmt).first()
+    if result:
+        return EnrollmentView(
+            student_name=result.student_name,
+            class_name=result.class_name,
+            enrollment_date=result.enrollment_date,
+            enrollment_status=result.enrollment_status
+        )
+    return None
 
 def get_enrollments_by_student_user_id(
     db: Session, student_user_id: int, skip: int = 0, limit: int = 100
-) -> List[Enrollment]:
-    """Lấy danh sách enrollments theo student_user_id."""
+) -> List[EnrollmentView]:
+    """Lấy danh sách enrollments theo student_user_id và trả về dưới dạng EnrollmentView."""
     stmt = (
-        select(Enrollment)
+        select(
+            User.full_name.label("student_name"),
+            Class.class_name,
+            Enrollment.enrollment_date,
+            Enrollment.enrollment_status
+        )
+        .join(User, Enrollment.student_user_id == User.user_id)
+        .join(Class, Enrollment.class_id == Class.class_id)
         .where(Enrollment.student_user_id == student_user_id)
         .offset(skip)
         .limit(limit)
     )
-    return db.execute(stmt).scalars().all()
-
+    results = db.execute(stmt).all()
+    
+    return [
+        EnrollmentView(
+            student_name=row.student_name,
+            class_name=row.class_name,
+            enrollment_date=row.enrollment_date,
+            enrollment_status=row.enrollment_status
+        )
+        for row in results
+    ]
 
 def get_active_enrollments_by_class_id(
     db: Session, 
     class_id: int, 
     skip: int = 0, 
     limit: int = 100
-) -> List[Enrollment]:
+) -> List[EnrollmentView]:
     """
-    Lấy danh sách enrollments đang active theo class_id.
+    Lấy danh sách enrollments đang active theo class_id và trả về dưới dạng EnrollmentView.
     """
     stmt = (
-        select(Enrollment)
+        select(
+            User.full_name.label("student_name"),
+            Class.class_name,
+            Enrollment.enrollment_date,
+            Enrollment.enrollment_status
+        )
+        .join(User, Enrollment.student_user_id == User.user_id)
+        .join(Class, Enrollment.class_id == Class.class_id)
         .where(
             Enrollment.class_id == class_id,
-            Enrollment.enrollment_status == EnrollmentStatus.active # chỉ lấy học sinh đang học
+            Enrollment.enrollment_status == EnrollmentStatus.active
         )
         .offset(skip)
         .limit(limit)
     )
-    return db.execute(stmt).scalars().all()
+    results = db.execute(stmt).all()
+    
+    return [
+        EnrollmentView(
+            student_name=row.student_name,
+            class_name=row.class_name,
+            enrollment_date=row.enrollment_date,
+            enrollment_status=row.enrollment_status
+        )
+        for row in results
+    ]
 
+def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[EnrollmentView]:
+    """Lấy danh sách tất cả các enrollments và trả về dưới dạng EnrollmentView."""
+    stmt = (
+        select(
+            User.full_name.label("student_name"),
+            Class.class_name,
+            Enrollment.enrollment_date,
+            Enrollment.enrollment_status
+        )
+        .join(User, Enrollment.student_user_id == User.user_id)
+        .join(Class, Enrollment.class_id == Class.class_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    results = db.execute(stmt).all()
+    
+    return [
+        EnrollmentView(
+            student_name=row.student_name,
+            class_name=row.class_name,
+            enrollment_date=row.enrollment_date,
+            enrollment_status=row.enrollment_status
+        )
+        for row in results
+    ]
 
-def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[Enrollment]:
-    """Lấy danh sách tất cả các enrollments."""
-    stmt = select(Enrollment).offset(skip).limit(limit)
-    return db.execute(stmt).scalars().all()
+# ... (các hàm create, set_inactive, update không thay đổi) ...
 
 def create_enrollment(db: Session, enrollment_in: EnrollmentCreate) -> Enrollment:
     # Kiểm tra user có tồn tại và có role = "student"

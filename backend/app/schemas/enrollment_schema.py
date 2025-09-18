@@ -1,5 +1,5 @@
 # app/schemas/enrollment_schema.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from datetime import date
 from typing import Optional
 from app.models.enrollment_model import EnrollmentStatus
@@ -27,3 +27,13 @@ class Enrollment(EnrollmentBase):
 
     class Config:
         from_attributes = True
+
+class EnrollmentView(BaseModel):
+    student_name: str 
+    class_name: str 
+    enrollment_date: date = Field(..., example="2023-10-26")
+    enrollment_status: EnrollmentStatus = Field(..., example="active", description="Trạng thái: active, inactive")
+
+    @field_serializer("enrollment_date")
+    def format_enrollment_date(self, enrollment_date: date):
+        return enrollment_date.strftime("%d/%m/%Y")

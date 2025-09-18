@@ -1,13 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import date
-
 from app.api.auth.auth import has_roles
 from app.api.deps import get_db
 from app.crud import enrollment_crud
 from app.crud import student_crud, class_crud
-from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate, Enrollment
+from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate, Enrollment, EnrollmentView
 
 router = APIRouter()
 
@@ -61,7 +59,7 @@ def remove_enrollment(
 # --- Manager or Teacher endpoints ---
 @router.get(
     "/student/{student_user_id}",
-    response_model=List[Enrollment],
+    response_model=List[EnrollmentView],
     summary="Lấy danh sách các lớp học mà một sinh viên đã đăng ký",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
@@ -74,7 +72,7 @@ def get_enrollments_for_student(student_user_id: int, db: Session = Depends(get_
 
 @router.get(
     "/class/{class_id}",
-    response_model=List[Enrollment],
+    response_model=List[EnrollmentView],
     summary="Lấy danh sách các sinh viên đã đăng ký vào một lớp học",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
@@ -88,7 +86,7 @@ def get_active_enrollments_by_class(class_id: int, db: Session = Depends(get_db)
 # --- Manager only endpoint: get all ---
 @router.get(
     "/",
-    response_model=List[Enrollment],
+    response_model=List[EnrollmentView],
     summary="Lấy tất cả các bản ghi enrollment",
     dependencies=[Depends(MANAGER_ONLY)]
 )
