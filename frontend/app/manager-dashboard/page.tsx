@@ -24,7 +24,7 @@ import {
   LogOut,
   User as UserIcon,
 } from "lucide-react"
-import { RoleModal } from "./users_management/role_modal"
+import { RoleModal } from "./users_management/roles-components/role_modal"
 import { UserInfoModal } from "./showInfo/user_info_modal"
 import { ActionModal } from "./showInfo/action_modal"
 import { CreateModal } from "./showInfo/create_modal"

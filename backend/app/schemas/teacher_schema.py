@@ -7,8 +7,8 @@ class TeacherBase(BaseModel):
     Schema cơ sở cho Giáo viên, chứa các trường dùng chung.
     """
     user_id: int
-    base_salary_per_class: float
-    reward_bonus: float
+    base_salary_per_class:  Optional[float]
+    reward_bonus:  Optional[float]
 
     class Config:
         from_attributes = True
@@ -41,3 +41,11 @@ class TeacherAssign(BaseModel):
     Schema chỉ dùng để gán vai trò Giáo viên, chỉ cần teacher_user_id.
     """
     user_id: int
+
+class ClassTaught(BaseModel):
+    class_id: int
+    class_name: str 
+    teacher_name: Optional[str] 
+    subject_name: Optional[str] 
+    capacity: Optional[int]
+    fee: Optional[int] 

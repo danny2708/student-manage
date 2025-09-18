@@ -10,9 +10,10 @@ class EnrollmentBase(BaseModel):
     enrollment_date: date = Field(..., example="2023-10-26")
     enrollment_status: EnrollmentStatus = Field(..., example="active", description="Trạng thái: active, inactive")
 
-class EnrollmentCreate(EnrollmentBase):
-    """Schema để tạo một bản ghi enrollment mới."""
-    pass
+class EnrollmentCreate(BaseModel):
+    student_user_id: int = Field(..., example=1)
+    class_id: int = Field(..., example=1)
+    enrollment_date: date = Field(..., example="2023-10-26")
 
 class EnrollmentUpdate(BaseModel):
     """Schema để cập nhật một bản ghi enrollment."""

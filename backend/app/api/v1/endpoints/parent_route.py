@@ -2,15 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-
+from app.schemas.parent_schema import Child
 from app.crud import parent_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import parent_schema
 from app.api import deps
 from app.api.auth.auth import get_current_active_user, has_roles
+from app.schemas.auth_schema import AuthenticatedUser
 
 router = APIRouter()
 MANAGER_ONLY = has_roles(["manager"])
+MANAGER_OR_PARENT = has_roles(["manager", "parent"])
 
 @router.post(
     "/",
@@ -83,6 +85,37 @@ def get_parent(
 
     return db_parent
 
+@router.get(
+    "/{parent_user_id}/children",
+    response_model=List[parent_schema.Child],
+    summary="Lấy danh sách các con của phụ huynh",
+    dependencies=[Depends(MANAGER_OR_PARENT)]
+)
+def get_parent_children(
+    parent_user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
+):
+    """
+    Lấy danh sách các con của một phụ huynh.
+    - Phụ huynh: chỉ được xem danh sách con của mình.
+    - Quản lý: có thể xem danh sách con của bất kỳ phụ huynh nào.
+    """
+    if not ("manager" in current_user.roles) and current_user.user_id != parent_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xem danh sách con của phụ huynh khác."
+        )
+
+    db_parent = parent_crud.get_parent_by_user_id(db, user_id=parent_user_id)
+    if not db_parent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Phụ huynh có ID {parent_user_id} không tồn tại."
+        )
+
+    children = parent_crud.get_children_view(db, parent_user_id=parent_user_id)
+    return children
 
 @router.put("/{user_id}", response_model=parent_schema.ParentBase)
 def update_existing_parent(

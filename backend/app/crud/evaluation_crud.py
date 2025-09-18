@@ -1,4 +1,3 @@
-# app/crud/evaluation_crud.py
 from datetime import date
 from typing import List
 from sqlalchemy import join, select
@@ -13,11 +12,41 @@ def get_evaluation(db: Session, evaluation_id: int):
     """
     return db.query(Evaluation).filter(Evaluation.evaluation_id == evaluation_id).first()
 
-def get_evaluations_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
+def get_evaluations_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100) -> List[EvaluationView]:
     """
-    Lấy danh sách các bản ghi đánh giá chi tiết (delta) của một học sinh.
+    Lấy danh sách các bản ghi đánh giá chi tiết (delta) của một học sinh, bao gồm tên giáo viên.
     """
-    return db.query(Evaluation).filter(Evaluation.student_user_id == student_user_id).offset(skip).limit(limit).all()
+    teacher_user = User.__table__.alias("teacher_user")
+    
+    stmt = (
+        select(
+            Evaluation.evaluation_id,
+            teacher_user.c.full_name.label("teacher_name"),
+            Evaluation.evaluation_type,
+            Evaluation.evaluation_date
+        )
+        .select_from(
+            join(Evaluation, teacher_user, Evaluation.teacher_user_id == teacher_user.c.user_id)
+        )
+        .where(Evaluation.student_user_id == student_user_id)
+        .offset(skip)
+        .limit(limit)
+    )
+
+    result = db.execute(stmt).all()
+    evaluations_list = []
+    for row in result:
+        evaluations_list.append(
+            EvaluationView(
+                id=row.evaluation_id,
+                teacher=row.teacher_name,
+                student="", # Thay đổi None thành chuỗi rỗng
+                type=row.evaluation_type,
+                date=row.evaluation_date,
+            )
+        )
+    return evaluations_list
+
 
 def get_all_evaluations(db: Session, skip: int = 0, limit: int = 100):
     """
@@ -60,27 +89,25 @@ def get_all_evaluations_with_names(db: Session, skip: int = 0, limit: int = 100)
     return evaluations_list
 
 
-def get_evaluations_by_teacher_id_with_names(db: Session, teacher_id: int, skip: int = 0, limit: int = 100) -> List[EvaluationView]:
+def get_evaluations_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100) -> List[EvaluationView]:
     """
-    Lấy các evaluations do một giáo viên cụ thể tạo, bao gồm tên giáo viên và học sinh.
+    Lấy các evaluations do một giáo viên cụ thể tạo, bao gồm tên học sinh.
     """
-    teacher_user = User.__table__.alias("teacher_user")
     student_user = User.__table__.alias("student_user")
 
     stmt = (
         select(
             Evaluation.evaluation_id,
-            teacher_user.c.full_name.label("teacher_name"),
             student_user.c.full_name.label("student_name"),
             Evaluation.evaluation_type,
             Evaluation.evaluation_date
         )
         .select_from(
-            join(Evaluation, teacher_user, Evaluation.teacher_user_id == teacher_user.c.user_id)
+            join(Evaluation, student_user, Evaluation.student_user_id == student_user.c.user_id)
         )
-        .join(student_user, Evaluation.student_user_id == student_user.c.user_id)
-        .where(Evaluation.teacher_user_id == teacher_id) # Thêm điều kiện lọc
-        .offset(skip).limit(limit)
+        .where(Evaluation.teacher_user_id == teacher_id)
+        .offset(skip)
+        .limit(limit)
     )
 
     result = db.execute(stmt).all()
@@ -89,7 +116,7 @@ def get_evaluations_by_teacher_id_with_names(db: Session, teacher_id: int, skip:
         evaluations_list.append(
             EvaluationView(
                 id=row.evaluation_id,
-                teacher=row.teacher_name,
+                teacher="", # Thay đổi None thành chuỗi rỗng
                 student=row.student_name,
                 type=row.evaluation_type,
                 date=row.evaluation_date,

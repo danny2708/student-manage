@@ -4,26 +4,28 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.models.role_model import Role 
 from app.models.teacher_model import Teacher
-from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate
+from app.schemas.teacher_schema import TeacherUpdate, TeacherCreate, ClassTaught
 from app.models.association_tables import user_roles
 from app.models.class_model import Class
-from app.models.enrollment_model import Enrollment 
+from app.models.enrollment_model import Enrollment
+from app.models.user_model import User
+from app.models.subject_model import Subject
 
-def get_teacher(db: Session, user_id: int) -> Optional[Teacher]:
+def get_teacher(db: Session, teacher_user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo teacher_id.
     """
-    stmt = select(Teacher).where(Teacher.user_id == user_id)
+    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 def get_all_teachers(db: Session):
     return db.query(Teacher).all()
 
-def get_teacher_by_user_id(db: Session, user_id: int) -> Optional[Teacher]:
+def get_teacher_by_user_id(db: Session, teacher_user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo user_id (khóa ngoại đến User).
     """
-    stmt = select(Teacher).where(Teacher.user_id == user_id)
+    stmt = select(Teacher).where(Teacher.user_id == teacher_user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -52,7 +54,7 @@ def get_students(db: Session, teacher_user_id: int):
         .filter(Class.teacher_user_id == teacher_user_id)
         .all()
     )
-    return [s.student_user_id for s in students]
+    return [s for s in students]
 
 def get_classes_taught_by_teacher(db: Session, teacher_user_id: int, month: int, year: int):
     return db.query(Class).filter(
@@ -124,3 +126,39 @@ def delete_teacher(db: Session, user_id: int):
     db.delete(db_teacher)
     db.commit()
     return db_teacher
+
+
+def get_class_taught(db: Session, teacher_user_id: int) -> List[ClassTaught]:
+    """
+    Lấy danh sách các lớp học mà một giáo viên phụ trách và trả về dưới dạng ClassTaught schema.
+    """
+    stmt = (
+        select(
+            Class.class_id,
+            Class.class_name,
+            User.full_name.label("teacher_name"),
+            Subject.name,
+            Class.capacity,
+            Class.fee
+        )
+        .join(User, Class.teacher_user_id == User.user_id)
+        .join(Subject, Class.subject_id == Subject.subject_id)
+        .where(Class.teacher_user_id == teacher_user_id)
+    )
+    
+    result = db.execute(stmt).all()
+    
+    classes_taught_list = []
+    for row in result:
+        classes_taught_list.append(
+            ClassTaught(
+                class_id=row.class_id,
+                class_name=row.class_name,
+                teacher_name=row.teacher_name,
+                subject_name=row.name,
+                capacity=row.capacity,
+                fee=row.fee
+            )
+        )
+        
+    return classes_taught_list

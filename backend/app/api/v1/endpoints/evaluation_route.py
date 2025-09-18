@@ -74,12 +74,12 @@ def get_evaluations_by_role(
     """
     if "manager" in current_user.roles:
         # Nếu là manager, trả về tất cả evaluations
-        return evaluation_service.get_all_evaluations(db, skip=skip, limit=limit)
+        return evaluation_crud.get_all_evaluations_with_names(db, skip=skip, limit=limit)
     
     elif "teacher" in current_user.roles:
         # Nếu là teacher, chỉ trả về evaluations của chính họ
         teacher_id = current_user.user_id
-        return evaluation_service.get_evaluations_by_teacher(db, teacher_id, skip=skip, limit=limit)
+        return evaluation_crud.get_evaluations_by_teacher_id(db, teacher_id, skip=skip, limit=limit)
     
     else:
         raise HTTPException(
@@ -200,7 +200,7 @@ def get_evaluation_record(
 
 @router.get(
     "/student/{student_user_id}",
-    response_model=List[evaluation_schema.Evaluation],
+    response_model=List[evaluation_schema.EvaluationView],
     dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
 )
 def get_evaluations_of_student(
@@ -241,3 +241,36 @@ def delete_evaluation(
     if "Đã xóa thành công" in result.get("message", ""):
         return {"message": "Đã xóa thành công."}
     raise HTTPException(status_code=404, detail=result["message"])
+
+@router.get(
+    "/teacher/{teacher_user_id}",
+    response_model=List[evaluation_schema.EvaluationView],
+    summary="Lấy danh sách đánh giá của một giáo viên",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
+)
+def get_evaluations_of_teacher(
+    teacher_user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
+):
+    """
+    Lấy danh sách các bản ghi đánh giá chi tiết của một giáo viên.
+    - Manager: có thể xem đánh giá của bất kỳ giáo viên nào.
+    - Teacher: chỉ có thể xem đánh giá của chính mình.
+    """
+    # Chỉ cho phép teacher truy cập đánh giá của chính họ
+    if "teacher" in current_user.roles and current_user.user_id != teacher_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xem đánh giá của giáo viên khác."
+        )
+
+    # Kiểm tra xem teacher_user_id có tồn tại không
+    db_teacher = teacher_crud.get_teacher(db, user_id=teacher_user_id)
+    if not db_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Giáo viên có ID {teacher_user_id} không tồn tại."
+        )
+
+    return evaluation_crud.get_evaluations_by_teacher_id(db, teacher_user_id)

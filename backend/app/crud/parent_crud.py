@@ -1,7 +1,8 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-
+from app.models.user_model import User
+from app.schemas.parent_schema import Child
 from app.models.parent_model import Parent
 from app.schemas.parent_schema import ParentCreate, ParentUpdate
 from app.models.association_tables import user_roles
@@ -85,4 +86,33 @@ def get_childrens(db: Session, parent_user_id: int):
         return []
     return db.query(Student).filter(Student.parent_id == parent.user_id).all()
 
+def get_children_view(db: Session, parent_user_id: int) -> List[Child]:
+    
+    stmt = (
+        select(
+            User.full_name.label("name"),
+            User.email,
+            User.gender,
+            User.phone_number,
+            User.date_of_birth
+        )
+        .join(Student, User.user_id == Student.user_id)
+        .where(Student.parent_id == parent_user_id)
+    )
+    
+    result = db.execute(stmt).all()
+    
+    children_list = []
+    for row in result:
+        children_list.append(
+            Child(
+                name=row.name,
+                email=row.email,
+                gender=row.gender,
+                phone_number=row.phone_number,
+                date_of_birth=str(row.date_of_birth)
+            )
+        )
+        
+    return children_list
 
