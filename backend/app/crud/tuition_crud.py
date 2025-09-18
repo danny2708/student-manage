@@ -49,7 +49,7 @@ def create_tuition(db: Session, tuition: TuitionCreate):
     """
     db_tuition = Tuition(
         **tuition.model_dump(),
-        payment_status=PaymentStatus.pending
+        status=PaymentStatus.pending
     )
     db.add(db_tuition)
     db.commit()
@@ -67,7 +67,7 @@ def update_tuition(db: Session, tuition_id: int, tuition_update: TuitionUpdate):
     db_tuition, _ = result  # Giải nén tuple, bỏ qua fullname
 
     # Không cho phép cập nhật nếu đã thanh toán
-    if db_tuition.payment_status == PaymentStatus.paid:
+    if db_tuition.status == PaymentStatus.paid:
         return None
 
     update_data = tuition_update.model_dump(exclude_unset=True)

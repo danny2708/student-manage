@@ -16,7 +16,7 @@ class TuitionCreate(TuitionBase):
 # Schema dùng để đọc dữ liệu từ DB
 class TuitionRead(TuitionBase):
     tuition_id: int
-    payment_status: PaymentStatus
+    status: PaymentStatus
     payment_date: Optional[date] = None
 
     class Config:
@@ -27,7 +27,7 @@ class TuitionUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
     term: Optional[int] = None
     due_date: Optional[date] = None
-    payment_status: PaymentStatus  = Field("paid")
+    status: PaymentStatus  = Field("pending")
 
 
 class TuitionView(BaseModel):

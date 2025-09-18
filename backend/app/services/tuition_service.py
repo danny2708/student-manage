@@ -49,7 +49,7 @@ def create_tuition_record(db: Session, tuition_in: TuitionCreate):
         amount=tuition_in.amount,
         term=tuition_in.term,
         due_date=tuition_in.due_date,
-        payment_status=PaymentStatus.pending,
+        status=PaymentStatus.pending,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -92,7 +92,7 @@ def create_tuition_for_all_students(db: Session, term: int, due_date: date):
             amount=amount,
             term=term,
             due_date=due_date,
-            payment_status=PaymentStatus.pending,
+            status=PaymentStatus.pending,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )

@@ -8,6 +8,7 @@ from app.models.class_model import Class
 from app.schemas.schedule_schema import ScheduleCreate, ScheduleUpdate, ScheduleView
 from app.models.enrollment_model import Enrollment
 from app.services import schedule_service
+from app.services.service_helper import to_naive_time
 
 # Helper function để lấy truy vấn JOIN giữa Schedule và Class
 def get_schedule_with_class_name_query():
@@ -62,12 +63,17 @@ def create_schedule(db: Session, schedule_in: ScheduleCreate, current_user):
 def update_schedule(db: Session, schedule: Schedule, schedule_in: ScheduleUpdate) -> Schedule:
     update_data = schedule_in.model_dump(exclude_unset=True)
 
-    class_id = update_data.get("class_id", schedule.class_id)
-    day_of_week = update_data.get("day_of_week", schedule.day_of_week)
-    start_time = update_data.get("start_time", schedule.start_time)
-    end_time = update_data.get("end_time", schedule.end_time)
+    # Convert sang naive time trước khi check conflict
+    class_id = update_data.get("class_id", schedule_in.class_id)
+    day_of_week = update_data.get("day_of_week", schedule_in.day_of_week)
+    start_time = to_naive_time(update_data.get("start_time", schedule.start_time))
+    end_time = to_naive_time(update_data.get("end_time", schedule.end_time))
     date = update_data.get("date", schedule.date)
     room = update_data.get("room", schedule.room)
+    schedule_type = update_data.get("schedule_type", schedule.schedule_type)
+
+    if schedule_type == "WEEKLY":
+        date = None
 
     schedule_service.check_schedule_conflict(
         db=db,
@@ -80,12 +86,17 @@ def update_schedule(db: Session, schedule: Schedule, schedule_in: ScheduleUpdate
         exclude_schedule_id=schedule.schedule_id
     )
 
+    # Cập nhật các field còn lại
     for field, value in update_data.items():
-        setattr(schedule, field, value)
+        if field in ["start_time", "end_time"]:
+            setattr(schedule, field, to_naive_time(value))
+        else:
+            setattr(schedule, field, value)
 
     db.commit()
     db.refresh(schedule)
     return schedule
+
 
 def delete_schedule(db: Session, schedule: Schedule):
     """

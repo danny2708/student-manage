@@ -2,34 +2,35 @@
 import api from "./api"
 
 export interface Schedule {
-  id: number
-  class_name: string
-  room: string
-  schedule_type: "WEEKLY" | "ONCE"
-  day_of_week?: string // nếu WEEKLY
-  date?: string        // nếu ONCE
-  start_time: string
-  end_time: string
+  id: number;
+  class_id?: number;
+  class_name: string;
+  room?: string | null; 
+  schedule_type: "WEEKLY" | "ONCE";
+  day_of_week?: string; // nếu WEEKLY
+  date?: string; // nếu ONCE
+  start_time: string;
+  end_time: string;
 }
 
 export interface ScheduleCreate {
-  class_id: number
-  room: string
-  schedule_type: "WEEKLY" | "ONCE"
-  day_of_week?: string
-  date?: string
-  start_time: string
-  end_time: string
+  class_id: number;
+  room?: string | null; 
+  schedule_type: "WEEKLY" | "ONCE";
+  day_of_week?: string;
+  date?: string;
+  start_time: string;
+  end_time: string;
 }
 
 export interface ScheduleUpdate {
-  class_id?: number
-  room?: string
-  schedule_type?: "WEEKLY" | "ONCE"
-  day_of_week?: string
-  date?: string
-  start_time?: string
-  end_time?: string
+  class_id?: number;
+  room?: string | null; // Cập nhật để phù hợp với API Schema
+  schedule_type?: "WEEKLY" | "ONCE";
+  day_of_week?: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 // Lấy toàn bộ schedule

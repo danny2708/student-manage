@@ -8,6 +8,7 @@ from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
 from app.schemas.auth_schema import AuthenticatedUser
 from app.crud import parent_crud
 
+
 def validate_day_of_week_with_date(day_of_week: DayOfWeekEnum, date: dt_date):
     """
     Đảm bảo rằng ngày (date) khớp với thứ trong tuần (day_of_week).
@@ -47,8 +48,6 @@ def check_schedule_conflict(
     Kiểm tra xung đột lịch trình dựa trên 2 tiêu chí:
     1. Lịch trình của cùng một lớp học không được chồng chéo.
     2. Lịch trình trong cùng một phòng học không được chồng chéo.
-
-    Nếu exclude_schedule_id được truyền → bỏ qua chính schedule đó (dùng khi update).
     """
     # Kiểm tra tính hợp lệ của date & day_of_week
     validate_day_of_week_with_date(day_of_week, date)
@@ -61,12 +60,12 @@ def check_schedule_conflict(
         date=date
     )
     for schedule in class_conflicts:
-        if exclude_schedule_id and schedule.schedule_id == exclude_schedule_id:
+        if exclude_schedule_id and schedule.id == exclude_schedule_id:
             continue
         if (schedule.start_time < end_time and schedule.end_time > start_time):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Lịch trình bị chồng chéo với lịch đã có của lớp {class_id}."
+                detail=f"Lịch trình bị chồng chéo với lịch đã có của lớp {schedule.class_name}."
             )
 
     # --- Kiểm tra xung đột phòng ---
@@ -78,12 +77,12 @@ def check_schedule_conflict(
             date=date
         )
         for schedule in room_conflicts:
-            if exclude_schedule_id and schedule.schedule_id == exclude_schedule_id:
+            if exclude_schedule_id and schedule.id == exclude_schedule_id:
                 continue
             if (schedule.start_time < end_time and schedule.end_time > start_time):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Phòng {room} đã có lịch vào thời gian này với lớp {schedule.class_id}."
+                    detail=f"Phòng {room} đã có lịch vào thời gian này với lớp {schedule.class_name}."
                 )
 
 def get_schedules_for_teacher(db: Session, teacher_id: int) -> List[Schedule]:

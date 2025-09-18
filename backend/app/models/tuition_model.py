@@ -27,10 +27,8 @@ class Tuition(Base):
     term = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Trường mới để lưu hạn thanh toán và trạng thái
     due_date = Column(Date, nullable=False)
-    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.pending, nullable=False)
+    status = Column(Enum(PaymentStatus), default=PaymentStatus.pending, nullable=False)
 
     # Quan hệ với bảng student
     student = relationship("Student", back_populates="tuitions")

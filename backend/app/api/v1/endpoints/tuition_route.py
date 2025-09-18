@@ -61,7 +61,7 @@ def get_tuition_by_id(
         student=student_fullname,
         amount=db_tuition.amount,
         term=db_tuition.term,
-        status=db_tuition.payment_status,
+        status=db_tuition.status,
         due_date=db_tuition.due_date
     )
 
@@ -85,7 +85,7 @@ def list_tuitions(
             student=student_fullname,
             amount=tuition.amount,
             term=tuition.term,
-            status=tuition.payment_status,
+            status=tuition.status,
             due_date=tuition.due_date
         ))
     return tuition_views
@@ -112,7 +112,7 @@ def get_tuitions_by_student_user_id(
             student=student_fullname,
             amount=tuition.amount,
             term=tuition.term,
-            status=tuition.payment_status,
+            status=tuition.status,
             due_date=tuition.due_date
         ))
     return tuition_views
@@ -146,7 +146,7 @@ def get_tuitions_by_parent(
             id=tuition.tuition_id,
             student=student_fullname,
             amount=tuition.amount,
-            status=tuition.payment_status,
+            status=tuition.status,
             due_date=tuition.due_date,
             term=tuition.term
         ))

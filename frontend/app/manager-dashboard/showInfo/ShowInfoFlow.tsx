@@ -1,60 +1,71 @@
-// components/dashboard_components/ShowInfoFlow.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePayrolls } from "../../src/hooks/usePayroll";
+import { usePayrolls } from "../../../src/hooks/usePayroll";
+import { useSchedules } from "../../../src/contexts/ScheduleContext";
 import { ActionModal } from "./action_modal";
 import {
   Tuition,
   getTuitions,
   deleteTuition,
-} from "../../src/services/api/tuition";
+} from "../../../src/services/api/tuition";
 import {
   Payroll,
-  updatePayroll,
-  removePayroll,
-} from "../../src/services/api/payroll";
-import { ShowInfoModal, ModalDataType } from "./ShowInfoModal"; // Import component đã được cập nhật
+  deletePayroll,
+} from "../../../src/services/api/payroll";
+import {
+  Schedule,
+  deleteSchedule,
+} from "../../../src/services/api/schedule";
+import { ShowInfoModal, ModalDataType } from "./ShowInfoModal";
 
 export function ShowInfoFlow() {
   const { payrolls, fetchPayrolls } = usePayrolls();
+  const { schedules, fetchSchedules } = useSchedules();
+
   const [tuitionRows, setTuitionRows] = useState<Tuition[]>([]);
   const [selectedRow, setSelectedRow] = useState<ModalDataType | null>(null);
-  const [selectedType, setSelectedType] = useState<"tuition" | "payroll">(
-    "tuition"
-  );
+  const [selectedType, setSelectedType] = useState<"tuition" | "payroll" | "schedule">("tuition");
   const [showConfirm, setShowConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  const reloadTuitionData = async () => {
-    const data = await getTuitions();
-    setTuitionRows(data);
+  const fetchTuitionData = async () => {
+    try {
+      const data = await getTuitions();
+      setTuitionRows(data);
+    } catch (error) {
+      console.error("Failed to fetch tuitions:", error);
+    }
   };
 
   useEffect(() => {
-    reloadTuitionData();
+    fetchTuitionData();
     fetchPayrolls();
-  }, [fetchPayrolls]);
+    fetchSchedules();
+  }, []);
 
-  const handleRowClick = (row: ModalDataType, type: "tuition" | "payroll") => {
+  const handleRowClick = (row: ModalDataType, type: "tuition" | "payroll" | "schedule") => {
     setSelectedRow(row);
     setSelectedType(type);
     setShowConfirm(true);
   };
 
   const handleDelete = async () => {
+    if (!selectedRow) return;
     try {
-      if (!selectedRow) return;
-
       if (selectedType === "tuition") {
         await deleteTuition((selectedRow as Tuition).id);
+        await fetchTuitionData();
         alert("Tuition deleted successfully!");
-        await reloadTuitionData();
       } else if (selectedType === "payroll") {
-        await removePayroll((selectedRow as Payroll).id);
+        await deletePayroll((selectedRow as Payroll).id);
+        await fetchPayrolls();
         alert("Payroll deleted successfully!");
+      } else if (selectedType === "schedule") {
+        await deleteSchedule((selectedRow as Schedule).id);
+        await fetchSchedules();
+        alert("Schedule deleted successfully!");
       }
-
       setShowConfirm(false);
     } catch (err) {
       console.error(err);
@@ -63,21 +74,17 @@ export function ShowInfoFlow() {
   };
 
   const handleUpdated = async () => {
-    await reloadTuitionData();
+    await fetchTuitionData();
     await fetchPayrolls();
+    await fetchSchedules();
   };
 
   return (
     <div className="text-white">
-      {/* ... (phần bảng hiển thị học phí và bảng lương giữ nguyên) */}
-
       <h3 className="text-lg font-bold mb-2">Tuitions</h3>
       <table className="w-full mb-6">
         <thead>
-          <tr>
-            <th>ID</th>
-            <th>Student</th>
-          </tr>
+          <tr><th>ID</th><th>Student</th></tr>
         </thead>
         <tbody>
           {tuitionRows.map((t) => (
@@ -96,10 +103,7 @@ export function ShowInfoFlow() {
       <h3 className="text-lg font-bold mb-2">Payrolls</h3>
       <table className="w-full mb-6">
         <thead>
-          <tr>
-            <th>ID</th>
-            <th>Teacher</th>
-          </tr>
+          <tr><th>ID</th><th>Teacher</th></tr>
         </thead>
         <tbody>
           {payrolls.map((p) => (
@@ -115,6 +119,26 @@ export function ShowInfoFlow() {
         </tbody>
       </table>
 
+      <h3 className="text-lg font-bold mb-2">Schedules</h3>
+      <table className="w-full mb-6">
+        <thead>
+          <tr><th>ID</th><th>Class</th></tr>
+        </thead>
+        <tbody>
+          {schedules.map((s) => (
+            <tr
+              key={s.id}
+              className="hover:bg-gray-700 cursor-pointer"
+              onClick={() => handleRowClick(s, "schedule")}
+            >
+              <td>{s.id}</td>
+              <td>{s.class_name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Action Modal */}
       {showConfirm && selectedRow && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
           <ActionModal
@@ -128,6 +152,7 @@ export function ShowInfoFlow() {
         </div>
       )}
 
+      {/* Show Info Modal */}
       {showInfo && selectedRow && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
           <ShowInfoModal

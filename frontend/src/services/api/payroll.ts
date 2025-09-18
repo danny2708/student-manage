@@ -31,7 +31,7 @@ export interface PayrollUpdate {
 
 
 // Lấy tất cả payrolls
-export const getAllPayrolls = async (): Promise<Payroll[]> => {
+export const getPayrolls = async (): Promise<Payroll[]> => {
   const res = await api.get("/payrolls/")
   return res.data
 }

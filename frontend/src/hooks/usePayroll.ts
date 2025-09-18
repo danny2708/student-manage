@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import {
-  getAllPayrolls,
+  getPayrolls,
   createPayroll,
   updatePayroll,
   deletePayroll,
@@ -12,23 +12,25 @@ export function usePayrolls() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPayrolls = async () => {
+  const fetchPayrolls = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getAllPayrolls()
+      const data = await getPayrolls()
       setPayrolls(data)
     } catch (err) {
+      console.error("Failed to fetch payrolls:", err)
       setError("Failed to fetch payrolls")
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const addPayroll = async (payload: any) => {
     try {
       const newPayroll = await createPayroll(payload)
       setPayrolls(prev => [...prev, newPayroll])
-    } catch {
+    } catch (err) {
+      console.error("Failed to create payroll:", err)
       setError("Failed to create payroll")
     }
   }
@@ -37,7 +39,8 @@ export function usePayrolls() {
     try {
       const updated = await updatePayroll(id, payload)
       setPayrolls(prev => prev.map(p => (p.id === id ? updated : p)))
-    } catch {
+    } catch (err) {
+      console.error("Failed to update payroll:", err)
       setError("Failed to update payroll")
     }
   }
@@ -46,14 +49,23 @@ export function usePayrolls() {
     try {
       await deletePayroll(id)
       setPayrolls(prev => prev.filter(p => p.id !== id))
-    } catch {
+    } catch (err) {
+      console.error("Failed to delete payroll:", err)
       setError("Failed to delete payroll")
     }
   }
 
   useEffect(() => {
     fetchPayrolls()
-  }, [])
+  }, [fetchPayrolls])
 
-  return { payrolls, loading, error, fetchPayrolls, addPayroll, editPayroll, removePayroll }
+  return {
+    payrolls,
+    loading,
+    error,
+    fetchPayrolls,
+    addPayroll,
+    editPayroll,
+    removePayroll
+  }
 }

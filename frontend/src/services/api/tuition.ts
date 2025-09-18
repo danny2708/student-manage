@@ -21,6 +21,7 @@ export interface TuitionUpdate {
   amount?: number
   term?: number
   due_date?: string
+  status?: "paid" | "pending" | "overdue"
 }
 
 export async function getTuitions(): Promise<Tuition[]> {

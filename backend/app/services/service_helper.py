@@ -1,4 +1,19 @@
 from datetime import datetime, date
+from datetime import time, datetime
+
+def to_naive_time(t: str | time) -> time:
+    """
+    Convert string ISO hoặc datetime.time có tzinfo sang naive time (HH:MM:SS)
+    """
+    if isinstance(t, time):
+        return t.replace(tzinfo=None)
+    elif isinstance(t, str):
+        # nếu string dạng "04:25:43.964Z" hoặc "04:25:43"
+        if t.endswith("Z"):
+            t = t[:-1]  # loại bỏ Z
+        dt_obj = datetime.fromisoformat(t)
+        return dt_obj.time().replace(tzinfo=None)
+    return t
 
 def parse_date_safe(d):
     """Chuyển đổi giá trị ngày từ Excel sang date object."""

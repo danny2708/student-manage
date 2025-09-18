@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator
 from typing import Optional
 from datetime import time, date as dt_date
-from enum import Enum
 from app.models.schedule_model import DayOfWeekEnum, ScheduleTypeEnum
 
 # ScheduleBase là schema cơ bản chứa các trường chung
@@ -20,6 +19,7 @@ class ScheduleBase(BaseModel):
     # Vì một lịch chỉ có thể là tuần lặp lại hoặc đột xuất, không thể là cả hai
     day_of_week: Optional[DayOfWeekEnum] = None
     date: Optional[dt_date] = None
+
 
     @field_validator('day_of_week')
     @classmethod
@@ -70,6 +70,13 @@ class ScheduleView(BaseModel):
     date: Optional[dt_date] 
     start_time: time 
     end_time: time 
+
+    @field_serializer('date')
+    def serialize_date(self, value: Optional[dt_date], info):
+        if value is None:
+            return None
+        # Chuyển đổi đối tượng date thành chuỗi 'dd/mm/yyyy'
+        return value.strftime('%d/%m/%Y')
 
     class Config:
         from_attributes = True
