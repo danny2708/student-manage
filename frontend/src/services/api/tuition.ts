@@ -39,6 +39,18 @@ export async function createTuition(data: TuitionCreate): Promise<Tuition> {
   return res.data
 }
 
+// Endpoint mới: Lấy học phí theo student_user_id
+export async function getTuitionsByStudentId(student_user_id: number): Promise<Tuition[]> {
+  const res = await api.get<Tuition[]>(`/tuitions/by_student/${student_user_id}`);
+  return res.data;
+}
+
+// Endpoint mới: Lấy học phí theo parent_id
+export async function getTuitionsByParentId(parent_id: number): Promise<Tuition[]> {
+  const res = await api.get<Tuition[]>(`/tuitions/by_parent/${parent_id}`);
+  return res.data;
+}
+
 
 export async function updateTuition(id: number, data: TuitionUpdate): Promise<Tuition> {
   // Change the endpoint URL to match the backend

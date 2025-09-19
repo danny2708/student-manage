@@ -7,6 +7,7 @@ from app.models.tuition_model import Tuition, PaymentStatus
 from app.schemas.tuition_schema import TuitionCreate, TuitionUpdate
 from app.models.user_model import User
 from app.models.student_model import Student
+from app.models.parent_model import Parent
 
 
 def get_tuition(db: Session, tuition_id: int) -> Optional[Tuple[Tuition, str]]:
@@ -32,15 +33,18 @@ def get_tuitions_by_student_user_id(db: Session, student_user_id: int, skip: int
     ).offset(skip).limit(limit).all()
 
 
-def get_tuitions_by_parent_id(db: Session, parent_id: int, skip: int = 0, limit: int = 100) -> List[Tuple[Tuition, str]]:
-    """Lấy tất cả học phí của các học sinh thuộc về một phụ huynh, bao gồm tên học sinh."""
-    return db.query(Tuition, User.full_name).join(
-        Student, Tuition.student_user_id == Student.user_id
-    ).join(
-        User, Student.user_id == User.user_id
-    ).filter(
-        Student.parent_id == parent_id
-    ).offset(skip).limit(limit).all()
+def get_tuitions_by_parent_user_id(db: Session, parent_user_id: int, skip: int = 0, limit: int = 100):
+    return (
+        db.query(Tuition, User.full_name)
+        .join(User, Tuition.student_user_id == User.user_id)
+        .join(Student, Student.user_id == Tuition.student_user_id)
+        .filter(Student.parent_id == parent_user_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
 
 def create_tuition(db: Session, tuition: TuitionCreate):
     """

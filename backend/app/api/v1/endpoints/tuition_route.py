@@ -119,24 +119,20 @@ def get_tuitions_by_student_user_id(
 
 # Sửa endpoint GET /by_parent/{parent_id}
 @router.get(
-    "/by_parent/{parent_id}",
+    "/by_parent/{parent_user_id}",
     response_model=List[TuitionView],
     summary="Lấy tất cả học phí theo parent",
     dependencies=[Depends(PARENT_OR_MANAGER)]
 )
 def get_tuitions_by_parent(
-    parent_id: int,
+    parent_user_id: int,
     db: Session = Depends(deps.get_db),
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
-    if "parent" in current_user.roles:
-        parent_id = current_user.user_id 
-    elif "manager" in current_user.roles:
-        pass
-    else:
-        raise HTTPException(status_code=403, detail="Không có quyền truy cập")
+    if "parent" in current_user.roles and "manager" not in current_user.roles:
+        parent_user_id = current_user.user_id
     
-    results = tuition_crud.get_tuitions_by_parent_id(db, parent_id=parent_id)
+    results = tuition_crud.get_tuitions_by_parent_user_id(db, parent_user_id=parent_user_id)
     if not results:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy học phí cho phụ huynh này.")
         

@@ -1,47 +1,70 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../../components/ui/table"
-import { Badge } from "../../../../../components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs"
-import { Users, DollarSign, Calendar, AlertCircle } from "lucide-react"
+import { useEffect, useState, useCallback } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../../../components/ui/table";
+import { Badge } from "../../../../../components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
+import { Users, DollarSign, Calendar, AlertCircle } from "lucide-react";
 
-// Mock data - replace with actual API calls
-const mockChildren = [
-  {
-    student_name: "Emma Johnson",
-    email: "emma.johnson@school.edu",
-    gender: "Female",
-    date_of_birth: "2008-05-15",
-    phone_number: "(555) 123-4567",
-  },
-  {
-    student_name: "Alex Johnson",
-    email: "alex.johnson@school.edu",
-    gender: "Male",
-    date_of_birth: "2010-08-22",
-    phone_number: "(555) 123-4568",
-  },
-]
+import { useTuitions } from "../../../../../src/hooks/useTuition";
+import { useParents } from "../../../../../src/hooks/useParent"; 
+import { Child } from "../../../../../src/services/api/parent"; 
 
-const mockTuitions = [
-  { id: 1, student: "Emma Johnson", amount: 2500, term: "Spring 2024", status: "Paid", due_date: "2024-01-15" },
-  { id: 2, student: "Alex Johnson", amount: 2500, term: "Spring 2024", status: "Paid", due_date: "2024-01-15" },
-  { id: 3, student: "Emma Johnson", amount: 2500, term: "Summer 2024", status: "Pending", due_date: "2024-05-15" },
-  { id: 4, student: "Alex Johnson", amount: 2500, term: "Summer 2024", status: "Overdue", due_date: "2024-05-15" },
-]
+interface User {
+  user_id: number;
+  username: string;
+  roles: string[];
+  full_name: string;
+  email: string;
+}
 
-export function ParentRole() {
-  const [children, setChildren] = useState(mockChildren)
-  const [tuitions, setTuitions] = useState(mockTuitions)
+interface ParentRoleProps {
+  user: User;
+}
 
-  const totalOwed = tuitions.filter((t) => t.status !== "Paid").reduce((sum, t) => sum + t.amount, 0)
+export function ParentRole({ user }: ParentRoleProps) {
+  const { tuitions, fetchTuitionsByParentId } = useTuitions();
+  const { fetchParentChildren } = useParents();
+  const [children, setChildren] = useState<Child[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const overdueCount = tuitions.filter((t) => t.status === "Overdue").length
+  const loadInitialData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const parentId = user.user_id;
+
+      // Fetch cả 2 API cùng lúc
+      const [childrenData] = await Promise.all([
+        fetchParentChildren(parentId),
+        fetchTuitionsByParentId(parentId) // hook này tự cập nhật state tuitions
+      ]);
+
+      if (childrenData) {
+        setChildren(childrenData);
+      }
+    } catch (err: any) {
+      console.error("Failed to load parent data:", err);
+      setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user.user_id, fetchParentChildren, fetchTuitionsByParentId]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+
+  const totalOwed = tuitions.filter((t) => t.status !== "paid").reduce((sum, t) => sum + t.amount, 0);
+  const overdueCount = tuitions.filter((t) => t.status === "overdue").length;
 
   return (
     <div className="space-y-6">
+      {/* CARD TỔNG QUAN */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -52,6 +75,7 @@ export function ParentRole() {
             <div className="text-2xl font-bold">{children.length}</div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Owed</CardTitle>
@@ -61,6 +85,7 @@ export function ParentRole() {
             <div className="text-2xl font-bold">${totalOwed}</div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue Payments</CardTitle>
@@ -70,6 +95,7 @@ export function ParentRole() {
             <div className="text-2xl font-bold text-destructive">{overdueCount}</div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tuitions</CardTitle>
@@ -81,6 +107,7 @@ export function ParentRole() {
         </Card>
       </div>
 
+      {/* TABS */}
       <Tabs defaultValue="children" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="children">Children</TabsTrigger>
@@ -107,7 +134,7 @@ export function ParentRole() {
                 <TableBody>
                   {children.map((child, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{child.student_name}</TableCell>
+                      <TableCell className="font-medium">{child.name}</TableCell>
                       <TableCell>{child.email}</TableCell>
                       <TableCell>{child.gender}</TableCell>
                       <TableCell>{child.date_of_birth}</TableCell>
@@ -148,9 +175,9 @@ export function ParentRole() {
                       <TableCell>
                         <Badge
                           variant={
-                            tuition.status === "Paid"
+                            tuition.status === "paid"
                               ? "default"
-                              : tuition.status === "Overdue"
+                              : tuition.status === "overdue"
                                 ? "destructive"
                                 : "secondary"
                           }
@@ -168,5 +195,5 @@ export function ParentRole() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
