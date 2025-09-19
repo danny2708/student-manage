@@ -160,6 +160,7 @@ def get_teacher_payrolls(
         payroll_schema.PayrollView(
             id=p.payroll_id,
             teacher=fullname,
+            month=p.month,
             base_salary=p.total_base_salary,
             bonus=p.reward_bonus,
             total=p.total,

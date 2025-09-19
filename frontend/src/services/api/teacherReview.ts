@@ -38,47 +38,47 @@ export interface TeacherReviewView {
 // Endpoint: POST /teacher-reviews/
 // Tạo một đánh giá giáo viên mới
 export const createTeacherReview = async (payload: TeacherReviewCreate): Promise<TeacherReview> => {
-  const res = await api.post("/teacher-reviews/", payload)
+  const res = await api.post("/teacher_reviews/", payload)
   return res.data
 }
 
 // Endpoint: GET /teacher-reviews/
 // Lấy tất cả các đánh giá
 export const getTeacherReviews = async (): Promise<TeacherReviewView[]> => {
-  const res = await api.get("/teacher-reviews/")
+  const res = await api.get("/teacher_reviews/")
   return res.data
 }
 
 // Endpoint: GET /teacher-reviews/{review_id}
 // Lấy một đánh giá theo ID
 export const getTeacherReviewById = async (reviewId: number): Promise<TeacherReviewView> => {
-  const res = await api.get(`/teacher-reviews/${reviewId}`)
+  const res = await api.get(`/teacher_reviews/${reviewId}`)
   return res.data
 }
 
 // Endpoint: GET /teacher-reviews/by_teacher/{user_id}
 // Lấy tất cả đánh giá của một giáo viên
 export const getTeacherReviewsByTeacherId = async (teacherUserId: number): Promise<TeacherReviewView[]> => {
-  const res = await api.get(`/teacher-reviews/by_teacher/${teacherUserId}`)
+  const res = await api.get(`/teacher_reviews/by_teacher/${teacherUserId}`)
   return res.data
 }
 
 // Endpoint: GET /teacher-reviews/by_student/{user_id}
 // Lấy tất cả đánh giá mà một học sinh đã tạo
 export const getTeacherReviewsByStudentId = async (studentUserId: number): Promise<TeacherReviewView[]> => {
-  const res = await api.get(`/teacher-reviews/by_student/${studentUserId}`)
+  const res = await api.get(`/teacher_reviews/by_student/${studentUserId}`)
   return res.data
 }
 
 // Endpoint: PUT /teacher-reviews/{review_id}
 // Cập nhật một đánh giá
 export const updateTeacherReview = async (reviewId: number, payload: TeacherReviewUpdate): Promise<TeacherReview> => {
-  const res = await api.put(`/teacher-reviews/${reviewId}`, payload)
+  const res = await api.put(`/teacher_reviews/${reviewId}`, payload)
   return res.data
 }
 
 // Endpoint: DELETE /teacher-reviews/{review_id}
 // Xóa một đánh giá
 export const deleteTeacherReview = async (reviewId: number): Promise<void> => {
-  await api.delete(`/teacher-reviews/${reviewId}`)
+  await api.delete(`/teacher_reviews/${reviewId}`)
 }

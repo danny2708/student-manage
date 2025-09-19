@@ -14,8 +14,11 @@ import { BookOpen, Star, Users, DollarSign } from "lucide-react";
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
 import { useEvaluations } from "../../../../../src/hooks/useEvaluation";
-import { useTeacherReviews } from "../../../../../src/hooks/useTeacherReview";
+import { useTeacherReviews} from "../../../../../src/hooks/useTeacherReview";
 import { usePayrolls } from "../../../../../src/hooks/usePayroll";
+import { EvaluationView } from "../../../../../src/services/api/evaluation";
+import { TeacherReviewView } from "../../../../../src/services/api/teacherReview";
+import { Payroll } from "../../../../../src/services/api/payroll";
 
 interface User {
   user_id: number;
@@ -31,9 +34,14 @@ interface TeacherRoleProps {
 
 export function TeacherRole({ user }: TeacherRoleProps) {
   const { classes, fetchClasses } = useClasses();
-  const { evaluations, fetchEvaluationsOfTeacher } = useEvaluations();
-  const { reviews, fetchReviewsByTeacherId } = useTeacherReviews();
-  const { payrolls, fetchPayrolls } = usePayrolls();
+  // Nếu các hàm fetch trả về dữ liệu, ta có thể nhận chúng ở đây
+  const { fetchEvaluationsOfTeacher } = useEvaluations();
+  const { fetchReviewsByTeacherId } = useTeacherReviews();
+  const { fetchTeacherPayrolls } = usePayrolls();
+
+  const [teacherEvaluations, setTeacherEvaluations] = useState<EvaluationView[]>([]);
+  const [teacherReviews, setTeacherReviews] = useState<TeacherReviewView[]>([]);
+  const [teacherPayrolls, setTeacherPayrolls] = useState<Payroll[]>([]);
 
   const [activeTab, setActiveTab] = useState("assign-class");
   
@@ -43,14 +51,29 @@ export function TeacherRole({ user }: TeacherRoleProps) {
   };
 
   const userId = user.user_id;
+
   const loadInitialData = useCallback(async () => {
-    await Promise.all([
-      fetchClasses(),
-      fetchEvaluationsOfTeacher(userId),  // bạn có thể truyền teacherId nếu API cần
-      fetchReviewsByTeacherId(userId),
-      fetchPayrolls(),
-    ]);
-  }, [fetchClasses, fetchEvaluationsOfTeacher, fetchReviewsByTeacherId, fetchPayrolls]);
+    try {
+      // Gọi từng hàm fetch và gán kết quả vào biến
+      const evals = await fetchEvaluationsOfTeacher(userId);
+      const reviews = await fetchReviewsByTeacherId(userId);
+      const payrolls = await fetchTeacherPayrolls(userId);
+      await fetchClasses(); // Giả sử hàm này tự cập nhật state bên trong hook
+
+      // Cập nhật state với dữ liệu đã fetch, kiểm tra null/undefined an toàn hơn
+      if (evals !== undefined && evals !== null) {
+        setTeacherEvaluations(evals);
+      }
+      if (reviews !== undefined && reviews !== null) {
+        setTeacherReviews(reviews);
+      }
+      if (payrolls !== undefined && payrolls !== null) {
+        setTeacherPayrolls(payrolls);
+      }
+    } catch (error) {
+      console.error("Failed to load initial data:", error);
+    }
+  }, [userId, fetchEvaluationsOfTeacher, fetchReviewsByTeacherId, fetchTeacherPayrolls, fetchClasses]);
 
   useEffect(() => {
     loadInitialData();
@@ -77,14 +100,14 @@ export function TeacherRole({ user }: TeacherRoleProps) {
             <CardTitle className="text-sm font-medium">Evaluations Given</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{evaluations.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold">{teacherEvaluations.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Student Reviews</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{reviews.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold">{teacherReviews.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -93,7 +116,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${payrolls[0]?.total ?? 0}
+              ${teacherPayrolls[0]?.total ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -134,7 +157,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
         {/* --- Evaluations --- */}
         <TabsContent value="evaluations" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle>Student Evaluations</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Evaluations</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
@@ -147,7 +170,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {evaluations.map((ev) => (
+                  {teacherEvaluations.map((ev) => (
                     <TableRow key={ev.id}>
                       <TableCell>{ev.id}</TableCell>
                       <TableCell>{ev.student}</TableCell>
@@ -177,7 +200,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reviews.map((r) => (
+                  {teacherReviews.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell>{r.student_name}</TableCell>
                       <TableCell>
@@ -215,7 +238,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payrolls.map((p) => (
+                  {teacherPayrolls.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.id}</TableCell>
                       <TableCell>{p.month}</TableCell>

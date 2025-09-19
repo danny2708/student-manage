@@ -10,7 +10,11 @@ import { CreatePayrollForm } from "./CreatePayrollForm";
 
 export default function PayrollManagement() {
   const { payrolls, fetchPayrolls, removePayroll } = usePayrolls();
-
+  
+    React.useEffect(() => {
+    fetchPayrolls();
+  }, [fetchPayrolls]); 
+  
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
@@ -354,7 +358,7 @@ export default function PayrollManagement() {
               type="payroll"
               data={selectedRow}
               onClose={() => setShowInfo(false)}
-              onUpdated={fetchPayrolls}
+              onUpdated={async () => { await fetchPayrolls(); }}
             />
           </motion.div>
         )}

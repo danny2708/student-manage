@@ -1,10 +1,13 @@
-import { useEffect, useState, useCallback } from "react"
+import { useState, useCallback } from "react"
 import {
   getPayrolls,
   createPayroll,
   updatePayroll,
   deletePayroll,
-  Payroll
+  getTeacherPayrolls,
+  Payroll,
+  PayrollCreate, 
+  PayrollUpdate
 } from "../services/api/payroll"
 
 export function usePayrolls() {
@@ -14,56 +17,82 @@ export function usePayrolls() {
 
   const fetchPayrolls = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const data = await getPayrolls()
       setPayrolls(data)
-    } catch (err) {
+      return data; // Thêm dòng này để trả về dữ liệu
+    } catch (err: any) {
       console.error("Failed to fetch payrolls:", err)
-      setError("Failed to fetch payrolls")
+      setError("Failed to fetch all payrolls.")
     } finally {
       setLoading(false)
     }
   }, [])
 
-  const addPayroll = async (payload: any) => {
+  const fetchTeacherPayrolls = useCallback(async (teacherUserId: number) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getTeacherPayrolls(teacherUserId)
+      setPayrolls(data)
+      return data; // **Sửa: Trả về dữ liệu để có thể sử dụng bên ngoài hook**
+    } catch (err: any) {
+      console.error("Failed to fetch teacher's payrolls:", err)
+      setError("Failed to fetch teacher's payrolls.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const addPayroll = useCallback(async (payload: PayrollCreate) => {
+    setLoading(true)
+    setError(null)
     try {
       const newPayroll = await createPayroll(payload)
       setPayrolls(prev => [...prev, newPayroll])
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create payroll:", err)
-      setError("Failed to create payroll")
+      setError(err.response?.data?.detail || "Failed to create payroll.")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
-  const editPayroll = async (id: number, payload: any) => {
+  const editPayroll = useCallback(async (id: number, payload: PayrollUpdate) => {
+    setLoading(true)
+    setError(null)
     try {
       const updated = await updatePayroll(id, payload)
       setPayrolls(prev => prev.map(p => (p.id === id ? updated : p)))
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update payroll:", err)
-      setError("Failed to update payroll")
+      setError(err.response?.data?.detail || "Failed to update payroll.")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
-  const removePayroll = async (id: number) => {
+  const removePayroll = useCallback(async (id: number) => {
+    setLoading(true)
+    setError(null)
     try {
       await deletePayroll(id)
       setPayrolls(prev => prev.filter(p => p.id !== id))
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to delete payroll:", err)
-      setError("Failed to delete payroll")
+      setError(err.response?.data?.detail || "Failed to delete payroll.")
+    } finally {
+      setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchPayrolls()
-  }, [fetchPayrolls])
+  }, [])
 
   return {
     payrolls,
     loading,
     error,
     fetchPayrolls,
+    fetchTeacherPayrolls,
     addPayroll,
     editPayroll,
     removePayroll
