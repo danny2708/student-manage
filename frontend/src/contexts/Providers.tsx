@@ -5,7 +5,8 @@ import { AuthProvider } from "./AuthContext";
 import { UsersProvider } from "./UsersContext";
 import { SubjectProvider } from "./SubjectContext";
 import { ClassesProvider } from "./ClassContext";
-import { ScheduleProvider } from "./ScheduleContext"; 
+import { ScheduleProvider } from "./ScheduleContext";
+import { StudentProvider } from "./StudentContext";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -13,8 +14,10 @@ export function Providers({ children }: { children: ReactNode }) {
       <UsersProvider>
         <SubjectProvider>
           <ClassesProvider>
-            <ScheduleProvider> 
-              {children}
+            <ScheduleProvider>
+              <StudentProvider>  
+                {children}
+              </StudentProvider>
             </ScheduleProvider>
           </ClassesProvider>
         </SubjectProvider>

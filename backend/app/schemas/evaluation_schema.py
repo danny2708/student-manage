@@ -52,4 +52,5 @@ class EvaluationView(BaseModel):
     student: str
     teacher: str
     type: EvaluationType
+    content: Optional[str] = None
     date: date

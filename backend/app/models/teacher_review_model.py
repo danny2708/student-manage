@@ -13,7 +13,7 @@ class TeacherReview(Base):
     student_user_id = Column(Integer, ForeignKey("students.user_id", ondelete="CASCADE"), nullable=False)
 
     rating = Column(DECIMAL(10, 2), nullable=False)
-    review_text = Column(String)
+    review_content = Column(String)
     review_date = Column(DateTime, default=datetime.utcnow)
 
     # Quan hệ với Teacher và Student

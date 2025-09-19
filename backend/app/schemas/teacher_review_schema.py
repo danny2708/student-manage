@@ -7,7 +7,7 @@ from datetime import datetime
 class TeacherReviewBase(BaseModel):
     teacher_user_id: int
     rating: float = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
-    review_text: Optional[str] = Field(None, description="Student's review comment")
+    review_content: Optional[str] = Field(None, description="Student's review comment")
 
 class TeacherReviewCreate(TeacherReviewBase):
     pass
@@ -24,7 +24,7 @@ class TeacherReview(TeacherReviewBase):
 # Schema để cập nhật TeacherReview
 class TeacherReviewUpdate(BaseModel):
     rating: Optional[float] = Field(None, ge=1, le=5)
-    review_text: Optional[str] = None
+    review_content: Optional[str] = None
 
 class TeacherReviewView(BaseModel):
     id: int
@@ -32,7 +32,7 @@ class TeacherReviewView(BaseModel):
     student_name: str
     rating: float
     review_date: datetime
-    review_text: Optional[str]
+    review_content: Optional[str]
     
     class Config:
         from_attributes = True

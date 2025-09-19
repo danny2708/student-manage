@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import api from "../services/api/api"; // axios instance với baseURL đã set sẵn
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import api from "../services/api/api";
 
 // Interface User
 export interface User {
@@ -34,7 +34,7 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch all users
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -45,40 +45,40 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Mảng dependencies rỗng: hàm này chỉ được tạo một lần duy nhất
 
   // Create a new user
-  const addUser = async (newUser: Partial<User>) => {
+  const addUser = useCallback(async (newUser: Partial<User>) => {
     try {
       const res = await api.post<User>("/users", newUser);
       setUsers((prev) => [...prev, res.data]);
     } catch (err: any) {
       setError(err.message || "Failed to create user");
     }
-  };
+  }, []);
 
   // Update a user
-  const editUser = async (id: number, data: Partial<User>) => {
+  const editUser = useCallback(async (id: number, data: Partial<User>) => {
     try {
       const res = await api.put<User>(`/users/${id}`, data);
       setUsers((prev) => prev.map((u) => (u.user_id === id ? res.data : u)));
     } catch (err: any) {
       setError(err.message || "Failed to update user");
     }
-  };
+  }, []);
 
   // Delete a user
-  const removeUser = async (id: number) => {
+  const removeUser = useCallback(async (id: number) => {
     try {
       await api.delete(`/users/${id}`);
       setUsers((prev) => prev.filter((u) => u.user_id !== id));
     } catch (err: any) {
       setError(err.message || "Failed to delete user");
     }
-  };
+  }, []);
 
   // Import users from file
-  const importFromFile = async (file: File): Promise<User[]> => {
+  const importFromFile = useCallback(async (file: File): Promise<User[]> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -91,11 +91,12 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
       setError(err.message || "Failed to import users");
       return [];
     }
-  };
+  }, []);
 
+  // Chỉ gọi fetchUsers một lần khi component mount
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]); // Dependency [fetchUsers] sẽ không thay đổi nhờ useCallback
 
   return (
     <UsersContext.Provider
@@ -112,4 +113,3 @@ export const useUsers = (): UsersContextType => {
   if (!ctx) throw new Error("useUsers must be used within <UsersProvider>");
   return ctx;
 };
-

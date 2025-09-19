@@ -266,7 +266,7 @@ def get_evaluations_of_teacher(
         )
 
     # Kiểm tra xem teacher_user_id có tồn tại không
-    db_teacher = teacher_crud.get_teacher(db, user_id=teacher_user_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
     if not db_teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

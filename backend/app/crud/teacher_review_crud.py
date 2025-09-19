@@ -26,7 +26,7 @@ def get_teacher_review_with_names_query(db: Session):
             student_user.c.full_name.label("student_name"),
             TeacherReview.rating,
             TeacherReview.review_date,
-            TeacherReview.review_text
+            TeacherReview.review_content
         )
         .select_from(
             join(
@@ -101,7 +101,7 @@ def create_teacher_review(
         teacher_user_id=teacher_review.teacher_user_id,
         student_user_id=student_user_id,
         rating=teacher_review.rating,
-        review_text=teacher_review.review_text,
+        review_content=teacher_review.review_content,
         review_date=datetime.now()
     )
     db.add(db_teacher_review)

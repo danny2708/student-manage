@@ -9,6 +9,7 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  getTeacherClasses as getTeacherClassesApi,
   exportClass,
 } from "../services/api/class"
 
@@ -20,6 +21,7 @@ interface ClassContextType {
   addClass: (data: ClassCreate) => Promise<Class>
   editClass: (id: number, data: ClassUpdate) => Promise<Class>
   removeClass: (id: number) => Promise<void>
+  getTeacherClasses: (teacherUserId: number) => Promise<Class[]>
   exportClassData: (id: number) => Promise<void>
 }
 
@@ -72,6 +74,20 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const getTeacherClasses = async (teacherUserId: number) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getTeacherClassesApi(teacherUserId)
+      setLoading(false)
+      return data
+    } catch (err: any) {
+      setLoading(false)
+      setError(err.message || "Không thể tải danh sách lớp học của giáo viên.")
+      throw new Error(err.message || "Không thể tải danh sách lớp học của giáo viên.")
+    }
+  }
+
   const exportClassData = async (id: number) => {
     try {
       await exportClass(id)
@@ -82,7 +98,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchClasses()
-  }, [])
+  }, []) 
 
   return (
     <ClassContext.Provider
@@ -94,6 +110,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
         addClass,
         editClass,
         removeClass,
+        getTeacherClasses,
         exportClassData,
       }}
     >

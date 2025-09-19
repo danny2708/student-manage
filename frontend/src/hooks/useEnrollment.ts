@@ -68,7 +68,7 @@ export function useEnrollment() {
     setError(null)
     try {
       await setEnrollmentInactive(studentId, classId)
-      await fetchAllEnrollments(); // ⬅️ Fetch lại để đồng bộ dữ liệu
+      await fetchAllEnrollments(); 
     } catch (err) {
       console.error("Failed to remove enrollment:", err)
       setError("Failed to remove enrollment")

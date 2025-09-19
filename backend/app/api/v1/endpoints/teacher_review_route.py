@@ -117,7 +117,7 @@ def get_reviews_by_teacher(
     
     Quyền truy cập: **all authenticated users**
     """
-    db_teacher = teacher_crud.get_teacher(db, user_id=user_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=user_id)
     if not db_teacher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -11,7 +11,7 @@ def calculate_total_points_for_student(db: Session, student_user_id: int):
     bằng cách cộng dồn tất cả các thay đổi điểm đã ghi lại.
     """
     # Lấy tất cả các bản ghi đánh giá chi tiết từ lớp CRUD
-    evaluations = evaluation_crud.get_evaluations_by_student_user_id(db, student_user_id=student_user_id)
+    evaluations = evaluation_crud.get_evaluations_by_student_user_id_forCal(db, student_user_id=student_user_id)
     
     total_study_point = sum(e.study_point for e in evaluations)
     total_discipline_point = sum(e.discipline_point for e in evaluations)
@@ -48,7 +48,7 @@ def get_summary_and_counts_for_student(db: Session, student_user_id: int):
     Tính toán và trả về tổng kết điểm, giới hạn về 100,
     và đếm số lần cộng/trừ điểm cho cả điểm học tập và kỷ luật.
     """
-    evaluations = evaluation_crud.get_evaluations_by_student_user_id(db, student_user_id=student_user_id)
+    evaluations = evaluation_crud.get_evaluations_by_student_user_id_forCal(db, student_user_id=student_user_id)
 
     total_study_point = 100
     total_discipline_point = 100

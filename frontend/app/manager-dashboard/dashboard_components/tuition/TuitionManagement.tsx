@@ -8,6 +8,7 @@ import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
 import { useTuitions } from "../../../../src/hooks/useTuition";
 import { CreateTuitionForm } from "./CreateTuitionForm";
 
+
 export default function TuitionManagement() {
   const { tuitions, fetchTuitions, removeTuition } = useTuitions();
 

@@ -51,6 +51,11 @@ export async function deleteClass(id: number): Promise<void> {
   await api.delete(`/classes/${id}`)
 }
 
+export async function getTeacherClasses(teacherUserId: number): Promise<Class[]> {
+  const res = await api.get<Class[]>(`/teachers/${teacherUserId}/classes`)
+  return res.data
+}
+
 export async function exportClass(classId: number): Promise<void> {
   const res = await api.get(`/classes/export/${classId}`, {
     responseType: "blob",

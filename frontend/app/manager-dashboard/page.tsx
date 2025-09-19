@@ -24,7 +24,7 @@ import {
   LogOut,
   User as UserIcon,
 } from "lucide-react"
-import { RoleModal } from "./users_management/roles-components/role_modal"
+// import { RoleModal } from "./users_management/roles-components/UserActionsModal"
 import { UserInfoModal } from "./showInfo/user_info_modal"
 import { ActionModal } from "./showInfo/action_modal"
 import { CreateModal } from "./showInfo/create_modal"
@@ -41,7 +41,7 @@ import TeacherReviewManagement from "./dashboard_components/TeacherReviewManagem
 import EvaluationManagement from "./dashboard_components/EvaluationManagement"
 import ClassManagement from "./dashboard_components/class/ClassManagement"
 import SubjectManagement from "./dashboard_components/SubjectManagement"
-
+import { RoleModal } from "./users_management/roles-components/RoleModal"
 export default function ManagerDashboard() {
   const { user } = useAuth() as { user: LoginResponse | null } 
   const [activeSection, setActiveSection] = useState("dashboard")

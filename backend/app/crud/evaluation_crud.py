@@ -23,7 +23,8 @@ def get_evaluations_by_student_user_id(db: Session, student_user_id: int, skip: 
             Evaluation.evaluation_id,
             teacher_user.c.full_name.label("teacher_name"),
             Evaluation.evaluation_type,
-            Evaluation.evaluation_date
+            Evaluation.evaluation_date,
+            Evaluation.evaluation_content
         )
         .select_from(
             join(Evaluation, teacher_user, Evaluation.teacher_user_id == teacher_user.c.user_id)
@@ -43,10 +44,16 @@ def get_evaluations_by_student_user_id(db: Session, student_user_id: int, skip: 
                 student="", # Thay đổi None thành chuỗi rỗng
                 type=row.evaluation_type,
                 date=row.evaluation_date,
+                content=row.evaluation_content
             )
         )
     return evaluations_list
 
+def get_evaluations_by_student_user_id_forCal(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
+    """
+    Lấy danh sách các bản ghi đánh giá chi tiết (delta) của một học sinh.
+    """
+    return db.query(Evaluation).filter(Evaluation.student_user_id == student_user_id).offset(skip).limit(limit).all()
 
 def get_all_evaluations(db: Session, skip: int = 0, limit: int = 100):
     """
@@ -65,7 +72,8 @@ def get_all_evaluations_with_names(db: Session, skip: int = 0, limit: int = 100)
             teacher_user.c.full_name.label("teacher_name"),
             student_user.c.full_name.label("student_name"),
             Evaluation.evaluation_type,
-            Evaluation.evaluation_date
+            Evaluation.evaluation_date,
+            Evaluation.evaluation_content
         )
         .select_from(
             join(Evaluation, teacher_user, Evaluation.teacher_user_id == teacher_user.c.user_id)
@@ -84,6 +92,7 @@ def get_all_evaluations_with_names(db: Session, skip: int = 0, limit: int = 100)
                 student=row.student_name,
                 type=row.evaluation_type,
                 date=row.evaluation_date,
+                content=row.evaluation_content
             )
         )
     return evaluations_list
@@ -100,7 +109,8 @@ def get_evaluations_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, l
             Evaluation.evaluation_id,
             student_user.c.full_name.label("student_name"),
             Evaluation.evaluation_type,
-            Evaluation.evaluation_date
+            Evaluation.evaluation_date,
+            Evaluation.evaluation_content
         )
         .select_from(
             join(Evaluation, student_user, Evaluation.student_user_id == student_user.c.user_id)
@@ -120,6 +130,7 @@ def get_evaluations_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, l
                 student=row.student_name,
                 type=row.evaluation_type,
                 date=row.evaluation_date,
+                content=row.evaluation_content
             )
         )
     return evaluations_list

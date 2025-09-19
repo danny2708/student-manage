@@ -58,3 +58,8 @@ export const updatePayroll = async (id: number, payload: PayrollUpdate): Promise
 export const deletePayroll = async (id: number): Promise<void> => {
   await api.delete(`/payrolls/${id}`)
 }
+
+export const getTeacherPayrolls = async (teacherUserId: number): Promise<Payroll[]> => {
+  const res = await api.get(`/payrolls/teacher/${teacherUserId}`)
+  return res.data
+}

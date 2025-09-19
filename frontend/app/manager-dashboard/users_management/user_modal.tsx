@@ -5,7 +5,7 @@ import { Badge } from "../../../components/ui/badge"
 interface User {
   user_id: number
   username: string
-  roles: string[]       // dùng array
+  roles: string[]      
   full_name: string
   email: string
 }
