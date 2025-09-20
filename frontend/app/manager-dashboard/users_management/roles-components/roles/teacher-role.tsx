@@ -11,6 +11,7 @@ import {
 import { Badge } from "../../../../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
 import { BookOpen, Star, Users, DollarSign } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
 import { useEvaluations } from "../../../../../src/hooks/useEvaluation";
@@ -32,9 +33,12 @@ interface TeacherRoleProps {
   user: User;
 }
 
+const formatVND = (amount: number): string => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+};
+
 export function TeacherRole({ user }: TeacherRoleProps) {
   const { classes, fetchClasses } = useClasses();
-  // Nếu các hàm fetch trả về dữ liệu, ta có thể nhận chúng ở đây
   const { fetchEvaluationsOfTeacher } = useEvaluations();
   const { fetchReviewsByTeacherId } = useTeacherReviews();
   const { fetchTeacherPayrolls } = usePayrolls();
@@ -47,20 +51,19 @@ export function TeacherRole({ user }: TeacherRoleProps) {
   
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "N/A";
-    return new Date(dateStr).toLocaleDateString("vi-VN");
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("vi-VN");
   };
 
   const userId = user.user_id;
 
   const loadInitialData = useCallback(async () => {
     try {
-      // Gọi từng hàm fetch và gán kết quả vào biến
       const evals = await fetchEvaluationsOfTeacher(userId);
       const reviews = await fetchReviewsByTeacherId(userId);
       const payrolls = await fetchTeacherPayrolls(userId);
-      await fetchClasses(); // Giả sử hàm này tự cập nhật state bên trong hook
+      await fetchClasses(); 
 
-      // Cập nhật state với dữ liệu đã fetch, kiểm tra null/undefined an toàn hơn
       if (evals !== undefined && evals !== null) {
         setTeacherEvaluations(evals);
       }
@@ -85,69 +88,116 @@ export function TeacherRole({ user }: TeacherRoleProps) {
   };
 
   return (
-    <div className="space-y-6 text-black">
+    <div className="space-y-6 text-white">
       {/* --- Stats --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Assigned Classes</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{classes.length}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Evaluations Given</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{teacherEvaluations.length}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Student Reviews</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{teacherReviews.length}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Salary</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${teacherPayrolls[0]?.total ?? 0}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Assigned Classes</CardTitle>
+              <BookOpen className="h-4 w-4 text-slate-300" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{classes.length}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Evaluations Given</CardTitle>
+              <Star className="h-4 w-4 text-slate-300" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{teacherEvaluations.length}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Student Reviews</CardTitle>
+              <Users className="h-4 w-4 text-slate-300" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{teacherReviews.length}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className="bg-slate-700 border-slate-600 min-w-[250px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">Monthly Salary</CardTitle>
+              <DollarSign className="h-4 w-4 text-slate-300" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-400">{formatVND(teacherPayrolls[0]?.total || 0)}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* --- Tabs --- */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="assign-class">Assign Class</TabsTrigger>
-          <TabsTrigger value="evaluations">Evaluations</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600">
+          <TabsTrigger
+            value="assign-class"
+            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+          >
+            Assign Class
+          </TabsTrigger>
+          <TabsTrigger
+            value="evaluations"
+            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+          >
+            Evaluations
+          </TabsTrigger>
+          <TabsTrigger
+            value="reviews"
+            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+          >
+            Reviews
+          </TabsTrigger>
+          <TabsTrigger
+            value="payroll"
+            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+          >
+            Payroll
+          </TabsTrigger>
         </TabsList>
 
         {/* --- Assign Class --- */}
         <TabsContent value="assign-class" className="space-y-4">
-          <Card>
+          <Card className="bg-slate-700 border-slate-600">
             <CardHeader>
-              <CardTitle>Available Classes</CardTitle>
-              <CardDescription>Select a class to assign yourself to</CardDescription>
+              <CardTitle className="text-white">Available Classes</CardTitle>
+              <CardDescription className="text-slate-300">Select a class to assign yourself to</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
                 {classes.map((cls) => (
-                  <div key={cls.class_id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <motion.div
+                    key={cls.class_id}
+                    className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600"
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <div>
-                      <h3 className="font-semibold">{cls.class_name}</h3>
-                      <p className="text-sm text-muted-foreground">Capacity: {cls.capacity}</p>
+                      <h3 className="font-semibold text-white">{cls.class_name}</h3>
+                      <p className="text-sm text-slate-300">Capacity: {cls.capacity}</p>
                     </div>
-                    <Button onClick={() => handleAssignClass(cls.class_id)}>Assign to Me</Button>
-                  </div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        onClick={() => handleAssignClass(cls.class_id)}
+                        className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Assign to Me
+                      </Button>
+                    </motion.div>
+                  </motion.div>
                 ))}
               </div>
             </CardContent>
@@ -156,27 +206,29 @@ export function TeacherRole({ user }: TeacherRoleProps) {
 
         {/* --- Evaluations --- */}
         <TabsContent value="evaluations" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Evaluations</CardTitle></CardHeader>
+          <Card className="bg-slate-700 border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-white">Evaluations</CardTitle>
+            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Content</TableHead>
-                    <TableHead>Date</TableHead>
+                  <TableRow className="border-slate-600">
+                    <TableHead className="text-white">ID</TableHead>
+                    <TableHead className="text-white">Student</TableHead>
+                    <TableHead className="text-white">Type</TableHead>
+                    <TableHead className="text-white">Content</TableHead>
+                    <TableHead className="text-white">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherEvaluations.map((ev) => (
-                    <TableRow key={ev.id}>
-                      <TableCell>{ev.id}</TableCell>
-                      <TableCell>{ev.student}</TableCell>
-                      <TableCell>{ev.type}</TableCell>
-                      <TableCell>{ev.content}</TableCell>
-                      <TableCell>{formatDate(ev.date)}</TableCell>
+                    <TableRow key={ev.id} className="border-slate-600">
+                      <TableCell className="text-white">{ev.id}</TableCell>
+                      <TableCell className="text-white">{ev.student}</TableCell>
+                      <TableCell className="text-white">{ev.type}</TableCell>
+                      <TableCell className="text-white">{ev.content}</TableCell>
+                      <TableCell className="text-white">{formatDate(ev.date)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -187,22 +239,24 @@ export function TeacherRole({ user }: TeacherRoleProps) {
 
         {/* --- Reviews --- */}
         <TabsContent value="reviews" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Student Reviews</CardTitle></CardHeader>
+          <Card className="bg-slate-700 border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-white">Student Reviews</CardTitle>
+            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Content</TableHead>
+                  <TableRow className="border-slate-600">
+                    <TableHead className="text-white">Student</TableHead>
+                    <TableHead className="text-white">Rating</TableHead>
+                    <TableHead className="text-white">Date</TableHead>
+                    <TableHead className="text-white">Content</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherReviews.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.student_name}</TableCell>
+                    <TableRow key={r.id} className="border-slate-600">
+                      <TableCell className="text-white">{r.student_name}</TableCell>
                       <TableCell>
                         <div className="flex">
                           {Array.from({ length: r.rating }).map((_, i) => (
@@ -210,8 +264,8 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>{formatDate(r.review_date)}</TableCell>
-                      <TableCell>{r.review_content}</TableCell>
+                      <TableCell className="text-white">{formatDate(r.review_date)}</TableCell>
+                      <TableCell className="text-white">{r.review_content}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -222,35 +276,40 @@ export function TeacherRole({ user }: TeacherRoleProps) {
 
         {/* --- Payroll --- */}
         <TabsContent value="payroll" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Payroll Information</CardTitle></CardHeader>
+          <Card className="bg-slate-700 border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-white">Payroll Information</CardTitle>
+            </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Base Salary</TableHead>
-                    <TableHead>Reward Bonus</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Sent At</TableHead>
+                  <TableRow className="border-slate-600">
+                    <TableHead className="text-white">ID</TableHead>
+                    <TableHead className="text-white">Month</TableHead>
+                    <TableHead className="text-white">Base Salary</TableHead>
+                    <TableHead className="text-white">Reward Bonus</TableHead>
+                    <TableHead className="text-white">Total</TableHead>
+                    <TableHead className="text-white">Status</TableHead>
+                    <TableHead className="text-white">Sent At</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherPayrolls.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.id}</TableCell>
-                      <TableCell>{p.month}</TableCell>
-                      <TableCell>${p.base_salary}</TableCell>
-                      <TableCell>${p.bonus}</TableCell>
-                      <TableCell className="font-semibold">${p.total}</TableCell>
+                    <TableRow key={p.id} className="border-slate-600">
+                      <TableCell className="text-white">{p.id}</TableCell>
+                      <TableCell className="text-white">{p.month}</TableCell>
+                      <TableCell className="text-white">{formatVND(p.base_salary)}</TableCell>
+                      <TableCell className="text-white">{formatVND(p.bonus)}</TableCell>
+                      <TableCell className="font-semibold text-green-400">{formatVND(p.total)}</TableCell>
                       <TableCell>
-                        <Badge variant={p.status === "paid" ? "default" : "secondary"}>
+                        <Badge 
+                          variant={p.status === "paid" ? "default" : "secondary"}
+                          className={p.status === "pending" ? "bg-yellow-500 text-white hover:bg-yellow-400" : ""}
+                        >
                           {p.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatDate(p.sent_at)}</TableCell>
+                      <TableCell className="text-white">{formatDate(p.sent_at)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
