@@ -1,3 +1,4 @@
+//./showInfo/user_info_modal
 "use client"
 
 import { X, User, Calendar, Mail, Phone } from "lucide-react"

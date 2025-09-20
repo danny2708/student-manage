@@ -8,6 +8,8 @@ import { TeacherRole } from "./roles/teacher-role"
 import { ParentRole } from "./roles/parent-role"
 import { User as UserIcon, GraduationCap, Users } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
+import { Button } from "../../../../components/ui/button"
+import { useUsers } from "../../../../src/contexts/UsersContext"   
 
 interface User {
   user_id: number
@@ -21,11 +23,22 @@ interface RoleModalProps {
   user: User
   onClose: () => void
   onShowInfo: () => void
-  onDelete: () => void
 }
 
-export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProps) {
+export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
   const [selectedRole, setSelectedRole] = useState(user.roles[0] as "student" | "teacher" | "parent")
+  const [loading, setLoading] = useState(false)
+  const { removeUser } = useUsers()
+
+  const handleDelete = async () => {
+    try {
+      setLoading(true)
+      await removeUser(user.user_id)   
+      onClose()                        
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -39,28 +52,19 @@ export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProp
         <Tabs value={selectedRole} onValueChange={(value) => setSelectedRole(value as any)} className="w-full">
           <TabsList className={`grid w-full grid-cols-${user.roles.length} bg-slate-700 border-slate-600`}>
             {user.roles.includes("student") && (
-              <TabsTrigger
-                value="student"
-                className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-              >
+              <TabsTrigger value="student" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
                 <UserIcon className="w-4 h-4" />
                 Student
               </TabsTrigger>
             )}
             {user.roles.includes("teacher") && (
-              <TabsTrigger
-                value="teacher"
-                className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-              >
+              <TabsTrigger value="teacher" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
                 <GraduationCap className="w-4 h-4" />
                 Teacher
               </TabsTrigger>
             )}
             {user.roles.includes("parent") && (
-              <TabsTrigger
-                value="parent"
-                className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-              >
+              <TabsTrigger value="parent" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
                 <Users className="w-4 h-4" />
                 Parent
               </TabsTrigger>
@@ -105,6 +109,18 @@ export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProp
             </TabsContent>
           </AnimatePresence>
         </Tabs>
+
+        {/* ✅ nút Delete căn giữa ở cuối modal */}
+        <div className="flex justify-center mt-8">
+          <Button
+            variant="destructive"
+            disabled={loading}
+            onClick={handleDelete}
+            className="px-8 py-2"
+          >
+            {loading ? "Đang xóa..." : "Xóa User"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

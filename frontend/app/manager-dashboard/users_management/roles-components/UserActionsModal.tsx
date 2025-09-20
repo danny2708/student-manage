@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { RoleModal } from "./RoleModal"
 import { Button } from "../../../../components/ui/button"
 
@@ -14,24 +14,11 @@ interface User {
 
 interface UserActionModalProps {
   users: User[]
-  onDeleteUser: (user: User) => void
   onShowUserInfo: (user: User) => void
 }
 
-export function UserActionModal({ users, onDeleteUser, onShowUserInfo }: UserActionModalProps) {
+export function UserActionModal({ users, onShowUserInfo }: UserActionModalProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
-
-  const memoizedOnShowInfo = useCallback(() => {
-    if (selectedUser) {
-      onShowUserInfo(selectedUser)
-    }
-  }, [onShowUserInfo, selectedUser])
-
-  const memoizedOnDelete = useCallback(() => {
-    if (selectedUser) {
-      onDeleteUser(selectedUser)
-    }
-  }, [onDeleteUser, selectedUser])
 
   return (
     <div className="space-y-2">
@@ -46,15 +33,16 @@ export function UserActionModal({ users, onDeleteUser, onShowUserInfo }: UserAct
             <p className="text-sm text-gray-600">{user.email}</p>
             <p className="text-xs text-gray-500">Roles: {user.roles.join(", ")}</p>
           </div>
+          {/* Nút delete giờ bỏ → chỉ còn ở trong modal */}
           <Button
             size="sm"
-            variant="destructive"
+            variant="outline"
             onClick={(e) => {
               e.stopPropagation()
-              onDeleteUser(user)
+              onShowUserInfo(user)
             }}
           >
-            Delete
+            Info
           </Button>
         </div>
       ))}
@@ -63,8 +51,7 @@ export function UserActionModal({ users, onDeleteUser, onShowUserInfo }: UserAct
         <RoleModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onShowInfo={memoizedOnShowInfo}
-          onDelete={memoizedOnDelete}
+          onShowInfo={() => onShowUserInfo(selectedUser)}
         />
       )}
     </div>

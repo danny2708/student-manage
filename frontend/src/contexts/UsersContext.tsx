@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import api from "../services/api/api";
 import { toast } from "react-hot-toast"; // 🆕 thêm toast
-import { importUsers } from "../services/api/users";
+import { importUsers, deleteUser } from "../services/api/users";
 
 // Interface User
 export interface User {
@@ -90,14 +90,15 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
   // Delete a user
   const removeUser = useCallback(async (id: number) => {
     try {
-      await api.delete(`/users/${id}`);
-      setUsers((prev) => prev.filter((u) => u.user_id !== id));
-      toast.success("Xóa user thành công 🗑️");
+      await deleteUser(id)   // ✅ gọi hàm từ users.ts
+      setUsers((prev) => prev.filter((u) => u.user_id !== id))
+      toast.success("Xóa user thành công 🗑️")
     } catch (err: any) {
-      setError(err.message || "Failed to delete user");
-      toast.error("Xóa user thất bại ❌");
+      setError(err.message || "Failed to delete user")
+      toast.error("Xóa user thất bại ❌")
     }
-  }, []);
+  }, [])
+
 
   const importFromFile = useCallback(
     async (file: File): Promise<ImportResult | null> => {

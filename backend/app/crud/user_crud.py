@@ -115,7 +115,12 @@ def delete_user(db: Session, user_id: int) -> Optional[User]:
     db_user = db.query(User).filter(User.user_id == user_id).first()
     if not db_user:
         return None
-    
+
+    # Xóa quan hệ many-to-many trước (nếu có roles gắn với user)
+    db_user.roles.clear()
+    db.commit()  # flush thay đổi vào bảng trung gian
+
+    # Xóa user
     db.delete(db_user)
     db.commit()
     return db_user

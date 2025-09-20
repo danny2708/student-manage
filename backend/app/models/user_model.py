@@ -27,7 +27,7 @@ class User(Base):
 
     password_changed = Column(Boolean, default=False, nullable=False)
 
-    roles = relationship("Role", secondary=user_roles, back_populates="users", cascade="all", passive_deletes=True)
+    roles = relationship("Role", secondary=user_roles, back_populates="users", passive_deletes=True)
     manager = relationship("Manager", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     teacher = relationship("Teacher", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     student = relationship("Student", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
