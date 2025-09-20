@@ -1,6 +1,7 @@
+// src/components/roles/StudentRole.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -21,11 +22,13 @@ import { Badge } from "../../../../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
 import { BookOpen, Star, Users, Award } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from 'react-hot-toast';
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
 import { useEnrollment } from "../../../../../src/hooks/useEnrollment";
 import { useTeacherReviews } from "../../../../../src/hooks/useTeacherReview";
 import { useEvaluations } from "../../../../../src/hooks/useEvaluation";
+import { Enrollment } from "../../../../../src/services/api/enrollment";
 
 interface User {
   user_id: number;
@@ -43,13 +46,10 @@ export function StudentRole({ user }: StudentRoleProps) {
   const { classes, fetchClasses } = useClasses();
   const { addEnrollment, getEnrollmentsByStudentId } = useEnrollment();
   const { fetchSummaryAndCounts, fetchEvaluationsOfStudent } = useEvaluations();
-  const {
-    reviews: studentReviews,
-    fetchReviewsByStudentId,
-  } = useTeacherReviews();
+  const { reviews: studentReviews, fetchReviewsByStudentId } = useTeacherReviews();
 
   const [studentEvaluations, setStudentEvaluations] = useState<any[]>([]);
-  const [studentEnrollments, setStudentEnrollments] = useState<any[]>([]);
+  const [studentEnrollments, setStudentEnrollments] = useState<Enrollment[]>([]);
   const [summary, setSummary] = useState({ study_points: 0, discipline_points: 0 });
   const [activeTab, setActiveTab] = useState("add-class");
 
@@ -60,44 +60,49 @@ export function StudentRole({ user }: StudentRoleProps) {
 
   const loadInitialData = useCallback(async () => {
     const userId = user.user_id;
+    try {
+      const [enrolls, evals, total, reviews] = await Promise.all([
+        getEnrollmentsByStudentId(userId),
+        fetchEvaluationsOfStudent(userId),
+        fetchSummaryAndCounts(userId),
+        fetchReviewsByStudentId(userId),
+      ]);
 
-    const [enrolls, evals, total, reviews] = await Promise.all([
-      getEnrollmentsByStudentId(userId),
-      fetchEvaluationsOfStudent(userId),
-      fetchSummaryAndCounts(userId),
-      fetchReviewsByStudentId(userId),
-    ]);
+      if (enrolls) {
+        // Chuẩn hoá enrollment_status và format date ở đây
+        setStudentEnrollments(
+          enrolls.map((e: any) => ({
+            ...e,
+            // giữ mọi trường, nhưng chuẩn hoá status
+            enrollment_status: (e.enrollment_status ?? "").toString().trim().toLowerCase(),
+            enrollment_date: formatDate(e.enrollment_date),
+          }))
+        );
+      } else {
+        setStudentEnrollments([]);
+      }
 
-    if (enrolls) {
-      setStudentEnrollments(
-        enrolls.map((e) => ({
-          ...e,
-          enrollment_date: formatDate(e.enrollment_date),
-        }))
-      );
-    } else {
-      setStudentEnrollments([]);
+      if (evals) {
+        setStudentEvaluations(
+          evals.map((ev: any) => ({
+            ...ev,
+            evaluation_date: formatDate(ev.evaluation_date),
+          }))
+        );
+      } else {
+        setStudentEvaluations([]);
+      }
+
+      if (total) {
+        setSummary({
+          study_points: total.final_study_point,
+          discipline_points: total.final_discipline_point,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load initial data:", err);
+      // Không rethrow — chỉ log, để UI vẫn tiếp tục flow
     }
-
-    if (evals) {
-      setStudentEvaluations(
-        evals.map((ev: any) => ({
-          ...ev,
-          evaluation_date: formatDate(ev.evaluation_date), // Đổi từ ev.date sang ev.evaluation_date
-        }))
-      );
-    } else {
-      setStudentEvaluations([]);
-    }
-
-    if (total) {
-      setSummary({
-        study_points: total.final_study_point,
-        discipline_points: total.final_discipline_point,
-      });
-    }
-
-    // reviews đã được xử lý bởi hook useTeacherReviews, không cần setState riêng
   }, [user.user_id, getEnrollmentsByStudentId, fetchEvaluationsOfStudent, fetchReviewsByStudentId, fetchSummaryAndCounts]);
 
   useEffect(() => {
@@ -106,17 +111,46 @@ export function StudentRole({ user }: StudentRoleProps) {
   }, [fetchClasses, loadInitialData]);
 
   const handleEnrollInClass = async (classId: number) => {
-    await addEnrollment({
-      student_user_id: user.user_id,
-      class_id: classId,
-      enrollment_date: new Date().toISOString().split("T")[0],
-    });
-    const enrolls = await getEnrollmentsByStudentId(user.user_id);
-    setStudentEnrollments(enrolls ?? []);
+    try {
+      // Gọi API để đăng ký
+      const created = await addEnrollment({
+        student_user_id: user.user_id,
+        class_id: classId,
+        enrollment_date: new Date().toISOString().split("T")[0],
+      });
+
+      // Hiển thị toast ngay khi API trả về thành công (tránh bị chặn nếu reload lỗi)
+      toast.success("Đăng ký lớp học thành công!");
+
+      // Cập nhật lại dữ liệu (nếu có lỗi ở đây thì vẫn đã show toast)
+      try {
+        await loadInitialData();
+      } catch (err) {
+        console.warn("Reload after enroll failed (but enroll succeeded):", err);
+      }
+
+      return created;
+    } catch (error: any) {
+      console.error("Enroll failed:", error);
+      toast.error(error?.message || "Đăng ký lớp học thất bại.");
+      throw error;
+    }
   };
+
+  // Lọc các lớp học mà sinh viên chưa đăng ký
+  const enrolledClassIds = useMemo(() => {
+    return new Set(studentEnrollments.map(e => Number(e.class_id)));
+  }, [studentEnrollments]);
+
+  const availableClasses = useMemo(() => {
+    // lọc classes: chỉ giữ những class mà id không nằm trong set enrolledClassIds
+    return classes.filter(cls => !enrolledClassIds.has(Number((cls as any).class_id)));
+  }, [classes, enrolledClassIds]);
 
   return (
     <div className="space-y-6 text-white">
+      <Button onClick={() => toast.success("Toast test!")}>Test Toast</Button>
+
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
@@ -224,37 +258,41 @@ export function StudentRole({ user }: StudentRoleProps) {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {classes.map((cls) => (
-                  <motion.div
-                    key={cls.class_id}
-                    className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600"
-                    whileHover={{ scale: 1.01 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {cls.class_name}
-                      </h3>
-                      <p className="text-sm text-slate-300">
-                        Teacher: {cls.teacher_name}
-                      </p>
-                      <p className="text-sm text-slate-300">
-                        Capacity: {cls.capacity}
-                      </p>
-                    </div>
+                {availableClasses.length > 0 ? (
+                  availableClasses.map((cls) => (
                     <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      key={cls.class_id}
+                      className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600"
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <Button
-                        onClick={() => handleEnrollInClass(cls.class_id)}
-                        className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                      <div>
+                        <h3 className="font-semibold text-white">
+                          {cls.class_name}
+                        </h3>
+                        <p className="text-sm text-slate-300">
+                          Teacher: {cls.teacher_name}
+                        </p>
+                        <p className="text-sm text-slate-300">
+                          Capacity: {cls.capacity}
+                        </p>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        Enroll
-                      </Button>
+                        <Button
+                          onClick={() => handleEnrollInClass(cls.class_id)}
+                          className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Enroll
+                        </Button>
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-slate-400">Không có lớp học nào để đăng ký.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -280,7 +318,7 @@ export function StudentRole({ user }: StudentRoleProps) {
                 </TableHeader>
                 <TableBody>
                   {studentEnrollments.map((enr) => (
-                    <TableRow key={enr.id} className="border-slate-600">
+                    <TableRow key={enr.enrollment_id} className="border-slate-600">
                       <TableCell className="text-white">{enr.class_name}</TableCell>
                       <TableCell className="text-white">{enr.enrollment_date}</TableCell>
                       <TableCell>
@@ -357,7 +395,7 @@ export function StudentRole({ user }: StudentRoleProps) {
                       <TableCell className="text-white">{ev.teacher}</TableCell>
                       <TableCell className="text-white">{ev.type}</TableCell>
                       <TableCell className="text-white">{ev.content}</TableCell>
-                      <TableCell className="text-white">{ev.date}</TableCell>
+                      <TableCell className="text-white">{ev.evaluation_date}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -25,6 +25,7 @@ class Class(ClassBase):
         from_attributes = True
 
 class ClassView(BaseModel):
+    teacher_user_id: Optional[int]
     class_id: int
     class_name: str 
     teacher_name: Optional[str] 

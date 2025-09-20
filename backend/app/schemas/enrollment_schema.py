@@ -29,6 +29,7 @@ class Enrollment(EnrollmentBase):
         from_attributes = True
 
 class EnrollmentView(BaseModel):
+    class_id: int
     student_name: str 
     class_name: str 
     enrollment_date: date = Field(..., example="2023-10-26")

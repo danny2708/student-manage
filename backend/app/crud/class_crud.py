@@ -7,24 +7,20 @@ from app.models.user_model import User
 from app.models.subject_model import Subject   # 🆕 import
 from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassView
 
-
 def get_class_with_teacher_name_query():
-    """Returns a SQLAlchemy query object with JOINs to get the teacher's name and subject name."""
     return (
         select(
             Class.class_id,
+            Class.teacher_user_id,
             Class.class_name,
             User.full_name.label("teacher_name"),
-            Subject.name.label("subject_name"),          # 🆕 lấy subject_name
-            Class.capacity.label("capacity"),
+            Subject.name.label("subject_name"),
+            Class.capacity,
             Class.fee
         )
-        .select_from(
-            join(Class, User, Class.teacher_user_id == User.user_id)
-            .join(Subject, Class.subject_id == Subject.subject_id)  # 🆕 join thêm Subject
-        )
+        .join(Subject, Class.subject_id == Subject.subject_id)
+        .outerjoin(User, Class.teacher_user_id == User.user_id)  # 👈 outer join với User
     )
-
 
 def get_class(db: Session, class_id: int):
     query = get_class_with_teacher_name_query().where(Class.class_id == class_id)

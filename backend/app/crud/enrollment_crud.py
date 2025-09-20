@@ -42,6 +42,7 @@ def get_enrollments_by_student_user_id(
         select(
             User.full_name.label("student_name"),
             Class.class_name,
+            Class.class_id,
             Enrollment.enrollment_date,
             Enrollment.enrollment_status
         )
@@ -55,6 +56,7 @@ def get_enrollments_by_student_user_id(
     
     return [
         EnrollmentView(
+            class_id=row.class_id,
             student_name=row.student_name,
             class_name=row.class_name,
             enrollment_date=row.enrollment_date,
@@ -106,6 +108,7 @@ def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[En
         select(
             User.full_name.label("student_name"),
             Class.class_name,
+            Class.class_id,
             Enrollment.enrollment_date,
             Enrollment.enrollment_status
         )
@@ -118,6 +121,7 @@ def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[En
     
     return [
         EnrollmentView(
+            class_id=row.class_id,
             student_name=row.student_name,
             class_name=row.class_name,
             enrollment_date=row.enrollment_date,

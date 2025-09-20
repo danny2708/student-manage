@@ -44,6 +44,7 @@ class TeacherAssign(BaseModel):
 
 class ClassTaught(BaseModel):
     class_id: int
+    teacher_user_id: int
     class_name: str 
     teacher_name: Optional[str] 
     subject_name: Optional[str] 

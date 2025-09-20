@@ -1,6 +1,7 @@
+// src/components/roles/TeacherRole.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
 } from "../../../../../components/ui/card";
@@ -12,10 +13,12 @@ import { Badge } from "../../../../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
 import { BookOpen, Star, Users, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
+import { ClassUpdate } from "../../../../../src/services/api/class"; 
 import { useEvaluations } from "../../../../../src/hooks/useEvaluation";
-import { useTeacherReviews} from "../../../../../src/hooks/useTeacherReview";
+import { useTeacherReviews } from "../../../../../src/hooks/useTeacherReview";
 import { usePayrolls } from "../../../../../src/hooks/usePayroll";
 import { EvaluationView } from "../../../../../src/services/api/evaluation";
 import { TeacherReviewView } from "../../../../../src/services/api/teacherReview";
@@ -38,7 +41,8 @@ const formatVND = (amount: number): string => {
 };
 
 export function TeacherRole({ user }: TeacherRoleProps) {
-  const { classes, fetchClasses } = useClasses();
+  // lấy thêm editClass và getTeacherClasses từ context
+  const { classes, fetchClasses, editClass, getTeacherClasses } = useClasses();
   const { fetchEvaluationsOfTeacher } = useEvaluations();
   const { fetchReviewsByTeacherId } = useTeacherReviews();
   const { fetchTeacherPayrolls } = usePayrolls();
@@ -46,9 +50,10 @@ export function TeacherRole({ user }: TeacherRoleProps) {
   const [teacherEvaluations, setTeacherEvaluations] = useState<EvaluationView[]>([]);
   const [teacherReviews, setTeacherReviews] = useState<TeacherReviewView[]>([]);
   const [teacherPayrolls, setTeacherPayrolls] = useState<Payroll[]>([]);
-
   const [activeTab, setActiveTab] = useState("assign-class");
-  
+
+  const [assigningId, setAssigningId] = useState<number | null>(null);
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "N/A";
     const date = new Date(dateStr);
@@ -59,20 +64,16 @@ export function TeacherRole({ user }: TeacherRoleProps) {
 
   const loadInitialData = useCallback(async () => {
     try {
-      const evals = await fetchEvaluationsOfTeacher(userId);
-      const reviews = await fetchReviewsByTeacherId(userId);
-      const payrolls = await fetchTeacherPayrolls(userId);
-      await fetchClasses(); 
+      const [evals, reviews, payrolls] = await Promise.all([
+        fetchEvaluationsOfTeacher(userId),
+        fetchReviewsByTeacherId(userId),
+        fetchTeacherPayrolls(userId),
+      ]);
+      await fetchClasses(); // cập nhật global classes
 
-      if (evals !== undefined && evals !== null) {
-        setTeacherEvaluations(evals);
-      }
-      if (reviews !== undefined && reviews !== null) {
-        setTeacherReviews(reviews);
-      }
-      if (payrolls !== undefined && payrolls !== null) {
-        setTeacherPayrolls(payrolls);
-      }
+      if (evals) setTeacherEvaluations(evals);
+      if (reviews) setTeacherReviews(reviews);
+      if (payrolls) setTeacherPayrolls(payrolls);
     } catch (error) {
       console.error("Failed to load initial data:", error);
     }
@@ -82,9 +83,41 @@ export function TeacherRole({ user }: TeacherRoleProps) {
     loadInitialData();
   }, [loadInitialData]);
 
+ // Manager dashboard: show class chưa có teacher hoặc đã gán cho teacher khác
+  const availableAssignClasses = useMemo(() => {
+    return (classes || []).filter((c: any) => {
+      // nếu chưa có teacher
+      if (!c.teacher_user_id) return true;
+
+      // nếu teacher hiện tại khác teacher đang click
+      return c.teacher_user_id !== userId;
+    });
+  }, [classes, userId]);
+
   const handleAssignClass = async (classId: number) => {
-    console.log(`Assigning to class ${classId}`);
-    // TODO: Gọi API updateClass(classId, { teacher_id: currentTeacherId })
+    try {
+      setAssigningId(classId);
+
+      // build payload typed as ClassUpdate
+      const payload: ClassUpdate = {
+        teacher_user_id: userId,
+      };
+
+      // gọi editClass từ context (editClass = async (id:number, data: ClassUpdate))
+      await editClass(classId, payload);
+
+      toast.success("Assign thành công!");
+
+      // reload dữ liệu
+      await fetchClasses();
+      try { await getTeacherClasses(userId); } catch (err) { /* non-blocking */ }
+      await loadInitialData();
+    } catch (err: any) {
+      console.error("Assign failed:", err);
+      toast.error(err?.message || "Gán lớp thất bại");
+    } finally {
+      setAssigningId(null);
+    }
   };
 
   return (
@@ -94,11 +127,11 @@ export function TeacherRole({ user }: TeacherRoleProps) {
         <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
           <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Assigned Classes</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Available to Assign</CardTitle>
               <BookOpen className="h-4 w-4 text-slate-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{classes.length}</div>
+              <div className="text-3xl font-bold text-white">{availableAssignClasses.length}</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -143,33 +176,13 @@ export function TeacherRole({ user }: TeacherRoleProps) {
       {/* --- Tabs --- */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600">
-          <TabsTrigger
-            value="assign-class"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-          >
-            Assign Class
-          </TabsTrigger>
-          <TabsTrigger
-            value="evaluations"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-          >
-            Evaluations
-          </TabsTrigger>
-          <TabsTrigger
-            value="reviews"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-          >
-            Reviews
-          </TabsTrigger>
-          <TabsTrigger
-            value="payroll"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
-          >
-            Payroll
-          </TabsTrigger>
+          <TabsTrigger value="assign-class" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Assign Class</TabsTrigger>
+          <TabsTrigger value="evaluations" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Evaluations</TabsTrigger>
+          <TabsTrigger value="reviews" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Reviews</TabsTrigger>
+          <TabsTrigger value="payroll" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Payroll</TabsTrigger>
         </TabsList>
 
-        {/* --- Assign Class --- */}
+        {/* Assign Class tab */}
         <TabsContent value="assign-class" className="space-y-4">
           <Card className="bg-slate-700 border-slate-600">
             <CardHeader>
@@ -178,33 +191,33 @@ export function TeacherRole({ user }: TeacherRoleProps) {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {classes.map((cls) => (
-                  <motion.div
-                    key={cls.class_id}
-                    className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600"
-                    whileHover={{ scale: 1.01 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div>
-                      <h3 className="font-semibold text-white">{cls.class_name}</h3>
-                      <p className="text-sm text-slate-300">Capacity: {cls.capacity}</p>
-                    </div>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        onClick={() => handleAssignClass(cls.class_id)}
-                        className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Assign to Me
-                      </Button>
+                {availableAssignClasses.length > 0 ? (
+                  availableAssignClasses.map((cls: any) => (
+                    <motion.div key={cls.class_id ?? cls.id} className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600" whileHover={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
+                      <div>
+                        <h3 className="font-semibold text-white">{cls.class_name}</h3>
+                        <p className="text-sm text-slate-300">Capacity: {cls.capacity}</p>
+                      </div>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          onClick={() => handleAssignClass(Number(cls.class_id ?? cls.id))}
+                          disabled={assigningId === Number(cls.class_id ?? cls.id)}
+                          className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {assigningId === Number(cls.class_id ?? cls.id) ? "Assigning..." : "Assign to Me"}
+                        </Button>
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-slate-400">Không có lớp nào có thể gán.</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* --- Evaluations --- */}
+        {/* Evaluations tab (giữ nguyên) */}
         <TabsContent value="evaluations" className="space-y-4">
           <Card className="bg-slate-700 border-slate-600">
             <CardHeader>
@@ -237,7 +250,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* --- Reviews --- */}
+        {/* Reviews tab (giữ nguyên) */}
         <TabsContent value="reviews" className="space-y-4">
           <Card className="bg-slate-700 border-slate-600">
             <CardHeader>
@@ -274,7 +287,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* --- Payroll --- */}
+        {/* Payroll tab (giữ nguyên) */}
         <TabsContent value="payroll" className="space-y-4">
           <Card className="bg-slate-700 border-slate-600">
             <CardHeader>

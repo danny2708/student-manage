@@ -1,4 +1,7 @@
-import { useEffect, useState, useCallback } from "react"
+// src/hooks/useEnrollment.ts
+"use client";
+
+import { useState, useCallback } from "react";
 import {
   getEnrollments,
   createEnrollment,
@@ -9,88 +12,61 @@ import {
   EnrollmentUpdate,
   getEnrollmentById,
   getEnrollmentsByStudentId,
-  getEnrollmentsByClassId
-} from "../services/api/enrollment"
+  getEnrollmentsByClassId,
+} from "../services/api/enrollment";
 
 export function useEnrollment() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false);
 
-  // Fetch tất cả enrollments
-  const fetchAllEnrollments = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await getEnrollments()
-      setEnrollments(data)
-    } catch (err) {
-      console.error("Failed to fetch enrollments:", err)
-      setError("Failed to fetch enrollments")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Thêm một enrollment mới
   const addEnrollment = async (payload: EnrollmentCreate) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
     try {
-      await createEnrollment(payload)
-      await fetchAllEnrollments(); //Fetch lại để đồng bộ dữ liệu
-    } catch (err) {
-      console.error("Failed to create enrollment:", err)
-      setError("Failed to create enrollment")
+      const newEnrollment = await createEnrollment(payload);
+      return newEnrollment;
+    } catch (err: any) {
+      console.error("Failed to create enrollment:", err);
+      const errorMessage = err.message || "Không thể đăng ký lớp học";
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Cập nhật một enrollment
   const editEnrollment = async (id: number, payload: EnrollmentUpdate) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
     try {
-      await updateEnrollment(id, payload)
-      await fetchAllEnrollments(); // Fetch lại để đồng bộ dữ liệu
-    } catch (err) {
-      console.error("Failed to update enrollment:", err)
-      setError("Failed to update enrollment")
+      await updateEnrollment(id, payload);
+      // Logic đã được chuyển về component
+    } catch (err: any) {
+      console.error("Failed to update enrollment:", err);
+      const errorMessage = err.message || "Failed to update enrollment";
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Xoá enrollment (set status inactive)
   const removeEnrollment = async (studentId: number, classId: number) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
     try {
-      await setEnrollmentInactive(studentId, classId)
-      await fetchAllEnrollments(); 
-    } catch (err) {
-      console.error("Failed to remove enrollment:", err)
-      setError("Failed to remove enrollment")
+      await setEnrollmentInactive(studentId, classId);
+      // Logic đã được chuyển về component
+    } catch (err: any) {
+      console.error("Failed to remove enrollment:", err);
+      const errorMessage = err.message || "Failed to remove enrollment";
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    fetchAllEnrollments()
-  }, [fetchAllEnrollments])
+  };
 
   return {
-    enrollments,
     loading,
-    error,
-    fetchAllEnrollments,
     addEnrollment,
     editEnrollment,
     removeEnrollment,
     getEnrollmentById,
     getEnrollmentsByStudentId,
     getEnrollmentsByClassId,
-  }
+  };
 }

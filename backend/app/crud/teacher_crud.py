@@ -135,6 +135,7 @@ def get_class_taught(db: Session, teacher_user_id: int) -> List[ClassTaught]:
     stmt = (
         select(
             Class.class_id,
+            Class.teacher_user_id,
             Class.class_name,
             User.full_name.label("teacher_name"),
             Subject.name,
@@ -152,6 +153,7 @@ def get_class_taught(db: Session, teacher_user_id: int) -> List[ClassTaught]:
     for row in result:
         classes_taught_list.append(
             ClassTaught(
+                teacher_user_id=row.teacher_user_id,
                 class_id=row.class_id,
                 class_name=row.class_name,
                 teacher_name=row.teacher_name,
