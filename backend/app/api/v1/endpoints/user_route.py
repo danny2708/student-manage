@@ -1,5 +1,5 @@
 # app/api/v1/endpoints/user_route.py
-from typing import List
+from typing import Dict, List
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -124,13 +124,13 @@ def delete_user_info(user_id: int, db: Session = Depends(deps.get_db)):
 
 class ImportUsersResponse(BaseModel):
     status: str
-    imported: dict
+    imported: Dict[str, dict]
 
 @router.post(
     "/import-users",
     response_model=ImportUsersResponse,
     summary="Import người dùng từ file Excel",
-    dependencies=[Depends(MANAGER_ONLY)] 
+    dependencies=[Depends(MANAGER_ONLY)]
 )
 def import_users_from_sheet(
     file: UploadFile = File(...),

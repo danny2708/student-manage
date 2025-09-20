@@ -46,7 +46,7 @@ export default function UserManagement({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors cursor-pointer flex items-center gap-2"
           >
             <Upload className="h-4 w-4" />
             Import from File

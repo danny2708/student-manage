@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "../../../../components/ui/button";
 import { useUsers } from "../../../../src/contexts/UsersContext";
+import { Upload } from "lucide-react";
 
 interface ImportUsersModalProps {
   open: boolean;
@@ -76,14 +77,22 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
         <h2 className="text-xl font-semibold mb-4">Import Users từ File</h2>
 
         <div className="flex items-center gap-3 mb-4">
-          <input
-            aria-label="Choose file to import"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFileChange}
-            className="cursor-pointer border p-2 rounded-md bg-gray-100 hover:bg-gray-200"
-          />
-          {!file && <span className="text-gray-500">No file chosen</span>}
+          <label className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow cursor-pointer hover:bg-blue-600 transition">
+            <Upload size={18} />
+            <span>Chọn File</span>
+            <input
+              aria-label="Choose file to import"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </label>
+          {file ? (
+            <span className="text-gray-700 text-sm">{file.name}</span>
+          ) : (
+            <span className="text-gray-500 text-sm italic">Chưa có file nào được chọn</span>
+          )}
         </div>
 
         {errorMsg && <div className="text-red-500 mb-2">{errorMsg}</div>}
@@ -125,7 +134,7 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
           <Button
             onClick={handleImport}
             disabled={!file || loading}
-            className="cursor-pointer bg-purple-500 hover:bg-purple-600 text-white"
+            className="cursor-pointer bg-green-500 hover:bg-green-600 text-white"
           >
             {loading ? "Đang import..." : "Xác nhận Import"}
           </Button>

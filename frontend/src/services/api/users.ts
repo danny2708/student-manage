@@ -39,5 +39,7 @@ export async function importUsers(file: File) {
   const res = await api.post("/users/import-users", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   })
-  return res.data
+  return res.data as { status: string; imported: { students: Record<string, number>; parents: Record<string, number> } }
 }
+
+
