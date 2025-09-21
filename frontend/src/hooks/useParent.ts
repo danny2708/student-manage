@@ -14,21 +14,37 @@ import {
 
 export function useParents() {
   const [parents, setParents] = useState<Parent[]>([]);
+  const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchParents = useCallback(async () => {
+    const fetchParents = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getParents();
-      setParents(data);
-    } catch (err) {
-      console.error("Failed to fetch parents:", err);
+      setParents(await getParents());
+    } catch (err: any) {
       setError("Failed to fetch parents");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const fetchParentChildren = useCallback(async (parentUserId: number) => {
+    setLoading(true);
+    try {
+      const data = await getParentChildren(parentUserId);
+      setChildren(data);
+      return data;
+    } catch (err: any) {
+      setError(`Failed to fetch children for parent ID ${parentUserId}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+
+  useEffect(() => { fetchParents(); }, [fetchParents]);
 
   const getParentDetails = useCallback(async (userId: number) => {
     setLoading(true);
@@ -38,20 +54,6 @@ export function useParents() {
     } catch (err) {
       console.error(`Failed to fetch parent with ID ${userId}:`, err);
       setError(`Failed to fetch parent with ID ${userId}`);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchParentChildren = useCallback(async (parentUserId: number): Promise<Child[] | null> => {
-    setLoading(true);
-    try {
-      const children = await getParentChildren(parentUserId);
-      return children;
-    } catch (err) {
-      console.error(`Failed to fetch children for parent ID ${parentUserId}:`, err);
-      setError(`Failed to fetch children for parent ID ${parentUserId}`);
       return null;
     } finally {
       setLoading(false);
@@ -97,12 +99,11 @@ export function useParents() {
     }
   };
 
-  useEffect(() => {
-    fetchParents();
-  }, [fetchParents]);
+  useEffect(() => { fetchParents(); }, [fetchParents]);
 
   return {
     parents,
+    children,
     loading,
     error,
     fetchParents,

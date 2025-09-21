@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import { 
   getTuitions, 
   getTuitionsByStudentId, 
@@ -12,114 +12,60 @@ import {
 
 export function useTuitions() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // 🚀 ban đầu không loading
   const [error, setError] = useState<string | null>(null);
 
-  // Hàm fetch data ban đầu
-  async function fetchTuitions() {
+  // common fetch wrapper
+  const handleFetch = useCallback(async <T,>(apiFn: () => Promise<T>) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getTuitions();
-      setTuitions(data);
+      const data = await apiFn();
+      return data;
     } catch (err) {
-      setError("Không thể tải danh sách học phí.");
+      console.error("Tuition API error:", err);
+      setError("Lỗi tải dữ liệu học phí.");
+      return null;
     } finally {
       setLoading(false);
     }
-  }
-
-  // Hàm fetch data theo student_user_id
-  async function fetchTuitionsByStudentId(student_user_id: number) {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getTuitionsByStudentId(student_user_id);
-      setTuitions(data);
-    } catch (err) {
-      setError("Không thể tải danh sách học phí cho học sinh này.");
-    } finally {
-      setLoading(false);
-    }
-  }
-  
-  // Hàm fetch data theo parent_id
-  async function fetchTuitionsByParentId(parent_id: number) {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getTuitionsByParentId(parent_id);
-      setTuitions(data);
-    } catch (err) {
-      setError("Không thể tải danh sách học phí cho phụ huynh này.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Hàm thêm học phí với xử lý lỗi
-  async function addTuition(newData: any) {
-    try {
-      setLoading(true);
-      const created = await createTuition(newData);
-      setTuitions((prev) => [...prev, created]);
-      setError(null); // Xóa lỗi nếu thao tác thành công
-    } catch (err) {
-      setError("Thêm học phí thất bại.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Hàm chỉnh sửa học phí với xử lý lỗi
-  async function editTuition(id: number, updatedData: any) {
-    try {
-      setLoading(true);
-      const updated = await updateTuition(id, updatedData);
-      setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)));
-      setError(null);
-    } catch (err) {
-      setError("Chỉnh sửa học phí thất bại.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Hàm thay đổi trạng thái với xử lý lỗi
-  async function changeStatus(id: number, status: "paid" | "pending" | "overdue") {
-    try {
-      setLoading(true);
-      const updated = await updateTuitionStatus(id, { payment_status: status });
-      // Cập nhật lại trạng thái của học phí trong state
-      setTuitions((prev) => prev.map((t) => (t.id === id ? { ...t, status: updated.status } : t)));
-      setError(null);
-    } catch (err) {
-      setError("Cập nhật trạng thái thất bại.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Hàm xóa học phí với xử lý lỗi
-  async function removeTuition(id: number) {
-    try {
-      setLoading(true);
-      await deleteTuition(id);
-      setTuitions((prev) => prev.filter((t) => t.id !== id));
-      setError(null);
-    } catch (err) {
-      setError("Xóa học phí thất bại.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Fetch dữ liệu khi component được mount
-  useEffect(() => {
-    fetchTuitions();
   }, []);
 
-  // Trả về state và các hàm thao tác
+  const fetchTuitions = useCallback(async () => {
+    const data = await handleFetch(() => getTuitions());
+    if (data) setTuitions(data);
+  }, [handleFetch]);
+
+  const fetchTuitionsByStudentId = useCallback(async (student_user_id: number) => {
+    const data = await handleFetch(() => getTuitionsByStudentId(student_user_id));
+    if (data) setTuitions(data);
+  }, [handleFetch]);
+
+  const fetchTuitionsByParentId = useCallback(async (parent_id: number) => {
+    const data = await handleFetch(() => getTuitionsByParentId(parent_id));
+    if (data) setTuitions(data);
+  }, [handleFetch]);
+
+  const addTuition = useCallback(async (newData: any) => {
+    const created = await handleFetch(() => createTuition(newData));
+    if (created) setTuitions((prev) => [...prev, created]);
+  }, [handleFetch]);
+
+  const editTuition = useCallback(async (id: number, updatedData: any) => {
+    const updated = await handleFetch(() => updateTuition(id, updatedData));
+    if (updated) setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)));
+  }, [handleFetch]);
+
+  const changeStatus = useCallback(async (id: number, status: "paid" | "pending" | "overdue") => {
+    const updated = await handleFetch(() => updateTuitionStatus(id, { payment_status: status }));
+    if (updated) setTuitions((prev) => prev.map((t) => (t.id === id ? { ...t, status: updated.status } : t)));
+  }, [handleFetch]);
+
+  const removeTuition = useCallback(async (id: number) => {
+    const ok = await handleFetch(() => deleteTuition(id));
+    if (ok !== null) setTuitions((prev) => prev.filter((t) => t.id !== id));
+  }, [handleFetch]);
+
   return { 
     tuitions, 
     loading, 

@@ -45,7 +45,7 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
       onClose();
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || "Import thất bại");
+      setErrorMsg(err.message || "Import fails");
     } finally {
       setLoading(false);
     }
@@ -67,19 +67,19 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
       onClick={handleBackdropClick}
       className="fixed inset-0 flex items-center justify-center z-50 transition-opacity animate-fadeIn bg-black/40"
     >
-      <div className="bg-white rounded-2xl shadow-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto relative animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-lg p-6 w-[550px] max-h-[80vh] overflow-y-auto relative animate-fadeIn">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
         >
           ✕
         </button>
-        <h2 className="text-xl font-semibold mb-4">Import Users từ File</h2>
+        <h2 className="flex items-center justify-center text-xl font-semibold mb-4">Import Users from File</h2>
 
         <div className="flex items-center gap-3 mb-4">
-          <label className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow cursor-pointer hover:bg-blue-600 transition">
+          <label className="flex items-center gap-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow cursor-pointer hover:bg-blue-600 transition">
             <Upload size={18} />
-            <span>Chọn File</span>
+            <span>Choose File</span>
             <input
               aria-label="Choose file to import"
               type="file"
@@ -91,7 +91,7 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
           {file ? (
             <span className="text-gray-700 text-sm">{file.name}</span>
           ) : (
-            <span className="text-gray-500 text-sm italic">Chưa có file nào được chọn</span>
+            <span className="text-gray-500 text-sm italic">No file chosen</span>
           )}
         </div>
 
@@ -127,16 +127,16 @@ export default function ImportUsersModal({ open, onClose }: ImportUsersModalProp
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-4">
           <Button onClick={handleCancel} variant="outline" className="cursor-pointer">
-            Hủy
+            Cancel
           </Button>
           <Button
             onClick={handleImport}
             disabled={!file || loading}
             className="cursor-pointer bg-green-500 hover:bg-green-600 text-white"
           >
-            {loading ? "Đang import..." : "Xác nhận Import"}
+            {loading ? "Importing..." : "Confirm Import"}
           </Button>
         </div>
       </div>
