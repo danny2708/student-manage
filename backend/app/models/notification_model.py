@@ -1,5 +1,5 @@
 # app/models/notification_model.py
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, func, Enum
+from sqlalchemy import Boolean, Column, Integer, ForeignKey, DateTime, Text, func, Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -24,6 +24,7 @@ class Notification(Base):
     content = Column(Text, nullable=False)
     sent_at = Column(DateTime, default=func.now())
     type = Column(Enum(NotificationType), nullable=False)
+    is_read = Column(Boolean, default=False)
 
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])

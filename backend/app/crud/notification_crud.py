@@ -63,3 +63,15 @@ def get_notification_by_content_and_receiver(
         Notification.content == content,
         Notification.receiver_id == receiver_id
     ).first()
+
+
+def update_is_read_status(db: Session, notification_id: int, is_read: bool):
+    """
+    Cập nhật trạng thái 'is_read' của một thông báo cụ thể.
+    """
+    db_notification = db.query(Notification).filter(Notification.notification_id == notification_id).first()
+    if db_notification:
+        db_notification.is_read = is_read
+        db.commit()
+        db.refresh(db_notification)
+    return db_notification

@@ -4,8 +4,10 @@ from typing import List
 
 from app.models.class_model import Class
 from app.models.user_model import User
-from app.models.subject_model import Subject   # 🆕 import
+from app.models.subject_model import Subject
+from app.models.enrollment_model import Enrollment
 from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassView
+from app.models.enrollment_model import EnrollmentStatus
 
 def get_class_with_teacher_name_query():
     return (
@@ -19,7 +21,7 @@ def get_class_with_teacher_name_query():
             Class.fee
         )
         .join(Subject, Class.subject_id == Subject.subject_id)
-        .outerjoin(User, Class.teacher_user_id == User.user_id)  # 👈 outer join với User
+        .outerjoin(User, Class.teacher_user_id == User.user_id)
     )
 
 def get_class(db: Session, class_id: int):
@@ -29,7 +31,6 @@ def get_class(db: Session, class_id: int):
         return ClassView.model_validate(result._asdict())
     return None
 
-
 def get_class_by_name(db: Session, class_name: str):
     query = get_class_with_teacher_name_query().where(Class.class_name == class_name)
     result = db.execute(query).first()
@@ -37,23 +38,34 @@ def get_class_by_name(db: Session, class_name: str):
         return ClassView.model_validate(result._asdict())
     return None
 
-
-def get_classes_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100) -> List[ClassView]:
+def get_classes_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100) -> List[ClassView]:
     query = (
         get_class_with_teacher_name_query()
-        .where(Class.teacher_user_id == teacher_id)
+        .where(Class.teacher_user_id == teacher_user_id)
         .offset(skip)
         .limit(limit)
     )
     results = db.execute(query).all()
     return [ClassView.model_validate(row._asdict()) for row in results]
 
+def get_active_classes_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100) -> List[ClassView]:
+    query = (
+        get_class_with_teacher_name_query()
+        .join(Enrollment, Class.class_id == Enrollment.class_id)
+        .where(
+            (Enrollment.student_user_id == student_user_id) &
+            (Enrollment.enrollment_status == EnrollmentStatus.active)
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+    results = db.execute(query).all()
+    return [ClassView.model_validate(row._asdict()) for row in results]
 
 def get_all_classes(db: Session, skip: int = 0, limit: int = 100) -> List[ClassView]:
     query = get_class_with_teacher_name_query().offset(skip).limit(limit)
     results = db.execute(query).all()
     return [ClassView.model_validate(row._asdict()) for row in results]
-
 
 def create_class(db: Session, class_data: ClassCreate):
     db_class = Class(**class_data.model_dump())
@@ -61,7 +73,6 @@ def create_class(db: Session, class_data: ClassCreate):
     db.commit()
     db.refresh(db_class)
     return db_class
-
 
 def update_class(db: Session, class_id: int, class_update: ClassUpdate):
     db_class = db.query(Class).filter(Class.class_id == class_id).first()
@@ -73,7 +84,6 @@ def update_class(db: Session, class_id: int, class_update: ClassUpdate):
         db.commit()
         db.refresh(db_class)
     return db_class
-
 
 def delete_class(db: Session, class_id: int):
     db_class = db.query(Class).filter(Class.class_id == class_id).first()

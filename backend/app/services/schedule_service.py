@@ -138,7 +138,7 @@ def search_schedules_by_user_role(
 
     # --- Nếu là Teacher ---
     if "teacher" in current_user.roles:
-        teacher_classes = class_crud.get_classes_by_teacher_id(db, teacher_id=current_user.user_id)
+        teacher_classes = class_crud.get_classes_by_teacher_user_id(db, teacher_user_id=current_user.user_id)
         class_ids = [cls.class_id for cls in teacher_classes]
         return schedule_crud.search_schedules(
             db=db,
@@ -152,7 +152,7 @@ def search_schedules_by_user_role(
 
     # --- Nếu là Student ---
     if "student" in current_user.roles:
-        class_ids = schedule_crud.get_class_ids_for_student(db, student_id=current_user.user_id)
+        class_ids = schedule_crud.get_class_ids_for_student(db, student_user_id=current_user.user_id)
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,

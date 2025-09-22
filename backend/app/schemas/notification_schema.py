@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional
 from datetime import datetime
 from app.models.notification_model import NotificationType # Import Enum từ file model
@@ -12,6 +12,7 @@ class NotificationBase(BaseModel):
     content: str = Field(..., example="Bảng lương của bạn đã được cập nhật.")
     # Sử dụng Enum để đảm bảo kiểu dữ liệu hợp lệ
     type: NotificationType = Field(..., example=NotificationType.payroll)
+    is_read: bool = Field(default=False, example=False)
     
 class NotificationCreate(NotificationBase):
     """
@@ -25,8 +26,8 @@ class NotificationUpdate(BaseModel):
     Schema để cập nhật một bản ghi Notification hiện có.
     """
     content: Optional[str] = None
-    # Nếu bạn có trường is_read trong model, hãy thêm vào đây
-    # is_read: Optional[bool] = None
+    is_read: Optional[bool] = None
+    type: Optional[NotificationType] = None
 
 class NotificationRead(NotificationBase):
     """
@@ -44,4 +45,8 @@ class Notification(NotificationBase):
 
     class Config:
         from_attributes = True
+
+    @field_serializer("sent_at")
+    def format_sent_at(self, sent_at: datetime,):
+        return sent_at.strftime("%d/%m/%Y")
 

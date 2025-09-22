@@ -35,7 +35,7 @@ export interface ScheduleUpdate {
 
 // Lấy toàn bộ schedule
 export async function getSchedules(): Promise<Schedule[]> {
-  const res = await api.get<Schedule[]>("/schedules")
+  const res = await api.get<Schedule[]>("/schedules/search")
   return res.data
 }
 

@@ -26,7 +26,8 @@ def _send_tuition_notification(
         receiver_id=parent_user_id,
         content=content,
         type="tuition",
-        sent_at=datetime.utcnow()
+        sent_at=datetime.utcnow(),
+        is_read=False,
     )
     create_notification(db, notif_in)
 

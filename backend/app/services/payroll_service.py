@@ -27,7 +27,8 @@ def create_payroll(db: Session, teacher: Teacher, payroll_in: PayrollCreate) -> 
         receiver_id=teacher.user_id,
         content=content,
         type="payroll",
-        sent_at=db_payroll.sent_at
+        sent_at=db_payroll.sent_at,
+        is_read=False
     )
     db_notification = notification_crud.create_notification(db, notification_in)
 

@@ -20,7 +20,7 @@ MANAGER_ONLY = has_roles(["manager"])
 # Dependency cho quyền truy cập của Manager hoặc Teacher
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
-# --- Endpoint nhóm theo vai trò ---
+MANAGER_OR_TEACHER_OR_STUDENT = has_roles(["manager","teacher", "student"])
 
 # Tạo lớp học mới
 @router.post(
@@ -105,20 +105,32 @@ def delete_existing_class(
 @router.get(
     "/",
     response_model=List[class_schema.ClassView],
-    summary="Lấy danh sách tất cả các lớp học"
+    summary="Lấy danh sách các lớp học theo quyền",
+    dependencies=[Depends(MANAGER_OR_TEACHER_OR_STUDENT)]
 )
 def get_all_classes(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: AuthenticatedUser = Depends(MANAGER_OR_TEACHER)
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
     """
-    Lấy danh sách tất cả các lớp học.
+    Lấy danh sách các lớp học dựa trên vai trò của người dùng.
+    - **Manager**: Trả về tất cả các lớp.
+    - **Teacher**: Chỉ trả về các lớp mà giáo viên đó phụ trách.
+    - **Student**: Chỉ trả về các lớp mà sinh viên đó đã đăng ký và còn đang học.
     
-    Quyền truy cập: **manager**, **teacher**
+    Quyền truy cập: **manager**, **teacher**, **student**
     """
-    classes = class_crud.get_all_classes(db, skip=skip, limit=limit)
+    if "manager" in current_user.roles:
+        classes = class_crud.get_all_classes(db, skip=skip, limit=limit)
+    elif "teacher" in current_user.roles:
+        classes = class_crud.get_classes_by_teacher_user_id(db, teacher_user_id=current_user.user_id, skip=skip, limit=limit)
+    elif "student" in current_user.roles:
+        classes = class_crud.get_active_classes_by_student_user_id(db, student_user_id=current_user.user_id, skip=skip, limit=limit)
+    else:
+        classes = []
+
     return classes
 
 # Lấy thông tin của một lớp học

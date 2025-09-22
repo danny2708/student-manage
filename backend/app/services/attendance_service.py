@@ -141,6 +141,7 @@ def create_batch_attendance(
                     receiver_id=student.user_id,
                     content=f"Thông báo: Bạn đã vắng mặt trong buổi học ngày {record.attendance_date}.",
                     type=NotificationType.warning,
+                    is_read=False,
                 )
                 notification_crud.create_notification(db, notification=notification_student)
 
@@ -153,6 +154,7 @@ def create_batch_attendance(
                         receiver_id=parent_user.user_id,
                         content=f"Thông báo: Con của bạn {student_user.full_name} đã vắng mặt trong buổi học ngày {record.attendance_date}.",
                         type=NotificationType.warning,
+                        is_read=False,
                     )
                     notification_crud.create_notification(db, notification=notification_parent)
 

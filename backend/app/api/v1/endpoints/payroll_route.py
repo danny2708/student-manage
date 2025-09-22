@@ -7,6 +7,8 @@ from app.schemas import payroll_schema
 from app.api import deps
 from app.services import payroll_service
 from app.api.auth.auth import get_current_active_user, has_roles
+from app.api.v1.endpoints.evaluation_route import MANAGER_OR_TEACHER
+from app.schemas.auth_schema import AuthenticatedUser
 
 router = APIRouter()
 MANAGER_ONLY = has_roles(["manager"])
@@ -29,14 +31,32 @@ def create_new_payroll(
 @router.get(
     "/",
     response_model=List[payroll_schema.PayrollView],
-    dependencies=[Depends(MANAGER_ONLY)]
+    summary="Lấy danh sách bảng lương",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_all_payrolls(
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
+    db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(deps.get_db)
 ):
-    payrolls = payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
+    """
+    Lấy danh sách các bản ghi bảng lương.
+    - Nếu người dùng là **manager**, trả về tất cả bảng lương.
+    - Nếu người dùng là **teacher**, chỉ trả về bảng lương của chính họ.
+
+    Quyền truy cập: **manager**, **teacher**
+    """
+    if "teacher" in current_user.roles:
+        payrolls = payroll_crud.get_payrolls_by_teacher(
+            db,
+            teacher_user_id=current_user.user_id,
+            skip=skip,
+            limit=limit
+        )
+    else: # Manager or other roles with access
+        payrolls = payroll_crud.get_all_payrolls(db, skip=skip, limit=limit)
+        
     return [
         payroll_schema.PayrollView(
             id=p.payroll_id,
@@ -50,6 +70,7 @@ def get_all_payrolls(
         )
         for p, fullname in payrolls
     ]
+
 
 @router.post(
     "/run_payrolls",
