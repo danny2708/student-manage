@@ -50,3 +50,9 @@ class ClassTaught(BaseModel):
     subject_name: Optional[str] 
     capacity: Optional[int]
     fee: Optional[int] 
+
+class TeacherStats(BaseModel):
+    class_taught: int
+    schedules: int
+    reviews: int
+    rate: float

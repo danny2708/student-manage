@@ -178,3 +178,26 @@ def delete_existing_teacher(
         "deleted_at": datetime.utcnow().isoformat(),
         "status": "success"
     }
+
+@router.get(
+    "/{teacher_user_id}/stats",
+    response_model=teacher_schema.TeacherStats,
+    summary="Lấy số liệu thống kê của giáo viên",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
+)
+def get_teacher_stats(
+    teacher_user_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Lấy các số liệu thống kê chi tiết của một giáo viên, bao gồm số lớp đã dạy, số lịch trình, số đánh giá và điểm trung bình.
+
+    Quyền truy cập: **manager**, **teacher**
+    """
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
+    if not db_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Giáo viên không tìm thấy."
+        )
+    return teacher_crud.get_teacher_stats(db, teacher_user_id=teacher_user_id)

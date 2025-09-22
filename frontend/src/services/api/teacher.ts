@@ -28,6 +28,13 @@ export interface ClassTaught {
     fee?: number;
 }
 
+export interface TeacherStats {
+    class_taught: number;
+    schedules: number;
+    reviews: number;
+    rate: number;
+}
+
 // ===== CRUD Teachers =====
 export const getAllTeachers = async (): Promise<Teacher[]> => {
     const res = await api.get("/teachers/");
@@ -60,3 +67,8 @@ export const getClassesByTeacherId = async (teacherUserId: number): Promise<Clas
     const res = await api.get(`/teachers/${teacherUserId}/classes`);
     return res.data;
 };
+
+export const getTeacherStats = async (teacherUserId: number): Promise<TeacherStats> => {
+    const res = await api.get(`/teachers/${teacherUserId}/stats`);
+    return res.data;
+}
