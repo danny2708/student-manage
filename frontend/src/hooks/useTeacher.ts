@@ -19,6 +19,7 @@ import {
 export function useTeacher() {
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [loading, setLoading] = useState(false);
+    const [teacherStats, setTeacherStats] = useState<TeacherStats | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const fetchTeachers = useCallback(async () => {
@@ -48,17 +49,18 @@ export function useTeacher() {
         }
     }, []);
     
-    const fetchTeacherStats = useCallback(async (teacherUserId: number): Promise<TeacherStats | null> => {
+    const fetchTeacherStats = useCallback(async (teacherUserId: number) => {
         setLoading(true);
         try {
-            const stats = await getTeacherStats(teacherUserId);
-            return stats;
+        const stats = await getTeacherStats(teacherUserId);
+        setTeacherStats(stats); 
+        return stats;
         } catch (err) {
-            console.error(`Failed to fetch stats for teacher ID ${teacherUserId}:`, err);
-            setError(`Failed to fetch stats for teacher ID ${teacherUserId}`);
-            return null;
+        console.error(`Failed to fetch stats for teacher ID ${teacherUserId}:`, err);
+        setError(`Failed to fetch stats for teacher ID ${teacherUserId}`);
+        return null;
         } finally {
-            setLoading(false);
+        setLoading(false);
         }
     }, []);
 
