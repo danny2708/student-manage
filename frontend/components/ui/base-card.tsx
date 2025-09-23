@@ -6,9 +6,10 @@ interface BaseCardProps {
   className?: string
   variant?: "default" | "glass" | "gradient"
   hover?: boolean
+  onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-export function BaseCard({ children, className, variant = "default", hover = true }: BaseCardProps) {
+export function BaseCard({ children, className, variant = "default", hover = true, onClick }: BaseCardProps) {
   return (
     <div
       className={cn(
