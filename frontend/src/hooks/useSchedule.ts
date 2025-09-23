@@ -57,6 +57,24 @@ export function useSchedules() {
     }
   }
 
+    const retryFetch = async (maxRetries = 3) => {
+    let attempts = 0
+    while (attempts < maxRetries) {
+      try {
+        await fetchSchedules()
+        break
+      } catch (err) {
+        attempts++
+        if (attempts === maxRetries) {
+          console.error("Max retry attempts reached for fetching schedules")
+        } else {
+          // Wait before retrying (exponential backoff)
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempts) * 1000))
+        }
+      }
+    }
+  }
+
   useEffect(() => {
     fetchSchedules()
   }, [])
@@ -69,5 +87,6 @@ export function useSchedules() {
     addSchedule,
     editSchedule,
     removeSchedule,
+    retryFetch,
   }
 }

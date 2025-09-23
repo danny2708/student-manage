@@ -12,7 +12,7 @@ import {
   UserCheck, School, LogOut, User as UserIcon,
 } from "lucide-react"
 
-import { UserInfoModal } from "./showInfo/UserAccountModal"
+import { UserInfoModal } from "./showInfo/UserInfoModal"
 import { ActionModal } from "./showInfo/action_modal"
 import { CreateModal } from "./showInfo/create_modal"
 import { ShowInfoModal } from "./showInfo/ShowInfoModal"
