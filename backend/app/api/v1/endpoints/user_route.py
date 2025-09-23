@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/user_route.py
 from typing import Dict, List
 import logging
 
@@ -28,7 +27,6 @@ MANAGER_ONLY = has_roles(["manager"])
 # Dependency cho quyền truy cập của Manager hoặc Teacher
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
 
-
 @router.post(
     "/",
     response_model=UserOut,
@@ -44,7 +42,6 @@ def create_user_info(user: UserCreate, db: Session = Depends(deps.get_db)):
     """
     return user_crud.create_user(db=db, user=user)
 
-
 @router.get(
     "/",
     response_model=List[UserView],
@@ -58,7 +55,6 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db
     Quyền truy cập: **manager**, **teacher**
     """
     return user_crud.get_users(db, skip=skip, limit=limit)
-
 
 @router.get(
     "/{user_id}",
@@ -80,19 +76,32 @@ def get_user(user_id: int, db: Session = Depends(deps.get_db)):
         )
     return user
 
-
 @router.put(
     "/{user_id}",
     response_model=UserOut,
     summary="Cập nhật thông tin người dùng",
-    dependencies=[Depends(MANAGER_ONLY)] # Chỉ manager mới có quyền cập nhật
+    dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã xác thực nào cũng có thể truy cập
 )
-def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depends(deps.get_db)):
+def update_user_info(
+    user_id: int,
+    user_update: UserUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
+):
     """
     Cập nhật thông tin của một người dùng đã tồn tại.
+    - Manager có thể cập nhật thông tin của bất kỳ người dùng nào.
+    - Các vai trò khác chỉ có thể cập nhật thông tin của chính mình.
 
-    Quyền truy cập: **manager**
+    Quyền truy cập: **tất cả người dùng đã đăng nhập**
     """
+    # Chỉ cho phép cập nhật nếu là manager HOẶC user đang cập nhật chính họ
+    if "manager" not in current_user.roles and current_user.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền cập nhật thông tin của người dùng khác."
+        )
+
     updated_user = user_crud.update_user(db, user_id, user_update)
     if not updated_user:
         raise HTTPException(
@@ -100,7 +109,6 @@ def update_user_info(user_id: int, user_update: UserUpdate, db: Session = Depend
             detail="Người dùng không tìm thấy."
         )
     return updated_user
-
 
 @router.delete(
     "/{user_id}",

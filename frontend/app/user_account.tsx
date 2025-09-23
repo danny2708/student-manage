@@ -7,7 +7,7 @@ import { useState } from "react";
 import type { ChangeEvent } from "react";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
-import axios from "axios";
+import { useUsers } from "../src/contexts/UsersContext"; 
 
 interface UserAccountModalProps {
   user: {
@@ -24,6 +24,7 @@ interface UserAccountModalProps {
 }
 
 export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
+  const { editUser, updatePassword } = useUsers(); 
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState({
     full_name: user.full_name,
@@ -47,44 +48,28 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-
-      // 1️⃣ Update profile
-      const profileData = {
+      // 1️⃣ Update profile using context
+      await editUser(user.user_id, {
         full_name: userData.full_name,
         email: userData.email,
-        phone: userData.phone,
+        phone_number: userData.phone, // 🆕 Tên trường trong API là phone_number
         gender: userData.gender,
-        dob: userData.dob,
-      };
+        date_of_birth: userData.dob, // 🆕 Tên trường trong API là date_of_birth
+      });
 
-      await axios.put(
-        `http://127.0.0.1:8000/api/v1/users/${user.user_id}`,
-        profileData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // 2️⃣ Update password nếu có nhập
+      // 2️⃣ Update password if entered, using context
       if (userData.old_password.trim() && userData.password.trim()) {
-        await axios.put(
-          `http://127.0.0.1:8000/api/v1/users/${user.user_id}/password`,
-          {
-            old_password: userData.old_password,
-            new_password: userData.password,
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        await updatePassword(user.user_id, {
+          old_password: userData.old_password,
+          new_password: userData.password,
+        });
       }
 
-      alert("Cập nhật thông tin thành công!");
       setIsEditing(false);
+      // Context đã có toast, không cần alert() nữa
     } catch (err: any) {
+      // Context đã có toast, không cần alert() nữa
       console.error(err);
-      alert(err.response?.data?.detail || "Lỗi khi cập nhật thông tin");
     }
   };
 

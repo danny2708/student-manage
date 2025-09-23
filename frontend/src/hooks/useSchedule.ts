@@ -1,5 +1,5 @@
 // hooks/useSchedules.ts
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import {
   Schedule,
   ScheduleCreate,
@@ -15,7 +15,8 @@ export function useSchedules() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSchedules = async () => {
+  // === Fetch schedules ===
+  const fetchSchedules = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -26,9 +27,10 @@ export function useSchedules() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const addSchedule = async (data: ScheduleCreate) => {
+  // === CRUD actions ===
+  const addSchedule = useCallback(async (data: ScheduleCreate) => {
     try {
       const newItem = await createSchedule(data)
       setSchedules((prev) => [...prev, newItem])
@@ -36,9 +38,9 @@ export function useSchedules() {
     } catch (err: any) {
       throw new Error(err.message || "Không thể tạo lịch học")
     }
-  }
+  }, [])
 
-  const editSchedule = async (id: number, data: ScheduleUpdate) => {
+  const editSchedule = useCallback(async (id: number, data: ScheduleUpdate) => {
     try {
       const updated = await updateSchedule(id, data)
       setSchedules((prev) => prev.map((s) => (s.id === id ? updated : s)))
@@ -46,18 +48,18 @@ export function useSchedules() {
     } catch (err: any) {
       throw new Error(err.message || "Không thể cập nhật lịch học")
     }
-  }
+  }, [])
 
-  const removeSchedule = async (id: number) => {
+  const removeSchedule = useCallback(async (id: number) => {
     try {
       await deleteSchedule(id)
       setSchedules((prev) => prev.filter((s) => s.id !== id))
     } catch (err: any) {
       throw new Error(err.message || "Không thể xóa lịch học")
     }
-  }
+  }, [])
 
-    const retryFetch = async (maxRetries = 3) => {
+  const retryFetch = useCallback(async (maxRetries = 3) => {
     let attempts = 0
     while (attempts < maxRetries) {
       try {
@@ -69,15 +71,18 @@ export function useSchedules() {
           console.error("Max retry attempts reached for fetching schedules")
         } else {
           // Wait before retrying (exponential backoff)
-          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempts) * 1000))
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempts) * 1000)
+          )
         }
       }
     }
-  }
+  }, [fetchSchedules])
 
+  // === Initial fetch only once ===
   useEffect(() => {
     fetchSchedules()
-  }, [])
+  }, [fetchSchedules])
 
   return {
     schedules,
