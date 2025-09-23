@@ -147,13 +147,14 @@ def get_classes_for_teacher(db: Session, teacher_user_id: int) -> List[Class]:
 
 def get_class_ids_for_student(db: Session, student_user_id: int) -> List[int]:
     """
-    Lấy danh sách các class_id mà sinh viên đang học.
+    Lấy danh sách class_id mà sinh viên đang học (chỉ enrollment_status = 'active').
     """
     stmt = select(Enrollment.class_id).where(
-        Enrollment.student_user_id == student_user_id
+        Enrollment.student_user_id == student_user_id,
+        Enrollment.enrollment_status == "active"
     )
-    result = db.execute(stmt).scalars().all()
-    return result
+    return db.execute(stmt).scalars().all()
+
 
 def get_schedules_by_class_ids(db: Session, class_ids: List[int]) -> List[ScheduleView]:
     """

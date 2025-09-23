@@ -143,7 +143,6 @@ def search_schedules_by_user_role(
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,
-            class_id=class_id,
             schedule_type=schedule_type,
             day_of_week=day_of_week,
             date=date,
@@ -156,7 +155,6 @@ def search_schedules_by_user_role(
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,
-            class_id=class_id,
             schedule_type=schedule_type,
             day_of_week=day_of_week,
             date=date,
@@ -172,7 +170,6 @@ def search_schedules_by_user_role(
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,
-            class_id=class_id,
             schedule_type=schedule_type,
             day_of_week=day_of_week,
             date=date,

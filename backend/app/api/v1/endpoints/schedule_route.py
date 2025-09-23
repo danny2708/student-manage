@@ -14,6 +14,7 @@ from app.api.auth.auth import AuthenticatedUser, get_current_active_user, has_ro
 
 # Services
 from app.services import schedule_service, user_service
+from app.api.v1.endpoints.enrollment_route import MANAGER_ONLY
 
 router = APIRouter()
 
@@ -47,7 +48,8 @@ def get_all_schedules_route(
     db: Session = Depends(deps.get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    current_user: AuthenticatedUser = Depends(get_current_active_user)
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
+    dependencies=[Depends(MANAGER_ONLY)]
 ):
     """
     Lấy danh sách tất cả lịch trình, có phân trang.

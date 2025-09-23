@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 // dynamic imports
 const ScheduleManagement = dynamic(
@@ -70,34 +71,19 @@ export default function TeacherDashboard() {
   const [showPersonalSchedule, setShowPersonalSchedule] = useState(false);
 
   // hooks
-  // useTeacher may provide different signatures; we will call it defensively below
-  const teacherHook = useTeacher() as any;
-  const { teacherStats } = teacherHook || {};
+  const { teacherStats, fetchTeacherStats, loading, error } = useTeacher();
 
-  // safe call to fetchTeacherStats: some hook versions expect an id param, some do not.
+  // fetch stats on mount
   useEffect(() => {
-    const safeFetch = async () => {
-      if (!teacherHook) return;
-      const fn = teacherHook.fetchTeacherStats;
-      if (typeof fn !== "function") return;
+    if (user?.user_id) {
+      fetchTeacherStats(user.user_id);
+    }
+  }, [fetchTeacherStats, user?.user_id]);
 
-      try {
-        // if function declared params >= 1 and we have user id, pass it
-        if (fn.length >= 1 && user?.user_id !== undefined) {
-          await fn(user.user_id);
-        } else {
-          await fn();
-        }
-      } catch (err) {
-        // swallow (or console) — component should not crash if fetch fails
-        // you can add toast here if desired
-        // console.error("fetchTeacherStats failed:", err);
-      }
-    };
-
-    safeFetch();
-    // intentionally only depend on the function reference and user id
-  }, [teacherHook, teacherHook?.fetchTeacherStats, user?.user_id]);
+  // show toast if error changes
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const setSection = (id: string) => {
     setActiveSection(id);
@@ -112,7 +98,7 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
       {/* Sidebar */}
       <div className="w-64 bg-gray-800 text-white shadow-lg p-4 flex flex-col justify-between">
         <div>
@@ -254,7 +240,6 @@ export default function TeacherDashboard() {
         <PersonalScheduleModal
           open={showPersonalSchedule}
           onClose={() => setShowPersonalSchedule(false)}
-          fetchSchedule={teacherHook?.fetchPersonalSchedule}
         />
 
         {/* UserAccountModal rendered as overlay with high z-index so it is always on top */}
@@ -297,6 +282,13 @@ export default function TeacherDashboard() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Spinner overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black bg-opacity-40">
+          <div className="w-12 h-12 border-4 border-t-transparent border-cyan-400 rounded-full animate-spin"></div>
+        </div>
+      )}
     </div>
   );
 }
@@ -309,7 +301,7 @@ function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
         <StatCard title="Classes Taught" value={stats.class_taught.toString()} />
         <StatCard title="Schedules" value={stats.schedules.toString()} />
         <StatCard title="Reviews" value={stats.reviews.toString()} />
-        <StatCard title="Rate" value={`${stats.rate}%`} />
+        <StatCard title="Rate" value={`${stats.rate}*`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

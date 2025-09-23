@@ -9,15 +9,22 @@ import { useSchedules } from "../../../../src/contexts/ScheduleContext";
 import { CreateScheduleForm } from "./CreateScheduleForm";
 import { Input } from "../../../../components/ui/input";
 import { deleteSchedule } from "../../../../src/services/api/schedule";
+import { ConfirmModal } from "../../../../components/common/ConfirmModal"; 
+import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
 
 export default function ScheduleManagement() {
   const { schedules, fetchSchedules, loading } = useSchedules();
+  const { isOpen, message, onConfirm, openConfirm, closeConfirm } =
+    useConfirmDialog(); // 🆕 Dùng hook mới
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
+
+  // 🗑️ Loại bỏ state showConfirm cũ
+  // const [showConfirm, setShowConfirm] = React.useState(false);
 
   const [showFilterPanel, setShowFilterPanel] = React.useState(false);
   const [filters, setFilters] = React.useState({
@@ -31,12 +38,22 @@ export default function ScheduleManagement() {
   });
 
   const classOptions = Array.from(new Set(schedules.map((s) => s.class_name)));
-  const dayOptions = ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+  const dayOptions = [
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+  ];
   const roomOptions = Array.from(new Set(schedules.map((s) => s.room || "")));
   const typeOptions = ["WEEKLY", "ONCE"];
 
   const filteredSchedules = schedules.filter((s) => {
-    const matchesSearch = (s.class_name ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (s.class_name ?? "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     return (
       matchesSearch &&
       (!filters.class || s.class_name === filters.class) &&
@@ -61,6 +78,7 @@ export default function ScheduleManagement() {
         alert("Xoá thành công!");
         await fetchSchedules();
         setShowAction(false);
+        closeConfirm(); // 🆕 Đóng confirm modal
       }
     } catch (err) {
       console.error(err);
@@ -104,7 +122,9 @@ export default function ScheduleManagement() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Schedule Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Schedule Management
+        </h2>
         <button
           onClick={() => setShowCreateModal(true)}
           className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
@@ -116,7 +136,7 @@ export default function ScheduleManagement() {
       {/* Search + Filter */}
       <div className="text-gray-900 flex items-center gap-4 mb-2">
         <div className="relative flex-1">
-          <input
+          <Input
             type="text"
             placeholder="Search schedules..."
             value={searchTerm}
@@ -144,14 +164,32 @@ export default function ScheduleManagement() {
             className="bg-gray-100 p-4 rounded-lg shadow-inner space-y-4"
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <select value={filters.class} onChange={(e) => handleFilterChange("class", e.target.value)} className="p-2 border rounded" aria-label="Filter by class">
+              <select
+                value={filters.class}
+                onChange={(e) => handleFilterChange("class", e.target.value)}
+                className="p-2 border rounded"
+                aria-label="Filter by class"
+              >
                 <option value="">Class</option>
-                {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                {classOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
 
-              <select value={filters.day} onChange={(e) => handleFilterChange("day", e.target.value)} className="p-2 border rounded" aria-label="Filter by day of the week">
+              <select
+                value={filters.day}
+                onChange={(e) => handleFilterChange("day", e.target.value)}
+                className="p-2 border rounded"
+                aria-label="Filter by day of the week"
+              >
                 <option value="">Day</option>
-                {dayOptions.map((d) => <option key={d} value={d}>{d}</option>)}
+                {dayOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -161,20 +199,51 @@ export default function ScheduleManagement() {
                 aria-label="Filter by room"
               >
                 <option value="">Room</option>
-                {roomOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                {roomOptions.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
 
-              <Input type="date" value={filters.date} onChange={(e) => handleFilterChange("date", e.target.value)} className="p-2 border rounded" />
+              <Input
+                type="date"
+                value={filters.date}
+                onChange={(e) => handleFilterChange("date", e.target.value)}
+                className="p-2 border rounded"
+              />
 
-              <select value={filters.type} onChange={(e) => handleFilterChange("type", e.target.value)} className="p-2 border rounded" aria-label="Filter by schedule type">
+              <select
+                value={filters.type}
+                onChange={(e) => handleFilterChange("type", e.target.value)}
+                className="p-2 border rounded"
+                aria-label="Filter by schedule type"
+              >
                 <option value="">Type</option>
-                {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+                {typeOptions.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
               </select>
 
-              <Input type="time" value={filters.start} onChange={(e) => handleFilterChange("start", e.target.value)} className="p-2 border rounded" />
-              <Input type="time" value={filters.end} onChange={(e) => handleFilterChange("end", e.target.value)} className="p-2 border rounded" />
+              <Input
+                type="time"
+                value={filters.start}
+                onChange={(e) => handleFilterChange("start", e.target.value)}
+                className="p-2 border rounded"
+              />
+              <Input
+                type="time"
+                value={filters.end}
+                onChange={(e) => handleFilterChange("end", e.target.value)}
+                className="p-2 border rounded"
+              />
 
-              <button onClick={resetFilters} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg cursor-pointer">
+              <button
+                onClick={resetFilters}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg cursor-pointer"
+              >
                 Reset Filter
               </button>
             </div>
@@ -190,9 +259,16 @@ export default function ScheduleManagement() {
           <table className="w-full min-w-[700px]">
             <thead className="bg-gray-700">
               <tr>
-                {["ID","CLASS","DAY","ROOM","DATE","TYPE","START","END"].map((h) => (
-                  <th key={h} className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{h}</th>
-                ))}
+                {["ID", "CLASS", "DAY", "ROOM", "DATE", "TYPE", "START", "END"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
@@ -203,12 +279,19 @@ export default function ScheduleManagement() {
                   onClick={() => handleRowClick(s)}
                 >
                   <td className="px-2 py-3 text-sm text-gray-300">{s.id}</td>
-                  <td className="px-2 py-3 text-sm text-cyan-400">{s.class_name}</td>
-                  <td className="px-2 py-3 text-sm text-gray-300">{s.day_of_week || "-"}</td>
+                  <td className="px-2 py-3 text-sm text-cyan-400">
+                    {s.class_name}
+                  </td>
+                  <td className="px-2 py-3 text-sm text-gray-300">
+                    {s.day_of_week || "-"}
+                  </td>
                   <td className="px-2 py-3 text-sm text-gray-300">{s.room}</td>
-                  <td className="px-2 py-3 text-sm text-gray-300">{s.date || "-"}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">
+                    {s.date || "-"}
+                  </td>
                   <td className="px-2 py-3">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         s.schedule_type === "WEEKLY"
                           ? "bg-blue-100 text-blue-800"
                           : "bg-orange-100 text-orange-800"
@@ -217,8 +300,12 @@ export default function ScheduleManagement() {
                       {s.schedule_type}
                     </span>
                   </td>
-                  <td className="px-2 py-3 text-sm text-gray-300">{s.start_time}</td>
-                  <td className="px-2 py-3 text-sm text-gray-300">{s.end_time}</td>
+                  <td className="px-2 py-3 text-sm text-gray-300">
+                    {s.start_time}
+                  </td>
+                  <td className="px-2 py-3 text-sm text-gray-300">
+                    {s.end_time}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -239,11 +326,26 @@ export default function ScheduleManagement() {
             <ActionModal
               onClose={() => setShowAction(false)}
               onShowInfo={handleShowInfo}
-              onDelete={handleDelete}
+              onDelete={() => {
+                setShowAction(false);
+                // 🆕 Gọi hook để mở confirm modal
+                openConfirm(
+                  `Bạn có chắc chắn muốn xoá lịch ID ${selectedRow.id}?`,
+                  handleDelete
+                );
+              }}
             />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Confirm Delete Modal (dùng component mới) */}
+      <ConfirmModal
+        isOpen={isOpen}
+        message={message}
+        onConfirm={onConfirm}
+        onCancel={closeConfirm}
+      />
 
       {/* Show Info Modal */}
       <AnimatePresence>
