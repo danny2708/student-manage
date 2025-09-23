@@ -7,9 +7,10 @@ import { Tuition } from "../../../src/services/api/tuition";
 interface TuitionInfoFormProps {
   data: Tuition;
   onInputChange: (field: string, value: string | number) => void;
+  disabled?: boolean;
 }
 
-export function TuitionInfoForm({ data, onInputChange }: TuitionInfoFormProps) {
+export function TuitionInfoForm({ data, onInputChange, disabled }: TuitionInfoFormProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center">
@@ -22,6 +23,7 @@ export function TuitionInfoForm({ data, onInputChange }: TuitionInfoFormProps) {
           type="text"
           value={data.term}
           onChange={(e) => onInputChange("term", Number(e.target.value))}
+          disabled={disabled}
           className="w-48 ml-6"
         />
       </div>
@@ -31,6 +33,7 @@ export function TuitionInfoForm({ data, onInputChange }: TuitionInfoFormProps) {
           type="text"
           value={data.amount}
           onChange={(e) => onInputChange("amount", Number(e.target.value))}
+          disabled={disabled}
           className="w-48 ml-6"
         />
       </div>
@@ -63,6 +66,7 @@ export function TuitionInfoForm({ data, onInputChange }: TuitionInfoFormProps) {
             const [y, m, d] = e.target.value.split("-");
             onInputChange("due_date", `${d}/${m}/${y}`);
           }}
+          disabled={disabled}
           className="w-48 ml-6"
         />
       </div>

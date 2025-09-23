@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from openpyxl import Workbook  # type: ignore
+from openpyxl import Workbook # type: ignore
+from openpyxl.utils import get_column_letter # type: ignore
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 
@@ -36,12 +37,12 @@ def export_class(db: Session, class_id: int):
 
     # --- Truy vấn students qua Enrollment ---
     students = (
-        db.query(Student.user_id, User.full_name, User.date_of_birth)
+        db.query(Student.user_id, User.full_name, User.date_of_birth, User.email, User.phone_number, User.gender)
         .join(User, User.user_id == Student.user_id)
         .join(Enrollment, Enrollment.student_user_id == Student.user_id)
         .filter(
             Enrollment.class_id == class_id,
-            Enrollment.enrollment_status == EnrollmentStatus.active  # chỉ lấy học sinh đang active
+            Enrollment.enrollment_status == EnrollmentStatus.active
         )
         .all()
     )
@@ -52,25 +53,46 @@ def export_class(db: Session, class_id: int):
     ws.title = "Sheet1"
 
     # Header thông tin class
-    ws["A1"] = "Class:"
-    ws["B1"] = db_class.class_name
-    ws["C1"] = "Teacher:"
-    ws["D1"] = teacher_name
+    ws["A1"] = f"Class: {db_class.class_name}"
+    ws["C1"] = f"Teacher: {teacher_name}"
 
     # Header bảng students
     ws["A3"] = "STT"
-    ws["B3"] = "student_user_id"
-    ws["C3"] = "date_of_birth"
-    ws["D3"] = "student_name"
+    ws["B3"] = "Student ID"
+    ws["C3"] = "Full name"
+    ws["D3"] = "Date of birth"
+    ws["E3"] = "Email"
+    ws["F3"] = "Phone number"
+    ws["G3"] = "Gender"
 
     # Ghi dữ liệu students
     for idx, st in enumerate(students, start=1):
-        ws.cell(row=3 + idx, column=1, value=idx)                   # STT
-        ws.cell(row=3 + idx, column=2, value=st.student_user_id)    # student_user_id
-        ws.cell(row=3 + idx, column=3, value=st.date_of_birth)      # dob
-        ws.cell(row=3 + idx, column=4, value=st.full_name)          # name
+        ws.cell(row=3 + idx, column=1, value=idx)
+        ws.cell(row=3 + idx, column=2, value=st.user_id)
+        ws.cell(row=3 + idx, column=3, value=st.full_name)
+        
+        # Format date to dd/mm/yyyy
+        dob_formatted = st.date_of_birth.strftime("%d/%m/%Y") if st.date_of_birth else ""
+        ws.cell(row=3 + idx, column=4, value=dob_formatted)
+        
+        ws.cell(row=3 + idx, column=5, value=st.email)
+        ws.cell(row=3 + idx, column=6, value=st.phone_number)
+        ws.cell(row=3 + idx, column=7, value=st.gender.value if st.gender else "")
 
-    # Xuất ra response
+    # Auto-adjust column width to fit content
+    for col in range(1, ws.max_column + 1):
+        col_letter = get_column_letter(col)
+        max_length = 0
+        for cell in ws[col_letter]:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except TypeError:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[col_letter].width = adjusted_width
+
+    # Export to response
     stream = BytesIO()
     wb.save(stream)
     stream.seek(0)

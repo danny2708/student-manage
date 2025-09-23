@@ -7,9 +7,10 @@ import { useClasses } from "../../../src/contexts/ClassContext";
 interface ScheduleInfoFormProps {
   data: Schedule;
   onInputChange: (field: string, value: string | number | undefined) => void;
+  disabled?: boolean;
 }
 
-export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps) {
+export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfoFormProps) {
   const { classes, loading: classesLoading } = useClasses();
   const selectedClass = classes.find((c) => c.class_id === data.class_id);
 
@@ -60,6 +61,7 @@ export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps)
           className="bg-gray-700 text-white rounded-md p-2"
           value={data.room ?? ""}
           onChange={(e) => onInputChange("room", e.target.value)}
+          disabled={disabled}
         />
       </div>
 
@@ -71,6 +73,7 @@ export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps)
           className="bg-gray-700 text-white rounded-md p-2"
           value={data.schedule_type}
           onChange={(e) => onInputChange("schedule_type", e.target.value)}
+          disabled={disabled}
         >
           <option value="WEEKLY" className="text-black">WEEKLY</option>
           <option value="ONCE" className="text-black">ONCE</option>
@@ -102,6 +105,7 @@ export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps)
             className="bg-gray-700 text-white rounded-md p-2"
             value={data.date ?? ""}
             onChange={(e) => onInputChange("date", e.target.value)}
+            disabled={disabled}
           />
         </div>
       )}
@@ -114,6 +118,7 @@ export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps)
           className="bg-gray-700 text-white rounded-md p-2"
           value={formatTime(data.start_time)}
           onChange={(e) => onInputChange("start_time", e.target.value)}
+          disabled={disabled}
         />
       </div>
 
@@ -124,6 +129,7 @@ export function ScheduleInfoForm({ data, onInputChange }: ScheduleInfoFormProps)
           className="bg-gray-700 text-white rounded-md p-2"
           value={formatTime(data.end_time)}
           onChange={(e) => onInputChange("end_time", e.target.value)}
+          disabled={disabled}
         />
       </div>
     </div>

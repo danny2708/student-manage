@@ -29,6 +29,12 @@ export function useSchedules() {
     }
   }, [])
 
+    const resetSchedules = useCallback(() => {
+    setSchedules([]);
+    setLoading(true);
+    setError(null);
+  }, []);
+
   // === CRUD actions ===
   const addSchedule = useCallback(async (data: ScheduleCreate) => {
     try {
@@ -89,6 +95,7 @@ export function useSchedules() {
     loading,
     error,
     fetchSchedules,
+    resetSchedules,
     addSchedule,
     editSchedule,
     removeSchedule,

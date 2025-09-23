@@ -8,23 +8,21 @@ import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
 import { useSchedules } from "../../../../src/contexts/ScheduleContext";
 import { CreateScheduleForm } from "./CreateScheduleForm";
 import { Input } from "../../../../components/ui/input";
-import { deleteSchedule } from "../../../../src/services/api/schedule";
-import { ConfirmModal } from "../../../../components/common/ConfirmModal"; 
+import { ConfirmModal } from "../../../../components/common/ConfirmModal";
 import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
+import { useAuth } from "../../../../src/hooks/useAuth";
 
 export default function ScheduleManagement() {
-  const { schedules, fetchSchedules, loading } = useSchedules();
+  const { schedules, loading, removeSchedule } = useSchedules();
   const { isOpen, message, onConfirm, openConfirm, closeConfirm } =
-    useConfirmDialog(); // 🆕 Dùng hook mới
+    useConfirmDialog();
+  const { user } = useAuth(); // Lấy thông tin user
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-
-  // 🗑️ Loại bỏ state showConfirm cũ
-  // const [showConfirm, setShowConfirm] = React.useState(false);
 
   const [showFilterPanel, setShowFilterPanel] = React.useState(false);
   const [filters, setFilters] = React.useState({
@@ -68,21 +66,23 @@ export default function ScheduleManagement() {
 
   const handleRowClick = (row: any) => {
     setSelectedRow(row);
-    setShowAction(true);
+    // Kiểm tra nếu vai trò là 'manager' hoặc 'teacher'
+    if (user?.roles.includes("manager") || user?.roles.includes("teacher")) {
+      setShowAction(true);
+    } else {
+      setShowInfo(true);
+    }
   };
 
   const handleDelete = async () => {
     try {
       if (selectedRow) {
-        await deleteSchedule(selectedRow.id);
-        alert("Xoá thành công!");
-        await fetchSchedules();
+        await removeSchedule(selectedRow.id);
         setShowAction(false);
-        closeConfirm(); // 🆕 Đóng confirm modal
+        closeConfirm();
       }
     } catch (err) {
       console.error(err);
-      alert("Xoá thất bại!");
     }
   };
 
@@ -91,9 +91,7 @@ export default function ScheduleManagement() {
     setShowInfo(true);
   };
 
-  const handleCreated = async () => {
-    await fetchSchedules();
-  };
+  const handleCreated = async () => {};
 
   const handleBackdropClick = (
     e: React.MouseEvent<HTMLDivElement>,
@@ -119,18 +117,21 @@ export default function ScheduleManagement() {
   };
 
   return (
-    <div className="space-y-4">
+     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">
           Schedule Management
         </h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
-        >
-          Create New Schedule
-        </button>
+        {/* Chỉ hiển thị nút Create nếu user là manager hoặc teacher */}
+        {(user?.roles.includes("manager") || user?.roles.includes("teacher")) && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
+          >
+            Create New Schedule
+          </button>
+        )}
       </div>
 
       {/* Search + Filter */}
@@ -314,8 +315,9 @@ export default function ScheduleManagement() {
       </div>
 
       {/* Action Modal */}
+      {/* Action Modal */}
       <AnimatePresence>
-        {showAction && selectedRow && (
+        {showAction && selectedRow && (user?.roles.includes("manager") || user?.roles.includes("teacher")) && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
@@ -326,20 +328,24 @@ export default function ScheduleManagement() {
             <ActionModal
               onClose={() => setShowAction(false)}
               onShowInfo={handleShowInfo}
-              onDelete={() => {
-                setShowAction(false);
-                // 🆕 Gọi hook để mở confirm modal
-                openConfirm(
-                  `Bạn có chắc chắn muốn xoá lịch ID ${selectedRow.id}?`,
-                  handleDelete
-                );
-              }}
+              userRoles={user?.roles} // Truyền roles vào ActionModal
+              onDelete={
+                user?.roles.includes("manager")
+                  ? () => {
+                      setShowAction(false);
+                      openConfirm(
+                        `Bạn có chắc chắn muốn xoá lịch ID ${selectedRow.id}?`,
+                        handleDelete
+                      );
+                    }
+                  : undefined
+              }
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Confirm Delete Modal (dùng component mới) */}
+      {/* Confirm Delete Modal */}
       <ConfirmModal
         isOpen={isOpen}
         message={message}
@@ -361,7 +367,8 @@ export default function ScheduleManagement() {
               type="schedule"
               data={selectedRow}
               onClose={() => setShowInfo(false)}
-              onUpdated={fetchSchedules}
+              onUpdated={async () => {}}
+              userRoles={user?.roles} // Truyền roles vào ShowInfoModal
             />
           </motion.div>
         )}
@@ -369,12 +376,28 @@ export default function ScheduleManagement() {
 
       {/* Create Schedule Modal */}
       <AnimatePresence>
-        {showCreateModal && (
+        {showCreateModal && (user?.roles.includes("manager") || user?.roles.includes("teacher")) && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
-            onClick={(e) =>
-              handleBackdropClick(e, () => setShowCreateModal(false))
-            }
+            onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <CreateScheduleForm
+              onClose={() => setShowCreateModal(false)}
+              onCreated={handleCreated}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Schedule Modal */}
+      <AnimatePresence>
+        {showCreateModal && (user?.roles.includes("manager") || user?.roles.includes("teacher")) && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

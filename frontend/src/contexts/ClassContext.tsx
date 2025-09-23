@@ -1,7 +1,14 @@
-// ClassContext.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Class,
   ClassCreate,
@@ -13,6 +20,7 @@ import {
   getTeacherClasses as getTeacherClassesApi,
   exportClass,
 } from "../services/api/class";
+import { toast } from "react-hot-toast"; // 🆕 thêm toast
 
 interface ClassContextType {
   classes: Class[];
@@ -41,7 +49,9 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       const data = await getClasses();
       setClasses(data);
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách lớp học");
+      const msg = err.message || "Không thể tải danh sách lớp học";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -51,9 +61,12 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
     try {
       const newClass = await createClass(data);
       setClasses((prev) => [...prev, newClass]);
+      toast.success("Tạo lớp học thành công 🎉");
       return newClass;
     } catch (err: any) {
-      throw new Error(err.message || "Không thể tạo lớp học");
+      const msg = err.message || "Không thể tạo lớp học";
+      toast.error(msg);
+      throw new Error(msg);
     }
   }, []);
 
@@ -61,9 +74,12 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
     try {
       const updated = await updateClass(id, data);
       setClasses((prev) => prev.map((c) => (c.class_id === id ? updated : c)));
+      toast.success("Cập nhật lớp học thành công ✅");
       return updated;
     } catch (err: any) {
-      throw new Error(err.message || "Không thể cập nhật lớp học");
+      const msg = err.message || "Không thể cập nhật lớp học";
+      toast.error(msg);
+      throw new Error(msg);
     }
   }, []);
 
@@ -71,13 +87,20 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
     try {
       await deleteClass(id);
       setClasses((prev) => prev.filter((c) => c.class_id !== id));
+      toast.success("Xóa lớp học thành công 🗑️");
     } catch (err: any) {
-      throw new Error(err.message || "Không thể xóa lớp học");
+      const msg = err.message || "Không thể xóa lớp học";
+      toast.error(msg);
+      throw new Error(msg);
     }
   }, []);
 
   const getTeacherClasses = useCallback(async (teacherUserId: number) => {
-    console.log("[ClassesProvider] getTeacherClasses called for teacher:", teacherUserId, new Date().toISOString());
+    console.log(
+      "[ClassesProvider] getTeacherClasses called for teacher:",
+      teacherUserId,
+      new Date().toISOString()
+    );
     setLoading(true);
     setError(null);
     try {
@@ -86,16 +109,21 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       return data;
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || "Không thể tải danh sách lớp học của giáo viên.");
-      throw new Error(err.message || "Không thể tải danh sách lớp học của giáo viên.");
+      const msg = err.message || "Không thể tải danh sách lớp học của giáo viên.";
+      setError(msg);
+      toast.error(msg);
+      throw new Error(msg);
     }
   }, []);
 
   const exportClassData = useCallback(async (id: number) => {
     try {
       await exportClass(id);
+      toast.success("Xuất danh sách lớp thành công 📂");
     } catch (err: any) {
-      throw new Error(err.message || "Không thể xuất danh sách lớp");
+      const msg = err.message || "Không thể xuất danh sách lớp";
+      toast.error(msg);
+      throw new Error(msg);
     }
   }, []);
 
@@ -116,7 +144,17 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       getTeacherClasses,
       exportClassData,
     }),
-    [classes, loading, error, fetchClasses, addClass, editClass, removeClass, getTeacherClasses, exportClassData]
+    [
+      classes,
+      loading,
+      error,
+      fetchClasses,
+      addClass,
+      editClass,
+      removeClass,
+      getTeacherClasses,
+      exportClassData,
+    ]
   );
 
   return <ClassContext.Provider value={value}>{children}</ClassContext.Provider>;

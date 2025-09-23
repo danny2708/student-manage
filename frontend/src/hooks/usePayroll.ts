@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react"
+import toast from "react-hot-toast"
 import {
   getPayrolls,
   createPayroll,
@@ -21,10 +22,11 @@ export function usePayrolls() {
     try {
       const data = await getPayrolls()
       setPayrolls(data)
-      return data; // Thêm dòng này để trả về dữ liệu
+      return data
     } catch (err: any) {
-      console.error("Failed to fetch payrolls:", err)
-      setError("Failed to fetch all payrolls.")
+      const msg = "Failed to fetch all payrolls."
+      toast.error(msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -36,10 +38,11 @@ export function usePayrolls() {
     try {
       const data = await getTeacherPayrolls(teacherUserId)
       setPayrolls(data)
-      return data; // **Sửa: Trả về dữ liệu để có thể sử dụng bên ngoài hook**
+      return data
     } catch (err: any) {
-      console.error("Failed to fetch teacher's payrolls:", err)
-      setError("Failed to fetch teacher's payrolls.")
+      const msg = "Failed to fetch teacher's payrolls."
+      toast.error(msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -51,9 +54,11 @@ export function usePayrolls() {
     try {
       const newPayroll = await createPayroll(payload)
       setPayrolls(prev => [...prev, newPayroll])
+      toast.success("Payroll created successfully!")
     } catch (err: any) {
-      console.error("Failed to create payroll:", err)
-      setError(err.response?.data?.detail || "Failed to create payroll.")
+      const msg = err.response?.data?.detail || "Failed to create payroll."
+      toast.error(msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -65,9 +70,11 @@ export function usePayrolls() {
     try {
       const updated = await updatePayroll(id, payload)
       setPayrolls(prev => prev.map(p => (p.id === id ? updated : p)))
+      toast.success("Payroll updated successfully!")
     } catch (err: any) {
-      console.error("Failed to update payroll:", err)
-      setError(err.response?.data?.detail || "Failed to update payroll.")
+      const msg = err.response?.data?.detail || "Failed to update payroll."
+      toast.error(msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -79,9 +86,11 @@ export function usePayrolls() {
     try {
       await deletePayroll(id)
       setPayrolls(prev => prev.filter(p => p.id !== id))
+      toast.success("Payroll deleted successfully!")
     } catch (err: any) {
-      console.error("Failed to delete payroll:", err)
-      setError(err.response?.data?.detail || "Failed to delete payroll.")
+      const msg = err.response?.data?.detail || "Failed to delete payroll."
+      toast.error(msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }

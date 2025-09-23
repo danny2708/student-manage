@@ -4,29 +4,20 @@ import { useState, useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
 
-import {
-  Tuition,
-  updateTuition,
-} from "../../../src/services/api/tuition";
-import {
-  Payroll,
-  updatePayroll,
-} from "../../../src/services/api/payroll";
-import {
-  Class,
-  updateClass,
-  ClassUpdate,
-} from "../../../src/services/api/class";
-import {
-  Schedule,
-  updateSchedule,
-  ScheduleUpdate,
-} from "../../../src/services/api/schedule";
+import { useSchedules } from "../../../src/contexts/ScheduleContext";
+import { useClasses } from "../../../src/contexts/ClassContext";
+import { useTuitions } from "../../../src/hooks/useTuition";
+import { usePayrolls } from "../../../src/hooks/usePayroll";
+
+import { Tuition } from "../../../src/services/api/tuition";
+import { Payroll } from "../../../src/services/api/payroll";
+import { Class, ClassUpdate } from "../../../src/services/api/class";
+import { Schedule, ScheduleUpdate } from "../../../src/services/api/schedule";
 
 import { PayrollInfoForm } from "./PayrollInfoForm";
 import { TuitionInfoForm } from "./TuitionInfoForm";
 import { ClassInfoForm } from "./ClassInfoForm";
-import { ScheduleInfoForm } from "./ScheduleInfoForm"; 
+import { ScheduleInfoForm } from "./ScheduleInfoForm";
 
 export type ModalDataType = Tuition | Payroll | Class | Schedule;
 export type ModalType = "tuition" | "payroll" | "class" | "schedule";
@@ -37,6 +28,7 @@ interface ShowInfoModalProps {
   onClose: () => void;
   onUpdated: () => Promise<void>;
   extraActions?: React.ReactNode;
+  userRoles?: string[];
 }
 
 export function ShowInfoModal({
@@ -44,11 +36,23 @@ export function ShowInfoModal({
   data,
   onClose,
   onUpdated,
+  userRoles,
+  extraActions,
 }: ShowInfoModalProps) {
   const [editedData, setEditedData] = useState<ModalDataType>(data);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Khi mở modal, nếu có schedule.date dạng yyyy-mm-dd thì convert sang dd/mm/yyyy để hiển thị cho người dùng
+  const { editSchedule } = useSchedules();
+  const { editClass } = useClasses();
+  const { editTuition } = useTuitions();
+  const { editPayroll } = usePayrolls();
+
+  // --- Phân quyền ---
+  const isManager = userRoles?.includes("manager");
+  const isTeacher = userRoles?.includes("teacher");
+  const isStudent = userRoles?.includes("student");
+
+  // convert date trước khi render
   useEffect(() => {
     if (type === "schedule") {
       const s = data as Schedule;
@@ -79,11 +83,10 @@ export function ShowInfoModal({
       if (type === "tuition") {
         const t = editedData as Tuition;
         const [d, m, y] = t.due_date.split("/");
-        const formattedDate = `${y}-${m}-${d}`;
-        await updateTuition(t.id, {
+        await editTuition(t.id, {
           amount: Number(t.amount),
           term: Number(t.term),
-          due_date: formattedDate,
+          due_date: `${y}-${m}-${d}`,
           status: t.status,
         });
       } else if (type === "payroll") {
@@ -92,7 +95,7 @@ export function ShowInfoModal({
           p.month !== undefined && p.month !== null
             ? Number(p.month)
             : new Date(p.sent_at).getMonth();
-        await updatePayroll(p.id, {
+        await editPayroll(p.id, {
           month: updatedMonth,
           total_base_salary: Number((p as any).total_base_salary ?? 0),
           reward_bonus: Number((p as any).reward_bonus ?? 0),
@@ -109,10 +112,9 @@ export function ShowInfoModal({
         if ((editedData as any).teacher_user_id !== undefined) {
           (classPayload as any).teacher_user_id = (editedData as any).teacher_user_id;
         }
-        await updateClass(c.class_id, classPayload);
+        await editClass(c.class_id, classPayload);
       } else if (type === "schedule") {
         const s = editedData as Schedule;
-
         const payload: ScheduleUpdate = {
           class_id: s.class_id,
           room: s.room,
@@ -120,45 +122,45 @@ export function ShowInfoModal({
           start_time: s.start_time,
           end_time: s.end_time,
         };
-
         if (s.schedule_type === "ONCE" && s.date) {
-          // convert dd/mm/yyyy -> yyyy-mm-dd để gửi API
           const parts = s.date.includes("/") ? s.date.split("/") : null;
           const formattedDate = parts ? `${parts[2]}-${parts[1]}-${parts[0]}` : s.date;
           payload.date = formattedDate;
-          const day = new Date(formattedDate).toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
-          payload.day_of_week = day as any;
+          payload.day_of_week = new Date(formattedDate)
+            .toLocaleDateString("en-US", { weekday: "long" })
+            .toUpperCase() as any;
         } else if (s.schedule_type === "WEEKLY" && s.day_of_week) {
           payload.day_of_week = s.day_of_week;
         }
-
-        await updateSchedule(s.id, payload);
+        await editSchedule(s.id, payload);
       }
-
       await onUpdated();
       onClose();
-      alert("Lưu thành công!");
     } catch (err) {
       console.error("Failed to save data:", err);
-      alert("Có lỗi xảy ra khi lưu!");
     } finally {
       setIsSaving(false);
     }
   };
 
   const renderContent = () => {
-    if (type === "tuition") {
-      return <TuitionInfoForm data={editedData as Tuition} onInputChange={handleInputChange} />;
+    let disabled = false;
+
+    if (isStudent) {
+      disabled = true; // student chỉ xem
+    } else if (isTeacher) {
+      // teacher chỉ được update schedule
+      disabled = type !== "schedule";
     }
-    if (type === "payroll") {
-      return <PayrollInfoForm data={editedData as Payroll} onInputChange={handleInputChange} />;
-    }
-    if (type === "class") {
-      return <ClassInfoForm data={editedData as Class} onInputChange={handleInputChange} />;
-    }
-    if (type === "schedule") {
-      return <ScheduleInfoForm data={editedData as Schedule} onInputChange={handleInputChange} />;
-    }
+
+    if (type === "tuition")
+      return <TuitionInfoForm data={editedData as Tuition} onInputChange={handleInputChange} disabled={disabled} />;
+    if (type === "payroll")
+      return <PayrollInfoForm data={editedData as Payroll} onInputChange={handleInputChange} disabled={disabled} />;
+    if (type === "class")
+      return <ClassInfoForm data={editedData as Class} onInputChange={handleInputChange} disabled={disabled} />;
+    if (type === "schedule")
+      return <ScheduleInfoForm data={editedData as Schedule} onInputChange={handleInputChange} disabled={disabled} />;
     return <div className="text-white">Không có thông tin để hiển thị.</div>;
   };
 
@@ -177,25 +179,39 @@ export function ShowInfoModal({
       >
         <X className="h-5 w-5" />
       </button>
+
       <h2 className="text-xl font-bold mb-4 text-center">
         Chi tiết{" "}
-        {type === "tuition"
-          ? "học phí"
-          : type === "payroll"
-          ? "bảng lương"
-          : type === "class"
-          ? "lớp học"
-          : "lịch học"}
+        {type === "tuition" ? "học phí" : type === "payroll" ? "bảng lương" : type === "class" ? "lớp học" : "lịch học"}
       </h2>
+
       {renderContent()}
-      <div className="flex justify-center mt-6">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
-        >
-          {isSaving ? "Đang lưu..." : "Lưu"}
-        </button>
+
+      <div className="flex justify-center mt-6 space-x-3">
+        {/* Manager: full quyền save */}
+        {isManager && (
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+          >
+            {isSaving ? "Đang lưu..." : "Lưu"}
+          </button>
+        )}
+
+        {/* Teacher: chỉ lưu nếu đang ở schedule */}
+        {isTeacher && type === "schedule" && (
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+          >
+            {isSaving ? "Đang lưu..." : "Lưu"}
+          </button>
+        )}
+
+        {/* Extra actions: chỉ manager mới có */}
+        {extraActions && isManager && extraActions}
       </div>
     </motion.div>
   );

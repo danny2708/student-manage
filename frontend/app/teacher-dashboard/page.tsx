@@ -57,7 +57,7 @@ export default function TeacherDashboard() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["academic"]);
   const [visitedSections, setVisitedSections] = useState<string[]>(["dashboard"]);
 
-  const [searchTerms, setSearchTerms] = useState({
+  const [searchTerms] = useState({
     attendance: "",
     schedule: "",
     classes: "",
@@ -202,12 +202,7 @@ export default function TeacherDashboard() {
         )}
         {visitedSections.includes("schedule") && (
           <div className={activeSection === "schedule" ? "block" : "hidden"}>
-            <ScheduleManagement
-              searchTerm={searchTerms.schedule}
-              updateSearchTerm={() => {}}
-              handleCreateNew={() => {}}
-              handleTableRowClick={() => {}}
-            />
+            <ScheduleManagement />
           </div>
         )}
         {visitedSections.includes("class") && (

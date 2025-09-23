@@ -7,9 +7,10 @@ import { Payroll } from "../../../src/services/api/payroll";
 interface PayrollInfoFormProps {
   data: Payroll;
   onInputChange: (field: string, value: string | number) => void;
+  disabled?: boolean;
 }
 
-export function PayrollInfoForm({ data, onInputChange }: PayrollInfoFormProps) {
+export function PayrollInfoForm({ data, onInputChange, disabled }: PayrollInfoFormProps) {
   const currentMonthValue = data.month ?? new Date(data.sent_at).getMonth() + 1;
   const calculatedTotal = (data.base_salary || 0) + (data.bonus || 0);
 
@@ -44,6 +45,7 @@ export function PayrollInfoForm({ data, onInputChange }: PayrollInfoFormProps) {
           type="text"
           value={data.base_salary}
           onChange={(e) => onInputChange("base_salary", Number(e.target.value))}
+          disabled={disabled}
           className="w-48 text-center"
         />
       </div>
@@ -53,6 +55,7 @@ export function PayrollInfoForm({ data, onInputChange }: PayrollInfoFormProps) {
           type="text"
           value={data.bonus}
           onChange={(e) => onInputChange("bonus", Number(e.target.value))}
+          disabled={disabled}
           className="w-48 text-center"
         />
       </div>

@@ -1,4 +1,3 @@
-// components/functions/ClassInfoForm.tsx
 "use client";
 
 import { Input } from "../../../components/ui/input";
@@ -7,9 +6,12 @@ import { Class } from "../../../src/services/api/class";
 interface ClassInfoFormProps {
   data: Class;
   onInputChange: (field: string, value: string | number) => void;
+  disabled?: boolean;
 }
 
-export function ClassInfoForm({ data, onInputChange }: ClassInfoFormProps) {
+export function ClassInfoForm({ data, onInputChange, disabled }: ClassInfoFormProps) {
+  const inputClasses = `w-48 ml-6 ${disabled ? 'cursor-not-allowed bg-gray-600 text-gray-400' : ''}`;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center">
@@ -18,7 +20,8 @@ export function ClassInfoForm({ data, onInputChange }: ClassInfoFormProps) {
           type="text"
           value={data.class_name}
           onChange={(e) => onInputChange("class_name", e.target.value)}
-          className="w-48 ml-6"
+          disabled={disabled}
+          className={inputClasses}
         />
       </div>
       <div className="flex items-center">
@@ -31,7 +34,8 @@ export function ClassInfoForm({ data, onInputChange }: ClassInfoFormProps) {
           type="number"
           value={data.capacity}
           onChange={(e) => onInputChange("capacity", Number(e.target.value))}
-          className="w-48 ml-6"
+          disabled={disabled}
+          className={inputClasses}
         />
       </div>
       <div className="flex items-center">
@@ -40,7 +44,8 @@ export function ClassInfoForm({ data, onInputChange }: ClassInfoFormProps) {
           type="number"
           value={data.fee}
           onChange={(e) => onInputChange("fee", Number(e.target.value))}
-          className="w-48 ml-6"
+          disabled={disabled}
+          className={inputClasses}
         />
       </div>
     </div>

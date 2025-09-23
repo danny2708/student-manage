@@ -1,14 +1,16 @@
-"use client"
+"use client";
 
-import { X, Eye, Trash2 } from "lucide-react"
+import { X, Eye, Trash2 } from "lucide-react";
 
 interface ActionModalProps {
-  onClose: () => void
-  onShowInfo: () => void
-  onDelete?: () => void   
+  onClose: () => void;
+  onShowInfo: () => void;
+  onDelete?: () => void;
+  userRoles?: string[]; // Đổi prop thành userRoles: string[]
 }
 
-export function ActionModal({ onClose, onShowInfo, onDelete }: ActionModalProps) {
+export function ActionModal({ onClose, onShowInfo, onDelete}: ActionModalProps) {
+
   return (
     <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-48 p-4">
       {/* Close button */}
@@ -29,7 +31,8 @@ export function ActionModal({ onClose, onShowInfo, onDelete }: ActionModalProps)
           Show Info
         </button>
 
-        {onDelete && ( 
+        {/* Chỉ hiển thị nút Delete nếu userRoles bao gồm 'manager' */}
+        { onDelete && (
           <button
             onClick={onDelete}
             className="w-full flex items-center gap-3 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
@@ -40,5 +43,5 @@ export function ActionModal({ onClose, onShowInfo, onDelete }: ActionModalProps)
         )}
       </div>
     </div>
-  )
+  );
 }

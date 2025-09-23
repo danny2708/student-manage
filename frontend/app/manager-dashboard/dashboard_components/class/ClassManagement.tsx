@@ -4,13 +4,17 @@ import * as React from "react";
 import { BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClasses } from "../../../../src/contexts/ClassContext";
+import { useAuth } from "../../../../src/hooks/useAuth";
 import { ActionModal } from "../../showInfo/action_modal";
 import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
 import { CreateClassForm } from "./CreateClassForm";
 import { Class } from "../../../../src/services/api/class";
+import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
 
 export default function ClassManagement() {
   const { classes, loading, error, removeClass, fetchClasses, exportClassData } = useClasses();
+  const { user } = useAuth(); // Lấy thông tin user
+  const { isOpen, message, onConfirm, openConfirm, closeConfirm } = useConfirmDialog();
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedClass, setSelectedClass] = React.useState<Class | null>(null);
@@ -24,6 +28,8 @@ export default function ClassManagement() {
   const teachers = Array.from(new Set(classes.map(c => c.teacher_name).filter(Boolean)));
   const subjects = Array.from(new Set(classes.map(c => c.subject_name).filter(Boolean)));
 
+  const isManager = user?.roles.includes("manager");
+
   const filteredClasses = classes.filter((cls) => {
     const matchesSearch = cls.class_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTeacher = filterTeacher ? cls.teacher_name === filterTeacher : true;
@@ -33,19 +39,18 @@ export default function ClassManagement() {
 
   const handleCardClick = (cls: Class) => {
     setSelectedClass(cls);
-    setShowAction(true);
+    if (isManager) {
+      setShowAction(true);
+    } else {
+      setShowInfo(true);
+    }
   };
 
   const handleDelete = async () => {
-    try {
-      if (selectedClass) {
-        await removeClass(selectedClass.class_id);
-        alert("Xóa thành công!");
-        setShowAction(false);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Xóa thất bại!");
+    if (selectedClass) {
+      await removeClass(selectedClass.class_id);
+      setShowAction(false);
+      closeConfirm();
     }
   };
 
@@ -56,13 +61,8 @@ export default function ClassManagement() {
 
   const handleExport = async () => {
     if (!selectedClass) return;
-    try {
-      await exportClassData(selectedClass.class_id);
-      alert("Xuất danh sách lớp thành công!");
-    } catch (err) {
-      console.error(err);
-      alert("Xuất thất bại!");
-    }
+    await exportClassData(selectedClass.class_id);
+    setShowInfo(false);
   };
 
   const handleCreated = async () => {
@@ -85,14 +85,16 @@ export default function ClassManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Class Management</h2>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
-        >
-          <BookOpen className="h-4 w-4" />
-          Create New Class
-        </motion.button>
+        {isManager && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <BookOpen className="h-4 w-4" />
+            Create New Class
+          </motion.button>
+        )}
       </div>
 
       {/* Search & Filter */}
@@ -156,7 +158,7 @@ export default function ClassManagement() {
 
       {/* Action Modal */}
       <AnimatePresence>
-        {showAction && selectedClass && (
+        {showAction && selectedClass && isManager && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
@@ -167,7 +169,15 @@ export default function ClassManagement() {
             <ActionModal
               onClose={() => setShowAction(false)}
               onShowInfo={handleShowInfo}
-              onDelete={handleDelete}
+              onDelete={
+                isManager
+                  ? () => openConfirm(
+                      `Bạn có chắc chắn muốn xoá lớp ${selectedClass.class_name}?`,
+                      handleDelete
+                    )
+                  : undefined
+              }
+              userRoles={user?.roles} // Truyền roles vào ActionModal
             />
           </motion.div>
         )}
@@ -188,6 +198,7 @@ export default function ClassManagement() {
               data={selectedClass}
               onClose={() => setShowInfo(false)}
               onUpdated={handleUpdated}
+              userRoles={user?.roles} // Truyền roles vào ShowInfoModal
               extraActions={
                 <button
                   onClick={handleExport}
@@ -200,10 +211,9 @@ export default function ClassManagement() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Create Class Modal */}
-      <AnimatePresence>
-        {showCreateModal && (
+       {/* Create Class Modal */}
+       <AnimatePresence>
+        {showCreateModal && isManager && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
@@ -218,6 +228,10 @@ export default function ClassManagement() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isOpen && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+        {/* Confim Dialog */}
+      </div>}
     </div>
   );
 }
