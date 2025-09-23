@@ -45,9 +45,9 @@ export async function getTuitionsByStudentId(student_user_id: number): Promise<T
   return res.data;
 }
 
-// Endpoint mới: Lấy học phí theo parent_id
-export async function getTuitionsByParentId(parent_id: number): Promise<Tuition[]> {
-  const res = await api.get<Tuition[]>(`/tuitions/by_parent/${parent_id}`);
+// Endpoint mới: Lấy học phí theo parent_user_id
+export async function getTuitionsByParentId(parent_user_id: number): Promise<Tuition[]> {
+  const res = await api.get<Tuition[]>(`/tuitions/by_parent/${parent_user_id}`);
   return res.data;
 }
 
@@ -56,14 +56,6 @@ export async function updateTuition(id: number, data: TuitionUpdate): Promise<Tu
   // Change the endpoint URL to match the backend
   const res = await api.put<Tuition>(`/tuitions/${id}`, data);
   return res.data;
-}
-
-export async function updateTuitionStatus(
-  id: number,
-  body: { payment_status: "paid" | "pending" | "overdue" }
-) {
-  const res = await api.patch(`/tuitions/${id}/status`, body)
-  return res.data
 }
 
 export async function deleteTuition(id: number): Promise<void> {

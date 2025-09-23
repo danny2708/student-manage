@@ -300,12 +300,12 @@ export function ParentRole({ user }: ParentRoleProps) {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              variant={
+                              className={
                                 tuition.status === "paid"
-                                  ? "default"
+                                  ? "bg-green-500 text-white"
                                   : tuition.status === "overdue"
-                                  ? "destructive"
-                                  : "secondary"
+                                  ? "bg-red-500 text-white"
+                                  : "bg-yellow-500 text-white" 
                               }
                             >
                               {tuition.status}

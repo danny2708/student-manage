@@ -19,6 +19,7 @@ interface UserAccountModalProps {
     gender: string;
     dob: string;
     phone: string;
+    password?: string;
   };
   onClose: () => void;
 }

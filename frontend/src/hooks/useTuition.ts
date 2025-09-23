@@ -7,7 +7,6 @@ import {
   createTuition, 
   updateTuition, 
   deleteTuition, 
-  updateTuitionStatus 
 } from "../services/api/tuition";
 
 export function useTuitions() {
@@ -56,11 +55,6 @@ export function useTuitions() {
     if (updated) setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)));
   }, [handleFetch]);
 
-  const changeStatus = useCallback(async (id: number, status: "paid" | "pending" | "overdue") => {
-    const updated = await handleFetch(() => updateTuitionStatus(id, { payment_status: status }));
-    if (updated) setTuitions((prev) => prev.map((t) => (t.id === id ? { ...t, status: updated.status } : t)));
-  }, [handleFetch]);
-
   const removeTuition = useCallback(async (id: number) => {
     const ok = await handleFetch(() => deleteTuition(id));
     if (ok !== null) setTuitions((prev) => prev.filter((t) => t.id !== id));
@@ -73,7 +67,6 @@ export function useTuitions() {
     addTuition, 
     editTuition, 
     removeTuition, 
-    changeStatus, 
     fetchTuitions,
     fetchTuitionsByStudentId,
     fetchTuitionsByParentId,

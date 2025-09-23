@@ -11,12 +11,15 @@ import { CreateTuitionForm } from "./CreateTuitionForm";
 
 export default function TuitionManagement() {
   const { tuitions, fetchTuitions, removeTuition } = useTuitions();
-
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
+
+    React.useEffect(() => {
+    fetchTuitions();
+  }, [fetchTuitions]);
 
   // Filter states
   const [showFilterPanel, setShowFilterPanel] = React.useState(false);

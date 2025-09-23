@@ -226,12 +226,7 @@ export default function TeacherDashboard() {
         )}
         {visitedSections.includes("class") && (
           <div className={activeSection === "class" ? "block" : "hidden"}>
-            <ClassManagement
-              searchTerm={searchTerms.classes}
-              updateSearchTerm={() => {}}
-              handleCreateNew={() => {}}
-              handleClassCardClick={() => {}}
-            />
+            <ClassManagement />
           </div>
         )}
         {visitedSections.includes("evaluation") && (
@@ -241,7 +236,7 @@ export default function TeacherDashboard() {
         )}
         {visitedSections.includes("payroll") && (
           <div className={activeSection === "payroll" ? "block" : "hidden"}>
-            <PayrollManagement searchTerm={searchTerms.payroll} updateSearchTerm={() => {}} handleCreateNew={() => {}} handleTableRowClick={() => {}} />
+            <PayrollManagement />
           </div>
         )}
         {visitedSections.includes("teacher-review") && (
@@ -294,7 +289,9 @@ export default function TeacherDashboard() {
                 className="relative w-[90vw] max-w-4xl mx-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <UserAccountModal user={user} onClose={() => setShowAccountModal(false)} />
+                {user && (
+                  <UserAccountModal user={user} onClose={() => setShowAccountModal(false)} />
+                )}
               </motion.div>
             </motion.div>
           )}
