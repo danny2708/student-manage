@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar, Clock, MapPin, Users, Filter, Search } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Search } from "lucide-react";
 import { BaseCard } from "../ui/base-card";
 import { BaseButton } from "../ui/base-button";
 import { cn } from "../../src/lib/utils";
@@ -50,7 +50,6 @@ interface CalendarListViewProps {
 export function CalendarListView({ schedules, onEventClick }: CalendarListViewProps) {
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterSubject, setFilterSubject] = useState<string>("all");
 
   // normalize & group by date (use schedule.date; do NOT generate artificial dates)
   const grouped = useMemo(() => {
@@ -91,13 +90,12 @@ export function CalendarListView({ schedules, onEventClick }: CalendarListViewPr
           schedule.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           schedule.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           schedule.room?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesSubject = filterSubject === "all" || schedule.subject === filterSubject;
-        return matchesSearch && matchesSubject;
+        return matchesSearch;
       });
       if (filtered.length > 0) out.push([date, filtered.sort((a, b) => (a.start ?? "").localeCompare(b.start ?? ""))]);
     }
     return out;
-  }, [grouped, searchTerm, filterSubject]);
+  }, [grouped, searchTerm]);
 
   const todayYmd = toYMD(new Date());
   const formatDateLabel = (dateStr: string) => {
@@ -141,23 +139,6 @@ export function CalendarListView({ schedules, onEventClick }: CalendarListViewPr
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <select
-              aria-label="Filter by subject"
-              value={filterSubject}
-              onChange={(e) => setFilterSubject(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="all">All Subjects</option>
-              {subjects.map((subject) => (
-                <option key={subject} value={subject}>
-                  {subject}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </BaseCard>
@@ -254,7 +235,7 @@ export function CalendarListView({ schedules, onEventClick }: CalendarListViewPr
           <BaseCard className="p-8 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">No classes found</h3>
-            <p className="text-muted-foreground">{searchTerm || filterSubject !== "all" ? "Try adjusting your search or filter criteria." : "No classes scheduled for this period."}</p>
+            <p className="text-muted-foreground">{searchTerm ? "Try adjusting your search or filter criteria." : "No classes scheduled for this period."}</p>
           </BaseCard>
         )}
       </div>

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, join
+from sqlalchemy import func, select, join
 from typing import Optional, List
 from datetime import date as dt_date, time
 from app.schemas import schedule_schema
@@ -9,10 +9,12 @@ from app.schemas.schedule_schema import ScheduleCreate, ScheduleUpdate, Schedule
 from app.models.enrollment_model import Enrollment
 from app.services import schedule_service
 from app.services.service_helper import to_naive_time
+from app.models.subject_model import Subject
+
 
 # Helper function để lấy truy vấn JOIN giữa Schedule và Class
 def get_schedule_with_class_name_query():
-    """Returns a SQLAlchemy query object with a JOIN to get the class name."""
+    """Returns a SQLAlchemy query object with JOINs to get class name, subject name, and student count."""
     return (
         select(
             Schedule.schedule_id.label("id"),
@@ -22,12 +24,40 @@ def get_schedule_with_class_name_query():
             Schedule.day_of_week,
             Schedule.date,
             Schedule.start_time,
-            Schedule.end_time
+            Schedule.end_time,
+            Subject.name.label("subject"),
+            func.count(Enrollment.student_user_id).label("students"),  
         )
         .select_from(
-            join(Schedule, Class, Schedule.class_id == Class.class_id)
+            join(
+                join(
+                    Schedule,
+                    Class,
+                    Schedule.class_id == Class.class_id,
+                ),
+                Subject,
+                Class.subject_id == Subject.subject_id,
+                isouter=True,
+            )
+            .join(
+                Enrollment,
+                Enrollment.class_id == Class.class_id,
+                isouter=True,  
+            )
+        )
+        .group_by(
+            Schedule.schedule_id,
+            Class.class_name,
+            Schedule.room,
+            Schedule.schedule_type,
+            Schedule.day_of_week,
+            Schedule.date,
+            Schedule.start_time,
+            Schedule.end_time,
+            Subject.name,
         )
     )
+
 
 def get_schedule_by_id(db: Session, schedule_id: int) -> Optional[ScheduleView]:
     """

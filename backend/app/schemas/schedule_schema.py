@@ -70,6 +70,8 @@ class ScheduleView(BaseModel):
     date: Optional[dt_date] 
     start_time: time 
     end_time: time 
+    subject: str
+    students: Optional[int] = Field(None, description="Số lượng học sinh trong lớp")
 
     @field_serializer('date')
     def serialize_date(self, value: Optional[dt_date], info):

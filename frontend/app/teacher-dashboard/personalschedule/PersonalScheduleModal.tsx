@@ -15,11 +15,13 @@ interface ScheduleItem {
   date?: string; // yyyy-mm-dd or dd/mm/yyyy from API
   start?: string; // HH:MM or HH:MM:SS
   end?: string;
-  title?: string;
+  title?: string; // display title (class_name or title)
+  class_name?: string;
   room?: string;
   subject?: string;
   students?: number;
   originalScheduleId?: number | string;
+  scheduleType?: string; // "ONCE" | "WEEKLY" (uppercased)
 }
 
 interface PersonalScheduleModalProps {
@@ -31,6 +33,12 @@ interface PersonalScheduleModalProps {
 type ViewType = "week" | "day" | "list";
 
 /* ---------- Helpers ---------- */
+const formatDateDMY = (ymd?: string) => {
+  if (!ymd) return "";
+  const [y, m, d] = ymd.split("-");
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+};
+
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -111,6 +119,11 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
   const startOfWeek = useMemo(() => getStartOfWeek(referenceDate), [referenceDate]);
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => toYMD(addDays(startOfWeek, i))), [startOfWeek]);
 
+  // Filters: room, class_name, schedule_type (ONCE / WEEKLY)
+  const [filterRoom, setFilterRoom] = useState<string>("");
+  const [filterClassName, setFilterClassName] = useState<string>("");
+  const [filterScheduleType, setFilterScheduleType] = useState<string>("");
+
   useEffect(() => {
     if (open) {
       if (fetchSchedules) fetchSchedules().catch(() => {});
@@ -118,7 +131,8 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
     }
   }, [open, fetchSchedules, fetchSchedule]);
 
-  const occurrences = useMemo(() => {
+  // occurrences generation (raw)
+  const occurrencesAll = useMemo(() => {
     if (!schedules || schedules.length === 0) return [];
 
     const result: ScheduleItem[] = [];
@@ -135,7 +149,8 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
     for (const s of schedules as any[]) {
       const originalId = s.id ?? s.schedule_id ?? s.class_id ?? Math.random().toString();
       const idStr = String(originalId);
-      const title = s.class_name ?? s.title ?? s.subject ?? "Class";
+      const className = s.class_name ?? s.title ?? s.subject ?? "Class";
+      const title = className;
       const start_time = normTime(s.start_time ?? s.start ?? "09:00");
       const end_time = normTime(s.end_time ?? s.end ?? "10:30");
       const room = s.room ?? s.location ?? "TBA";
@@ -180,9 +195,11 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               start: start_time,
               end: end_time,
               title,
+              class_name: className,
               room,
               subject,
               students,
+              scheduleType,
             });
           }
         }
@@ -197,6 +214,47 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
 
     return result;
   }, [schedules, weekDates, referenceDate]);
+
+  // derive unique options for selects from schedules (rooms, class_names, schedule types)
+  const rooms = useMemo(() => {
+    if (!schedules) return [];
+    const set = new Set<string>();
+    for (const s of schedules as any[]) {
+      const r = s.room ?? s.location ?? null;
+      if (r) set.add(String(r));
+    }
+    return Array.from(set).sort();
+  }, [schedules]);
+
+  const classNames = useMemo(() => {
+    if (!schedules) return [];
+    const set = new Set<string>();
+    for (const s of schedules as any[]) {
+      const c = s.class_name ?? s.title ?? s.subject ?? null;
+      if (c) set.add(String(c));
+    }
+    return Array.from(set).sort();
+  }, [schedules]);
+
+  const scheduleTypes = useMemo(() => {
+    if (!schedules) return [];
+    const set = new Set<string>();
+    for (const s of schedules as any[]) {
+      const st = (s.schedule_type ?? s.type ?? "WEEKLY").toString().toUpperCase();
+      set.add(st);
+    }
+    return Array.from(set).sort(); // will contain "ONCE","WEEKLY",...
+  }, [schedules]);
+
+  // filtered occurrences based on selected filters
+  const occurrences = useMemo(() => {
+    return occurrencesAll.filter((o) => {
+      if (filterRoom && (o.room ?? "") !== filterRoom) return false;
+      if (filterClassName && (o.class_name ?? "") !== filterClassName) return false;
+      if (filterScheduleType && (o.scheduleType ?? "").toUpperCase() !== filterScheduleType.toUpperCase()) return false;
+      return true;
+    });
+  }, [occurrencesAll, filterRoom, filterClassName, filterScheduleType]);
 
   // day view default = first day of week (or today if current week)
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -267,7 +325,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
         <div className="flex flex-col h-full">
           <div className="flex-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm text-gray-900 dark:text-gray-100">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border/50">
+            <div className="flex items-start justify-between p-6 border-b border-border/50">
               <div>
                 <h2 className="text-2xl font-bold text-balance">Personal Schedule</h2>
                 <p className="text-muted-foreground">
@@ -278,34 +336,94 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* week nav */}
-                <div className="flex items-center gap-1 border rounded p-1 bg-muted/10">
-                  <button onClick={() => setWeekOffset((w) => w - 1)} className="p-2 rounded hover:bg-muted/20" title="Previous week">
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <div className="px-3 text-sm">Week of {toYMD(startOfWeek)}</div>
-                  <button onClick={() => setWeekOffset((w) => w + 1)} className="p-2 rounded hover:bg-muted/20" title="Next week">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+              <div className="flex flex-col items-end gap-3">
+                <div className="flex items-center gap-2">
+                  {/* week nav */}
+                  <div className="flex items-center gap-1 border rounded p-1 bg-muted/10">
+                    <button onClick={() => setWeekOffset((w) => w - 1)} className="p-2 rounded hover:bg-muted/20" title="Previous week">
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="px-3 text-sm">Week of {toYMD(startOfWeek)}</div>
+                    <button onClick={() => setWeekOffset((w) => w + 1)} className="p-2 rounded hover:bg-muted/20" title="Next week">
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <BaseButton variant="ghost" size="sm" onClick={() => fetchSchedules?.()} disabled={loading}>
+                    {loading ? "Refreshing..." : "Refresh"}
+                  </BaseButton>
+
+                  <BaseButton variant={currentView === "week" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("week")}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Week
+                  </BaseButton>
+                  <BaseButton variant={currentView === "day" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("day")}>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Day
+                  </BaseButton>
+                  <BaseButton variant={currentView === "list" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("list")}>
+                    <List className="h-4 w-4 mr-2" />
+                    List
+                  </BaseButton>
                 </div>
 
-                <BaseButton variant="ghost" size="sm" onClick={() => fetchSchedules?.()} disabled={loading}>
-                  {loading ? "Refreshing..." : "Refresh"}
-                </BaseButton>
+                {/* Filters row: room, class_name, schedule_type */}
+                <div className="flex items-center gap-2 mt-1">
+                  <select
+                    value={filterRoom}
+                    onChange={(e) => setFilterRoom(e.target.value)}
+                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
+                    aria-label="Filter by room"
+                  >
+                    <option value="">All Rooms</option>
+                    {rooms.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
 
-                <BaseButton variant={currentView === "week" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("week")}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Week
-                </BaseButton>
-                <BaseButton variant={currentView === "day" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("day")}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  Day
-                </BaseButton>
-                <BaseButton variant={currentView === "list" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("list")}>
-                  <List className="h-4 w-4 mr-2" />
-                  List
-                </BaseButton>
+                  <select
+                    value={filterClassName}
+                    onChange={(e) => setFilterClassName(e.target.value)}
+                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
+                    aria-label="Filter by class"
+                  >
+                    <option value="">All Classes</option>
+                    {classNames.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterScheduleType}
+                    onChange={(e) => setFilterScheduleType(e.target.value)}
+                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
+                    aria-label="Filter by schedule type"
+                  >
+                    <option value="">All Types</option>
+                    {scheduleTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* clear filters */}
+                  <button
+                    onClick={() => {
+                      setFilterRoom("");
+                      setFilterClassName("");
+                      setFilterScheduleType("");
+                    }}
+                    className="px-3 py-2 rounded-lg border ml-2"
+                    title="Clear filters"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -313,7 +431,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
             <div className="flex-1 p-6 overflow-auto">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={currentView + weekOffset}
+                  key={currentView + weekOffset + filterRoom + filterClassName + filterScheduleType}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -331,10 +449,19 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       <BaseModal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Class Details" size="md">
         {selectedEvent && (
           <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">{selectedEvent.title}</h3>
-              {selectedEvent.subject && <p className="text-muted-foreground">{selectedEvent.subject}</p>}
+            <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Class Name</label>
+                <h3 className="text-xl font-semibold">{selectedEvent.title}</h3>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Subject </label>
+                {selectedEvent.subject && <p className="text-xl">{selectedEvent.subject}</p>}
+              </div>
             </div>
+
+            <hr className="border-t border-gray-200 dark:border-gray-700 my-4" />
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -345,24 +472,18 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Date</label>
-                <p className="text-lg">{selectedEvent.date}</p>
+                <p className="text-lg">{formatDateDMY(selectedEvent.date)}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Location</label>
+                <label className="text-sm font-medium text-muted-foreground">Room</label>
                 <p className="text-lg">{selectedEvent.room}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Students</label>
-                <p className="text-lg">{selectedEvent.students ?? "N/A"} enrolled</p>
+                <p className="text-lg">{selectedEvent.students ?? "N/A"}</p>
               </div>
             </div>
-
-            <div className="flex gap-2 pt-4">
-              <BaseButton className="flex-1">Edit Class</BaseButton>
-              <BaseButton variant="outline" className="flex-1">
-                View Students
-              </BaseButton>
-            </div>
+          </div>
           </div>
         )}
       </BaseModal>
