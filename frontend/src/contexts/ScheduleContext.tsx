@@ -1,8 +1,7 @@
-// src/contexts/ScheduleContext.tsx
 "use client";
 
 import { createContext, useContext, ReactNode, useCallback, useState, useEffect } from "react";
-import toast from "react-hot-toast"; // 🆕 Import toast
+import toast from "react-hot-toast"; 
 import {
   Schedule,
   ScheduleCreate,
@@ -38,9 +37,9 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
       const data = await getSchedules();
       setSchedules(data);
     } catch (err: any) {
-      // 🆕 Dùng toast thay vì setError, nhưng vẫn giữ setError cho state
-      toast.error(err.message || "Không thể tải danh sách lịch học");
-      setError(err.message || "Không thể tải danh sách lịch học");
+      // show toast and keep error state
+      toast.error(err?.message || "Không thể tải danh sách lịch học");
+      setError(err?.message || "Không thể tải danh sách lịch học");
     } finally {
       setLoading(false);
     }
@@ -52,48 +51,80 @@ export function ScheduleProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
-  const addSchedule = useCallback(async (data: ScheduleCreate) => {
-    try {
-      const newItem = await createSchedule(data);
-      setSchedules((prev) => [...prev, newItem]);
-      toast.success("Tạo lịch học thành công!"); // 🆕 Thêm toast thành công
-      return newItem;
-    } catch (err: any) {
-      toast.error(err.message || "Không thể tạo lịch học"); // 🆕 Dùng toast báo lỗi
-      throw new Error(err.message || "Không thể tạo lịch học");
-    }
-  }, []);
+  const addSchedule = useCallback(
+    async (data: ScheduleCreate) => {
+      try {
+        // create on server
+        const newItem = await createSchedule(data);
 
-  const editSchedule = useCallback(async (id: number, data: ScheduleUpdate) => {
-    try {
-      const updated = await updateSchedule(id, data);
+        // optimistic add to UI so user sees something immediately (optional)
+        setSchedules((prev) => [...prev, newItem]);
 
-      setSchedules((prev) =>
-        prev.map((s) => {
-          if (s.id === id) {
-            return { ...s, ...updated };
-          }
-          return s;
-        })
-      );
-      toast.success("Cập nhật lịch học thành công!");
-      return updated;
-    } catch (err: any) {
-      toast.error(err.message || "Không thể cập nhật lịch học");
-      throw new Error(err.message || "Không thể cập nhật lịch học");
-    }
-  }, []);
+        // fetch fresh list to ensure fields like id, class_name are fully populated
+        // (some APIs return partial object on create)
+        try {
+          await fetchSchedules();
+        } catch (fetchErr: any) {
+          // If fetch fails, still keep created item in state but notify user
+          toast.error("Tạo lịch thành công nhưng cập nhật danh sách thất bại.");
+          console.error("fetchSchedules after create failed:", fetchErr);
+        }
 
-  const removeSchedule = useCallback(async (id: number) => {
-    try {
-      await deleteSchedule(id);
-      setSchedules((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Xoá lịch học thành công!"); // 🆕 Thêm toast thành công
-    } catch (err: any) {
-      toast.error(err.message || "Không thể xóa lịch học"); // 🆕 Dùng toast báo lỗi
-      throw new Error(err.message || "Không thể xóa lịch học");
-    }
-  }, []);
+        toast.success("Tạo lịch học thành công!");
+        return newItem;
+      } catch (err: any) {
+        toast.error(err?.response?.data?.detail || err?.message || "Không thể tạo lịch học");
+        throw new Error(err?.response?.data?.detail || err?.message || "Không thể tạo lịch học");
+      }
+    },
+    [fetchSchedules]
+  );
+
+  const editSchedule = useCallback(
+    async (id: number, data: ScheduleUpdate) => {
+      try {
+        const updated = await updateSchedule(id, data);
+
+        // merge updated item into state
+        setSchedules((prev) =>
+          prev.map((s) => {
+            if (s.id === id) {
+              return { ...s, ...updated };
+            }
+            return s;
+          })
+        );
+
+        // Optionally refresh to ensure server canonical data
+        try {
+          await fetchSchedules();
+        } catch (fetchErr: any) {
+          console.warn("fetchSchedules after update failed:", fetchErr);
+        }
+
+        toast.success("Cập nhật lịch học thành công!");
+        return updated;
+      } catch (err: any) {
+        toast.error(err?.response?.data?.detail || err?.message || "Không thể cập nhật lịch học");
+        throw new Error(err?.response?.data?.detail || err?.message || "Không thể cập nhật lịch học");
+      }
+    },
+    [fetchSchedules]
+  );
+
+  const removeSchedule = useCallback(
+    async (id: number) => {
+      try {
+        await deleteSchedule(id);
+        setSchedules((prev) => prev.filter((s) => s.id !== id));
+        toast.success("Xoá lịch học thành công!");
+      } catch (err: any) {
+        toast.error(err?.response?.data?.detail || err?.message || "Không thể xóa lịch học");
+        throw new Error(err?.response?.data?.detail || err?.message || "Không thể xóa lịch học");
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     fetchSchedules();

@@ -219,7 +219,7 @@ export default function ManagerDashboard() {
         {selectedUser && <Modal><RoleModal onShowInfo={handleUserShowInfo} onClose={()=>setSelectedUser(null)} onDelete={()=>{}} user={selectedUser} /></Modal>}
         {showActionModal && <Modal><ActionModal onClose={()=>setShowActionModal(null)} onShowInfo={handleShowInfo} onDelete={()=>{}} /></Modal>}
         {showCreateModal && <Modal><CreateModal type={showCreateModal} onClose={()=>setShowCreateModal(null)} onCreate={()=>{}} /></Modal>}
-        {showInfoModal && <Modal><ShowInfoModal type={showInfoModal.type} data={showInfoModal.data} onClose={()=>setShowInfoModal(null)} /></Modal>}
+        {showInfoModal && <Modal><ShowInfoModal type={showInfoModal.type} data={showInfoModal.data} onClose={()=>setShowInfoModal(null)} onUpdated={async () => {}} /></Modal>}
         {showAccountModal && user && <Modal dark onClose={()=>setShowAccountModal(false)}><UserAccountModal user={user} onClose={()=>setShowAccountModal(false)}/></Modal>}
       </div>
     </div>

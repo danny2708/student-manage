@@ -28,7 +28,28 @@ export default function ClassManagement() {
   const teachers = Array.from(new Set(classes.map(c => c.teacher_name).filter(Boolean)));
   const subjects = Array.from(new Set(classes.map(c => c.subject_name).filter(Boolean)));
 
-  const isManager = user?.roles.includes("manager");
+  // === normalize roles (hỗ trợ string[] hoặc [{name}] hoặc [{role}] )
+  const getRoleNames = (roles: any): string[] => {
+    if (!roles) return [];
+    if (Array.isArray(roles)) {
+      return roles
+        .map((r) => (typeof r === "string" ? r : r?.name ?? r?.role ?? ""))
+        .filter(Boolean)
+        .map((s) => String(s));
+    }
+    // fallback: single string or object
+    if (typeof roles === "string") return [roles];
+    if (typeof roles === "object" && roles !== null) {
+      const derived = roles.name ?? roles.role ?? "";
+      return derived ? [String(derived)] : [];
+    }
+    return [];
+  };
+
+  const roleNames = getRoleNames(user?.roles);
+  const isManager = roleNames.includes("manager");
+  const isTeacher = roleNames.includes("teacher");
+  const canExport = isManager || isTeacher;
 
   const filteredClasses = classes.filter((cls) => {
     const matchesSearch = cls.class_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -61,8 +82,13 @@ export default function ClassManagement() {
 
   const handleExport = async () => {
     if (!selectedClass) return;
-    await exportClassData(selectedClass.class_id);
-    setShowInfo(false);
+    try {
+      await exportClassData(selectedClass.class_id);
+      // Giữ hành vi hiện tại: đóng modal sau khi xuất
+      setShowInfo(false);
+    } catch (err) {
+      console.error("Export failed", err);
+    }
   };
 
   const handleCreated = async () => {
@@ -177,7 +203,7 @@ export default function ClassManagement() {
                     )
                   : undefined
               }
-              userRoles={user?.roles} // Truyền roles vào ActionModal
+              userRoles={user?.roles} // giữ format gốc cho ActionModal (không phá API hiện có)
             />
           </motion.div>
         )}
@@ -198,19 +224,25 @@ export default function ClassManagement() {
               data={selectedClass}
               onClose={() => setShowInfo(false)}
               onUpdated={handleUpdated}
-              userRoles={user?.roles} // Truyền roles vào ShowInfoModal
+              userRoles={roleNames} // truyền mảng string đã chuẩn hoá vào modal
               extraActions={
-                <button
-                  onClick={handleExport}
-                  className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors ml-2"
-                >
-                  Xuất danh sách
-                </button>
+                canExport ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // tránh bubble ra backdrop
+                      handleExport();
+                    }}
+                    className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors ml-2"
+                  >
+                    Xuất danh sách
+                  </button>
+                ) : undefined
               }
             />
           </motion.div>
         )}
       </AnimatePresence>
+
        {/* Create Class Modal */}
        <AnimatePresence>
         {showCreateModal && isManager && (

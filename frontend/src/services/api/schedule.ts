@@ -25,7 +25,7 @@ export interface ScheduleCreate {
 
 export interface ScheduleUpdate {
   class_id?: number;
-  room?: string | null; // Cập nhật để phù hợp với API Schema
+  room?: string | null; 
   schedule_type?: "WEEKLY" | "ONCE";
   day_of_week?: string;
   date?: string;

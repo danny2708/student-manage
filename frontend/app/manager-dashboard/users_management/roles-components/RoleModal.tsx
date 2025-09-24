@@ -23,9 +23,10 @@ interface RoleModalProps {
   user: User
   onClose: () => void
   onShowInfo: () => void
+  onDelete?: () => void
 }
 
-export function RoleModal({ user, onClose, onShowInfo }: RoleModalProps) {
+export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProps) {
   const [selectedRole, setSelectedRole] = useState(user.roles[0] as "student" | "teacher" | "parent")
   const [loading, setLoading] = useState(false)
   const { removeUser } = useUsers()

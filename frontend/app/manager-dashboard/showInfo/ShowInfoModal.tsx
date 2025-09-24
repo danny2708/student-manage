@@ -28,7 +28,7 @@ interface ShowInfoModalProps {
   onClose: () => void;
   onUpdated: () => Promise<void>;
   extraActions?: React.ReactNode;
-  userRoles?: string[];
+  userRoles?: string[]; // expected as string[] of role names
 }
 
 export function ShowInfoModal({
@@ -48,9 +48,9 @@ export function ShowInfoModal({
   const { editPayroll } = usePayrolls();
 
   // --- Phân quyền ---
-  const isManager = userRoles?.includes("manager");
-  const isTeacher = userRoles?.includes("teacher");
-  const isStudent = userRoles?.includes("student");
+  const isManager = !!userRoles?.includes("manager");
+  const isTeacher = !!userRoles?.includes("teacher");
+  const isStudent = !!userRoles?.includes("student");
 
   // convert date trước khi render
   useEffect(() => {
@@ -82,7 +82,7 @@ export function ShowInfoModal({
     try {
       if (type === "tuition") {
         const t = editedData as Tuition;
-        const [d, m, y] = t.due_date.split("/");
+        const [d, m, y] = (t.due_date as string).split("/");
         await editTuition(t.id, {
           amount: Number(t.amount),
           term: Number(t.term),
@@ -210,8 +210,12 @@ export function ShowInfoModal({
           </button>
         )}
 
-        {/* Extra actions: chỉ manager mới có */}
-        {extraActions && isManager && extraActions}
+        {/* Extra actions: hiển thị nếu có và user là manager hoặc teacher */}
+        {extraActions && (isManager || isTeacher) ? (
+          <div className="ml-2">
+            {extraActions}
+          </div>
+        ) : null}
       </div>
     </motion.div>
   );

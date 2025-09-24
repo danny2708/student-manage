@@ -76,7 +76,6 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
       await addSchedule(payload);
       onClose();
       await onCreated();
-      alert("Tạo lịch học thành công!");
     } catch (error: any) { // Thêm 'any' để TypeScript hiểu lỗi có thuộc tính 'response'
       console.error("Failed to create schedule:", error);
 

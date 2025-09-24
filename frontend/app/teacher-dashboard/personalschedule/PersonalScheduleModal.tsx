@@ -261,72 +261,76 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
 
   return (
     <>
+      {/* Full screen modal: add an inner panel with opaque background to improve readability */}
       <BaseModal open={open} onClose={onClose} size="full" className="p-0">
+        {/* Outer wrapper keeps the modal stretching full; inner panel provides solid background */}
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-border/50">
-            <div>
-              <h2 className="text-2xl font-bold text-balance">Personal Schedule</h2>
-              <p className="text-muted-foreground">
-                Manage and view your teaching schedule
-                {schedules && schedules.length > 0 && (
-                  <span className="ml-2 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">{schedules.length} classes</span>
-                )}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* week nav */}
-              <div className="flex items-center gap-1 border rounded p-1 bg-muted/10">
-                <button onClick={() => setWeekOffset((w) => w - 1)} className="p-2 rounded hover:bg-muted/20" title="Previous week">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <div className="px-3 text-sm">Week of {toYMD(startOfWeek)}</div>
-                <button onClick={() => setWeekOffset((w) => w + 1)} className="p-2 rounded hover:bg-muted/20" title="Next week">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+          <div className="flex-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm text-gray-900 dark:text-gray-100">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border/50">
+              <div>
+                <h2 className="text-2xl font-bold text-balance">Personal Schedule</h2>
+                <p className="text-muted-foreground">
+                  Manage and view your teaching schedule
+                  {schedules && schedules.length > 0 && (
+                    <span className="ml-2 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">{schedules.length} classes</span>
+                  )}
+                </p>
               </div>
 
-              <BaseButton variant="ghost" size="sm" onClick={() => fetchSchedules?.()} disabled={loading}>
-                {loading ? "Refreshing..." : "Refresh"}
-              </BaseButton>
+              <div className="flex items-center gap-2">
+                {/* week nav */}
+                <div className="flex items-center gap-1 border rounded p-1 bg-muted/10">
+                  <button onClick={() => setWeekOffset((w) => w - 1)} className="p-2 rounded hover:bg-muted/20" title="Previous week">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="px-3 text-sm">Week of {toYMD(startOfWeek)}</div>
+                  <button onClick={() => setWeekOffset((w) => w + 1)} className="p-2 rounded hover:bg-muted/20" title="Next week">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
 
-              <BaseButton variant={currentView === "week" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("week")}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Week
-              </BaseButton>
-              <BaseButton variant={currentView === "day" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("day")}>
-                <Clock className="h-4 w-4 mr-2" />
-                Day
-              </BaseButton>
-              <BaseButton variant={currentView === "list" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("list")}>
-                <List className="h-4 w-4 mr-2" />
-                List
-              </BaseButton>
+                <BaseButton variant="ghost" size="sm" onClick={() => fetchSchedules?.()} disabled={loading}>
+                  {loading ? "Refreshing..." : "Refresh"}
+                </BaseButton>
+
+                <BaseButton variant={currentView === "week" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("week")}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Week
+                </BaseButton>
+                <BaseButton variant={currentView === "day" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("day")}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Day
+                </BaseButton>
+                <BaseButton variant={currentView === "list" ? "primary" : "outline"} size="sm" onClick={() => setCurrentView("list")}>
+                  <List className="h-4 w-4 mr-2" />
+                  List
+                </BaseButton>
+              </div>
             </div>
-          </div>
 
-          {/* Content */}
-          <div className="flex-1 p-6 overflow-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentView + weekOffset}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.18 }}
-              >
-                {renderCurrentView()}
-              </motion.div>
-            </AnimatePresence>
+            {/* Content */}
+            <div className="flex-1 p-6 overflow-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentView + weekOffset}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  {renderCurrentView()}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </BaseModal>
 
-      {/* Event Detail Modal */}
+      {/* Event Detail Modal: give modal content a solid panel so text is readable */}
       <BaseModal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Class Details" size="md">
         {selectedEvent && (
-          <div className="space-y-4">
+          <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
             <div>
               <h3 className="text-xl font-semibold mb-2">{selectedEvent.title}</h3>
               {selectedEvent.subject && <p className="text-muted-foreground">{selectedEvent.subject}</p>}
