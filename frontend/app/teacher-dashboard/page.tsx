@@ -17,14 +17,31 @@ import type { TeacherStats } from "../../src/services/api/teacher";
 
 import { Sidebar, TeacherDashboardContent } from "./DashboardComponents";
 
-// dynamic imports (kept as your original)
-// Note: These paths are placeholders since the exact file structure is not provided.
-// If these components are not available, this will still lead to an error.
-const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
-const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
-const EvaluationManagement = dynamic(() => import("../manager-dashboard/dashboard_components/EvaluationManagement"), { ssr: false });
-const PayrollManagement = dynamic(() => import("../manager-dashboard/dashboard_components/payroll/PayrollManagement"), { ssr: false });
-const TeacherReviewManagement = dynamic(() => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"), { ssr: false });
+// dynamic imports
+const ScheduleManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"),
+  { ssr: false }
+);
+const ClassManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/class/ClassManagement"),
+  { ssr: false }
+);
+const EvaluationManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/EvaluationManagement"),
+  { ssr: false }
+);
+const PayrollManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/payroll/PayrollManagement"),
+  { ssr: false }
+);
+const TeacherReviewManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"),
+  { ssr: false }
+);
+const AttendanceManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/attendance/AttendanceManagement"),
+  { ssr: false }
+);
 
 export default function TeacherDashboard() {
   const { user } = useAuth() as { user: LoginResponse | null };
@@ -47,17 +64,14 @@ export default function TeacherDashboard() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showPersonalSchedule, setShowPersonalSchedule] = useState(false);
 
-  // hooks: useTeacher provides teacherStats, fetchTeacherStats, loading, error
   const { teacherStats, fetchTeacherStats, loading, error } = useTeacher();
 
-  // fetch stats on mount (use actual context/hook)
   useEffect(() => {
     if (user?.user_id) {
       fetchTeacherStats(user.user_id);
     }
   }, [fetchTeacherStats, user?.user_id]);
 
-  // show toast on error
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
@@ -68,7 +82,9 @@ export default function TeacherDashboard() {
   };
 
   const toggleCategory = (id: string) => {
-    setExpandedCategories((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setExpandedCategories((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const handleLogout = () => {
@@ -76,7 +92,6 @@ export default function TeacherDashboard() {
     router.push("/login");
   };
 
-  // map fetched stats from useTeacher to the UI type
   const stats: TeacherStats = {
     class_taught: teacherStats?.class_taught ?? 0,
     schedules: teacherStats?.schedules ?? 0,
@@ -86,7 +101,7 @@ export default function TeacherDashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
-      {/* Sidebar (uses real user & callbacks) */}
+      {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}
         setSection={setSection}
@@ -107,59 +122,76 @@ export default function TeacherDashboard() {
         {/* Dashboard view */}
         <div className={activeSection === "dashboard" ? "block" : "hidden"}>
           <TeacherDashboardContent stats={stats} />
-          {/* Nút được căn giữa cùng với tiêu đề */}
           <div className="flex items-center justify-center gap-3 mt-6">
-            <button onClick={() => setShowPersonalSchedule(true)} className="px-3 py-2 bg-slate-700 text-white rounded hover:bg-slate-600">
+            <button
+              onClick={() => setShowPersonalSchedule(true)}
+              className="px-3 py-2 bg-slate-700 text-white rounded hover:bg-slate-600"
+            >
               Open Personal Schedule
             </button>
           </div>
         </div>
 
-        {/* Other sections (lazy/dynamic loaded) — keep visitedSections logic to avoid heavy mount */}
+        {/* Attendance */}
         {visitedSections.includes("attendance") && (
           <div className={activeSection === "attendance" ? "block" : "hidden"}>
-            <p>Attendance Management Component Placeholder</p>
+            <AttendanceManagement />
           </div>
         )}
 
+        {/* Schedule */}
         {visitedSections.includes("schedule") && (
           <div className={activeSection === "schedule" ? "block" : "hidden"}>
             <ScheduleManagement />
           </div>
         )}
 
+        {/* Class */}
         {visitedSections.includes("class") && (
           <div className={activeSection === "class" ? "block" : "hidden"}>
             <ClassManagement />
           </div>
         )}
 
+        {/* Evaluation */}
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
-            <EvaluationManagement searchTerm={searchTerms.evaluation} updateSearchTerm={() => {}} />
+            <EvaluationManagement
+              searchTerm={searchTerms.evaluation}
+              updateSearchTerm={() => {}}
+            />
           </div>
         )}
 
+        {/* Payroll */}
         {visitedSections.includes("payroll") && (
           <div className={activeSection === "payroll" ? "block" : "hidden"}>
             <PayrollManagement />
           </div>
         )}
 
+        {/* Teacher Review */}
         {visitedSections.includes("teacher-review") && (
           <div className={activeSection === "teacher-review" ? "block" : "hidden"}>
-            <TeacherReviewManagement searchTerm={searchTerms.reviews} updateSearchTerm={() => {}} />
+            <TeacherReviewManagement
+              searchTerm={searchTerms.reviews}
+              updateSearchTerm={() => {}}
+            />
           </div>
         )}
 
+        {/* Report */}
         {visitedSections.includes("report") && (
           <div className={activeSection === "report" ? "block" : "hidden"}>
             <p>Report Management Component Placeholder</p>
           </div>
         )}
 
-        {/* Personal Schedule modal (real fetch handled inside PersonalScheduleModal/useSchedules) */}
-        <PersonalScheduleModal open={showPersonalSchedule} onClose={() => setShowPersonalSchedule(false)} />
+        {/* Personal Schedule modal */}
+        <PersonalScheduleModal
+          open={showPersonalSchedule}
+          onClose={() => setShowPersonalSchedule(false)}
+        />
 
         {/* Account modal overlay */}
         <AnimatePresence>
@@ -193,14 +225,19 @@ export default function TeacherDashboard() {
                 className="relative w-[90vw] max-w-4xl mx-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {user && <UserAccountModal user={user} onClose={() => setShowAccountModal(false)} />}
+                {user && (
+                  <UserAccountModal
+                    user={user}
+                    onClose={() => setShowAccountModal(false)}
+                  />
+                )}
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Spinner overlay (driven by useTeacher loading) */}
+      {/* Spinner overlay */}
       {loading && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black bg-opacity-40">
           <div className="w-12 h-12 border-4 border-t-transparent border-cyan-400 rounded-full animate-spin"></div>

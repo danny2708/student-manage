@@ -18,6 +18,7 @@ from app.models.evaluation_model import EvaluationType
 from app.models.schedule_model import Schedule, DayOfWeekEnum, ScheduleTypeEnum
 from datetime import time as dt_time, datetime, date as dt_date
 from fastapi import HTTPException
+from app.models.class_model import Class
 
 
 def _resolve_schedule_for_class_and_date(
@@ -265,3 +266,33 @@ def update_late_attendance(
             )
 
     return updated_record
+
+def get_attendances(
+    db: Session,
+    schedule_id: Optional[int] = None,
+    attendance_date: Optional[dt_date] = None,
+    current_user=None
+) -> List[Attendance]:
+    query = (
+        db.query(Attendance)
+        .join(Attendance.schedule)
+        .join(Schedule.class_info)
+        .options(
+            joinedload(Attendance.student),
+            joinedload(Attendance.schedule).joinedload(Schedule.class_info)
+        )
+    )
+
+    # Nếu có schedule_id filter theo schedule
+    if schedule_id:
+        query = query.filter(Attendance.schedule_id == schedule_id)
+
+    # Nếu có attendance_date filter thêm
+    if attendance_date:
+        query = query.filter(Attendance.attendance_date == attendance_date)
+
+    # Nếu là teacher thì chỉ trả về attendances của các lớp mà teacher dạy
+    if current_user and "teacher" in current_user.roles:
+        query = query.filter(Class.teacher_user_id == current_user.user_id)
+
+    return query.all()

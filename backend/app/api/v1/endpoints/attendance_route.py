@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import date
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.schemas.attendance_schema import AttendanceRead, AttendanceBatchCreate, AttendanceUpdateLate
@@ -20,6 +22,23 @@ def create_attendance_records_for_class(
 ):
     return attendance_service.create_batch_attendance(db, attendance_data, current_user)
 
+@router.get(
+    "/",
+    response_model=List[AttendanceRead],
+    dependencies=[Depends(TEACHER_ONLY)]
+)
+def get_attendance_records(
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(get_current_active_user),
+    schedule_id: int | None = None,
+    attendance_date: date | None = Query(None, description="Lọc theo ngày")
+):
+    return attendance_service.get_attendances(
+        db,
+        schedule_id=schedule_id,
+        attendance_date=attendance_date,
+        current_user=current_user,
+    )
 
 @router.patch(
     "/update_late",
