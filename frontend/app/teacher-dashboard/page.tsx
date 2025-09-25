@@ -1,4 +1,3 @@
-// frontend/app/teacher-dashboard/TeacherDashboard.tsx
 "use client";
 
 import dynamic from "next/dynamic";
@@ -19,6 +18,8 @@ import type { TeacherStats } from "../../src/services/api/teacher";
 import { Sidebar, TeacherDashboardContent } from "./DashboardComponents";
 
 // dynamic imports (kept as your original)
+// Note: These paths are placeholders since the exact file structure is not provided.
+// If these components are not available, this will still lead to an error.
 const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
 const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
 const EvaluationManagement = dynamic(() => import("../manager-dashboard/dashboard_components/EvaluationManagement"), { ssr: false });
@@ -98,21 +99,20 @@ export default function TeacherDashboard() {
 
       {/* Main content */}
       <div className="flex-1 p-8 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
-
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowPersonalSchedule(true)} className="px-3 py-2 bg-slate-700 text-white rounded hover:bg-slate-600">
-              Open Personal Schedule
-            </button>
-
-            <NotificationManagement />
-          </div>
+        <div className="flex justify-between items-start w-full mb-6">
+          <h1 className="text-2xl font-bold flex-1 text-center">Teacher Dashboard</h1>
+          <NotificationManagement />
         </div>
 
         {/* Dashboard view */}
         <div className={activeSection === "dashboard" ? "block" : "hidden"}>
           <TeacherDashboardContent stats={stats} />
+          {/* Nút được căn giữa cùng với tiêu đề */}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <button onClick={() => setShowPersonalSchedule(true)} className="px-3 py-2 bg-slate-700 text-white rounded hover:bg-slate-600">
+              Open Personal Schedule
+            </button>
+          </div>
         </div>
 
         {/* Other sections (lazy/dynamic loaded) — keep visitedSections logic to avoid heavy mount */}

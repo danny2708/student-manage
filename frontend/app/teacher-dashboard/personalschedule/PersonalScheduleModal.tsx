@@ -15,7 +15,7 @@ interface ScheduleItem {
   date?: string; // yyyy-mm-dd or dd/mm/yyyy from API
   start?: string; // HH:MM or HH:MM:SS
   end?: string;
-  title?: string; // display title (class_name or title)
+  //title?: string; // display title 
   class_name?: string;
   room?: string;
   subject?: string;
@@ -150,7 +150,6 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       const originalId = s.id ?? s.schedule_id ?? s.class_id ?? Math.random().toString();
       const idStr = String(originalId);
       const className = s.class_name ?? s.title ?? s.subject ?? "Class";
-      const title = className;
       const start_time = normTime(s.start_time ?? s.start ?? "09:00");
       const end_time = normTime(s.end_time ?? s.end ?? "10:30");
       const room = s.room ?? s.location ?? "TBA";
@@ -194,7 +193,6 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               date: dateStr,
               start: start_time,
               end: end_time,
-              title,
               class_name: className,
               room,
               subject,
@@ -453,7 +451,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Class Name</label>
-                <h3 className="text-xl font-semibold">{selectedEvent.title}</h3>
+                <h3 className="text-xl font-semibold">{selectedEvent.class_name}</h3>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Subject </label>

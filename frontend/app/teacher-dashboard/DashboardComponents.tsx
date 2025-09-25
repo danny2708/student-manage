@@ -1,4 +1,3 @@
-// frontend/app/teacher-dashboard/DashboardComponents.tsx
 "use client";
 
 import React from "react";
@@ -16,7 +15,8 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 
-import type { TeacherStats } from "../../src/services/api/teacher"; // keep your project's real type
+import type { TeacherStats } from "../../src/services/api/teacher"; 
+import { Star } from "lucide-react";
 
 export type { TeacherStats };
 
@@ -42,7 +42,7 @@ export function StatCard({
   const bg = variantClasses[variant] ?? variantClasses.cyan;
 
   return (
-    <div className={`${bg} rounded-lg p-4 shadow-md text-white`}>
+    <div className={`${bg} rounded-lg p-4 shadow-md text-white flex-1 flex flex-col items-center justify-center text-center`}>
       <div className="text-sm opacity-90">{title}</div>
       <div className="text-3xl font-bold mt-2 flex items-center gap-2">{value}</div>
     </div>
@@ -52,7 +52,7 @@ export function StatCard({
 export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Classes Taught" value={stats.class_taught} variant="emerald" />
         <StatCard title="Schedules" value={stats.schedules} variant="cyan" />
         <StatCard
@@ -60,12 +60,20 @@ export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
           value={
             <>
               <span className="font-medium">{stats.reviews}</span>
-              <StarIcon className="h-6 w-6 text-yellow-400 drop-shadow-sm" />
             </>
           }
           variant="orange"
         />
-        <StatCard title="Rate" value={String(stats.rate)} variant="purple" />
+        <StatCard
+                    title="Rate"
+                    value={
+                        <>
+                            <span className="font-medium">{stats.rate}</span>
+                            <Star className="h-8 w-8 text-yellow-400 drop-shadow-sm fill-current" />
+                        </>
+                    }
+                    variant="purple"
+                />
       </div>
     </div>
   );
@@ -98,9 +106,12 @@ export function Sidebar({
         <div className="flex flex-col items-center mb-10">
           <div className="flex items-center gap-4 font-extrabold text-xl text-cyan-400">
             <BookOpen className="h-10 w-10" />
-            <span className="tracking-wide">Teacher Dashboard</span>
+            <span className="tracking-wide">Student Management</span>
           </div>
         </div>
+
+        {/* Thêm dòng kẻ giữa "Teacher Dashboard" và user avatar */}
+        <div className="border-t border-gray-700 my-4" />
 
         <div
           className="flex flex-col items-center gap-2 mb-6 text-center cursor-pointer"
@@ -113,6 +124,9 @@ export function Sidebar({
             {user?.username ?? "Teacher"}
           </button>
         </div>
+
+        {/* Thêm dòng kẻ giữa user avatar và "Dashboard" */}
+        <div className="border-t border-gray-700 my-4" />
 
         <nav className="space-y-2">
           {/* Dashboard link - default state */}
