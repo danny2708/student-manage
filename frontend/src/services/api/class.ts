@@ -27,6 +27,15 @@ export interface ClassUpdate {
   fee?: number
 }
 
+export interface Student {
+  student_user_id: number;
+  full_name?: string;
+  email?: string;
+  date_of_birth?: string; 
+  phone_number?: string;
+  gender?: string;
+}
+
 export async function getClasses(): Promise<Class[]> {
   const res = await api.get<Class[]>("/classes")
   return res.data
@@ -69,4 +78,9 @@ export async function exportClass(classId: number): Promise<void> {
   link.click()
   link.remove()
   window.URL.revokeObjectURL(url)
+}
+
+export async function getStudentsInClass(classId: number): Promise<Student[]> {
+  const res = await api.get<Student[]>(`/classes/${classId}/students`);
+  return res.data;
 }

@@ -207,3 +207,26 @@ def export_class_excel(
     Quyền truy cập: **manager**, **teacher**
     """
     return export_class(db, class_id)
+
+@router.get(
+    "/{class_id}/students",
+    response_model=List[class_schema.Student],
+    summary="Lấy danh sách học sinh của một lớp"
+)
+def get_students_of_class(
+    class_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: AuthenticatedUser = Depends(MANAGER_OR_TEACHER)
+):
+    """
+    Lấy danh sách học sinh của lớp `class_id`.
+    
+    Quyền truy cập: **manager**, **teacher**
+    """
+    students = class_crud.get_students_list(db, class_id=class_id, skip=skip, limit=limit)
+    if not students:
+        # không raise 404 mà trả [] cho client dễ xử lý hơn
+        return []
+    return students

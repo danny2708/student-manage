@@ -6,7 +6,7 @@ from app.models.class_model import Class
 from app.models.user_model import User
 from app.models.subject_model import Subject
 from app.models.enrollment_model import Enrollment
-from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassView
+from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassView, Student
 from app.models.enrollment_model import EnrollmentStatus
 
 def get_class_with_teacher_name_query():
@@ -93,3 +93,36 @@ def delete_class(db: Session, class_id: int):
     db.delete(db_class)
     db.commit()
     return deleted_data
+
+def get_students_list(db: Session, class_id: int, skip: int = 0, limit: int = 100) -> List[Student]:
+    """
+    Trả về danh sách học sinh của lớp `class_id` theo schema Student,
+    chỉ lấy những enrollment có trạng thái active.
+    """
+    query = (
+        select(
+            User.user_id.label("student_user_id"),
+            User.full_name,
+            User.email,
+            User.date_of_birth,
+            User.phone_number,
+            User.gender,
+        )
+        .select_from(
+            join(
+                Enrollment,
+                User,
+                Enrollment.student_user_id == User.user_id,
+            )
+        )
+        .where(
+            (Enrollment.class_id == class_id) &
+            (Enrollment.enrollment_status == EnrollmentStatus.active)
+        )
+        .order_by(User.full_name)
+        .offset(skip)
+        .limit(limit)
+    )
+
+    results = db.execute(query).all()
+    return [Student.model_validate(row._asdict()) for row in results]

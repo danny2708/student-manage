@@ -132,8 +132,9 @@ export default function NotificationManagement() {
                         className={cn(
                           "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
                           filter === filterType
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
+                            // Active tab: darker blue background to indicate selected
+                            ? "bg-blue-700 text-white shadow-sm dark:bg-slate-700 dark:text-white"
+                            : "text-black hover:bg-blue-400 dark:text-white/90",
                         )}
                       >
                         {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
@@ -205,7 +206,7 @@ export default function NotificationManagement() {
                                   <p
                                     className={cn(
                                       "text-sm leading-relaxed break-words",
-                                      !notification.is_read ? "font-medium text-foreground" : "text-muted-foreground",
+                                      !notification.is_read ? "font-medium text-black" : "text-black",
                                     )}
                                   >
                                     {notification.content}
@@ -217,7 +218,7 @@ export default function NotificationManagement() {
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(notification.sent_at).toLocaleString()}
                                   </span>
-                                  {!notification.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                                  {!notification.is_read && <div className="w-2 h-2 bg-blue-400 rounded-full" />}
                                 </div>
                               </div>
                             </div>

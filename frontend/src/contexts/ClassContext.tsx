@@ -19,8 +19,10 @@ import {
   deleteClass,
   getTeacherClasses as getTeacherClassesApi,
   exportClass,
+  getStudentsInClass,
+  Student,
 } from "../services/api/class";
-import { toast } from "react-hot-toast"; // 🆕 thêm toast
+import { toast } from "react-hot-toast"; 
 
 interface ClassContextType {
   classes: Class[];
@@ -32,6 +34,7 @@ interface ClassContextType {
   removeClass: (id: number) => Promise<void>;
   getTeacherClasses: (teacherUserId: number) => Promise<Class[]>;
   exportClassData: (id: number) => Promise<void>;
+  fetchStudentsInClass: (classId: number) => Promise<Student[]>;
 }
 
 const ClassContext = createContext<ClassContextType | null>(null);
@@ -40,6 +43,22 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+    const fetchStudentsInClass = useCallback(async (classId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const students = await getStudentsInClass(classId);
+      setLoading(false);
+      return students;
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err.message || "Không thể tải danh sách học sinh của lớp.";
+      setError(msg);
+      toast.error(msg);
+      throw new Error(msg);
+    }
+  }, []);
 
   const fetchClasses = useCallback(async () => {
     console.log("[ClassesProvider] fetchClasses called", new Date().toISOString());
@@ -143,6 +162,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       removeClass,
       getTeacherClasses,
       exportClassData,
+      fetchStudentsInClass,
     }),
     [
       classes,
@@ -154,6 +174,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       removeClass,
       getTeacherClasses,
       exportClassData,
+      fetchStudentsInClass,
     ]
   );
 

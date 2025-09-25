@@ -11,7 +11,7 @@ interface SubjectManagementProps {
 }
 
 // Update the component to accept the props
-export default function SubjectManagement({ searchTerm, updateSearchTerm, handleCreateNew }: SubjectManagementProps) {
+export default function SubjectManagement({ searchTerm, updateSearchTerm }: SubjectManagementProps) {
   const { subjects, loading, addSubject, editSubject, removeSubject } = useSubjects()
   const [form, setForm] = useState<SubjectCreate>({ name: "", description: "" })
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -45,18 +45,12 @@ export default function SubjectManagement({ searchTerm, updateSearchTerm, handle
           onChange={(e) => updateSearchTerm('subject', e.target.value)}
           className="border p-2 rounded w-full max-w-xs dark:bg-gray-800 dark:border-gray-700"
         />
-        <button
-          onClick={() => handleCreateNew("subject")}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-        >
-          Create New Subject
-        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <input
           type="text"
-          placeholder="Tên môn học"
+          placeholder="Subject Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className="border p-2 rounded"
@@ -70,20 +64,20 @@ export default function SubjectManagement({ searchTerm, updateSearchTerm, handle
           className="border p-2 rounded"
         />
         <button type="submit" className="bg-cyan-500 text-white px-4 py-2 rounded">
-          {editingId ? "Cập nhật" : "Thêm"}
+          {editingId ? "Update" : "Add"}
         </button>
       </form>
 
       {loading ? (
-        <p>Đang tải...</p>
+        <p>Loading...</p>
       ) : (
         <table className="w-full border">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-700">
               <th className="border p-2">ID</th>
-              <th className="border p-2">Tên</th>
-              <th className="border p-2">Mô tả</th>
-              <th className="border p-2">Thao tác</th>
+              <th className="border p-2">Name</th>
+              <th className="border p-2">Description</th>
+              <th className="border p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
