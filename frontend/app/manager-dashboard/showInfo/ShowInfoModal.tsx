@@ -161,7 +161,7 @@ export function ShowInfoModal({
       return <ClassInfoForm data={editedData as Class} onInputChange={handleInputChange} disabled={disabled} />;
     if (type === "schedule")
       return <ScheduleInfoForm data={editedData as Schedule} onInputChange={handleInputChange} disabled={disabled} />;
-    return <div className="text-white">Không có thông tin để hiển thị.</div>;
+    return <div className="text-white">No information to display.</div>;
   };
 
   return (
@@ -181,8 +181,8 @@ export function ShowInfoModal({
       </button>
 
       <h2 className="text-xl font-bold mb-4 text-center">
-        Chi tiết{" "}
-        {type === "tuition" ? "học phí" : type === "payroll" ? "bảng lương" : type === "class" ? "lớp học" : "lịch học"}
+        {type === "tuition" ? "Tuition " : type === "payroll" ? "Payroll " : type === "class" ? "Class " : "Schedule "}
+        details{" "}
       </h2>
 
       {renderContent()}
@@ -195,7 +195,7 @@ export function ShowInfoModal({
             disabled={isSaving}
             className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
           >
-            {isSaving ? "Đang lưu..." : "Lưu"}
+            {isSaving ? "Saving..." : "Saved"}
           </button>
         )}
 
@@ -206,7 +206,7 @@ export function ShowInfoModal({
             disabled={isSaving}
             className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
           >
-            {isSaving ? "Đang lưu..." : "Lưu"}
+            {isSaving ? "Saving..." : "Saved"}
           </button>
         )}
 

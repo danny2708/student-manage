@@ -204,7 +204,7 @@ export default function ClassManagement() {
               onDelete={
                 isManager
                   ? () => openConfirm(
-                      `Bạn có chắc chắn muốn xoá lớp ${selectedClass.class_name}?`,
+                      `Are you sure to delete ${selectedClass.class_name}?`,
                       handleDelete
                     )
                   : undefined
@@ -347,10 +347,10 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
     try {
       setExporting(true);
       await onExport();
-      toast.success("Đã xuất danh sách lớp.");
+      toast.success("Class exported successfully.");
     } catch (err: any) {
       console.error("Export failed", err);
-      toast.error(err?.message || "Không thể xuất danh sách lớp.");
+      toast.error(err?.message || "Failed to export class.");
     } finally {
       setExporting(false);
     }
