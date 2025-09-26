@@ -1,4 +1,3 @@
-//./showInfo/user_info_modal
 "use client"
 
 import { X, User, Calendar, Mail, Phone } from "lucide-react"
@@ -9,7 +8,7 @@ interface UserInfoModalProps {
   onChangeRole: (newRole: string) => void
 }
 
-export function UserInfoModal({ user, onClose, onChangeRole }: UserInfoModalProps) {
+export function UserInfoModal({ user, onClose }: UserInfoModalProps) {
   const roleColors: Record<string, string> = {
     parent: "#3B82F6",
     teacher: "#F97316",

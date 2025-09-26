@@ -114,7 +114,7 @@ export function Sidebar({
         <div className="border-t border-gray-700 my-4" />
 
         <div
-          className="flex flex-col items-center gap-2 mb-6 text-center cursor-pointer"
+          className="flex flex-col items-center gap-2 mb-6 text-center cursor-pointer **cursor-pointer**"
           onClick={onOpenAccount}
         >
           <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center">

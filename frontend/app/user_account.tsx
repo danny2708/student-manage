@@ -17,12 +17,47 @@ interface UserAccountModalProps {
     full_name: string;
     email: string;
     gender: string;
-    dob: string;
+    dob: string; // Expected format is 'YYYY-MM-DD' from database
     phone: string;
     password?: string;
   };
   onClose: () => void;
 }
+
+// Helper function to format date from 'YYYY-MM-DD' to 'DD/MM/YYYY'
+const formatDateToDDMMYYYY = (dateString: string) => {
+  if (!dateString) return "";
+  // dateString is expected to be 'YYYY-MM-DD'
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return dateString;
+};
+
+// New helper function to parse DD/MM/YYYY string to YYYY-MM-DD format
+const convertDDMMYYYYtoYYYYMMDD = (dateString: string): string | null => {
+  // Regex to check and capture day, month, year in DD/MM/YYYY format
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+  if (match) {
+    // Note: match[0] is the full string, [1] is day, [2] is month, [3] is year
+    const [, day, month, year] = match;
+    
+    // Very basic sanity check (for production, use a proper date library like date-fns)
+    const m = parseInt(month, 10);
+    const d = parseInt(day, 10);
+    const y = parseInt(year, 10);
+
+    // Ensure month is 1-12, day is 1-31, and year is reasonable
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1900 && y < 2100) {
+        return `${year}-${month}-${day}`;
+    }
+  }
+  return null; // Return null if format is incorrect or date is invalid
+};
+
 
 export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
   const { editUser, updatePassword } = useUsers(); 
@@ -32,10 +67,13 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
     email: user.email,
     phone: user.phone,
     gender: user.gender,
-    dob: user.dob,
+    dob: user.dob, // Keeps 'YYYY-MM-DD' (API format)
     old_password: "",
     password: "",
   });
+
+  // State to hold the DD/MM/YYYY text input value when editing
+  const [inputDobText, setInputDobText] = useState(formatDateToDDMMYYYY(user.dob));
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -47,15 +85,39 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
+  // Dedicated handler for DOB input
+  const handleDobChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setInputDobText(input); // Update the text input immediately (e.g., '01/0' while typing)
+
+    // Attempt to convert the input (which is in DD/MM/YYYY format) to the API-safe format
+    const convertedDate = convertDDMMYYYYtoYYYYMMDD(input);
+
+    if (convertedDate) {
+        // If conversion is successful (i.e., user entered a valid date), update the API state
+        setUserData((prev) => ({ ...prev, dob: convertedDate }));
+    }
+    // If conversion fails (i.e., user is mid-typing), we only update inputDobText, 
+    // and userData.dob retains the last valid 'YYYY-MM-DD' value.
+  };
+
   const handleSave = async () => {
     try {
+      // Check if the current input text is a valid date before saving
+      if (isEditing && !convertDDMMYYYYtoYYYYMMDD(inputDobText)) {
+          // In a real application, you would show an error message here
+          console.error("Invalid Date of Birth format. Please use DD/MM/YYYY.");
+          return; 
+      }
+
       // 1️⃣ Update profile using context
+      // userData.dob already contains the API-safe 'YYYY-MM-DD' value thanks to handleDobChange
       await editUser(user.user_id, {
         full_name: userData.full_name,
         email: userData.email,
-        phone_number: userData.phone, // 🆕 Tên trường trong API là phone_number
+        phone_number: userData.phone, 
         gender: userData.gender,
-        date_of_birth: userData.dob, // 🆕 Tên trường trong API là date_of_birth
+        date_of_birth: userData.dob, 
       });
 
       // 2️⃣ Update password if entered, using context
@@ -67,9 +129,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
       }
 
       setIsEditing(false);
-      // Context đã có toast, không cần alert() nữa
     } catch (err: any) {
-      // Context đã có toast, không cần alert() nữa
       console.error(err);
     }
   };
@@ -117,7 +177,13 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
           </div>
           <button
             aria-label="Edit"
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              setIsEditing(!isEditing);
+              // Reset input text state when entering edit mode
+              if (!isEditing) {
+                setInputDobText(formatDateToDDMMYYYY(userData.dob));
+              }
+            }}
             className="text-white hover:bg-white hover:bg-opacity-10 p-2 rounded-full"
           >
             <PenSquare className="h-4 w-4" />
@@ -160,16 +226,22 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
             <div className="flex items-center gap-2 text-blue-500">
               <Calendar className="h-5 w-5" />
               <span className="font-medium">Date of birth</span>
-              <Input
-                type="date"
-                name="dob"
-                value={userData.dob}
-                onChange={handleInputChange}
-                readOnly={!isEditing}
-                className={`flex-1 bg-transparent text-gray-600 outline-none border-b ${
-                  isEditing ? "border-blue-500" : "border-transparent"
-                }`}
-              />
+              {isEditing ? (
+                // Use input type="text" and display the DD/MM/YYYY formatted date
+                <Input
+                  type="text"
+                  name="dob"
+                  placeholder="DD/MM/YYYY"
+                  value={inputDobText}
+                  onChange={handleDobChange}
+                  className="flex-1 bg-transparent text-gray-600 outline-none border-b border-blue-500"
+                />
+              ) : (
+                // Display formatted date (DD/MM/YYYY) when not editing
+                <p className="flex-1 text-gray-600">
+                  {formatDateToDDMMYYYY(userData.dob)}
+                </p>
+              )}
             </div>
 
             {/* Full name */}

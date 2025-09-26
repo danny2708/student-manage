@@ -97,6 +97,12 @@ def create_batch_attendance(
     Tạo các bản ghi điểm danh ban đầu cho một lớp.
     Nếu sinh viên vắng, tạo thông báo và bản ghi đánh giá.
     """
+    now_time = datetime.now().time()
+    for record in attendance_data.records:
+        # Nếu status là present và checkin_time là None
+        if record.status == AttendanceStatus.present.value and record.checkin_time is None:
+            # Gán giờ hiện tại cho BE xử lý
+            record.checkin_time = now_time
     # Lấy 1 checkin_time đại diện từ payload (nếu có)
     representative_checkin: Optional[dt_time] = None
     if attendance_data.records:

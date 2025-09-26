@@ -161,7 +161,7 @@ const handleSubmit = async () => {
         records: toCreate.map((c) => ({
           student_user_id: c.student_user_id,
           status: c.status,
-          checkin_time: c.checkin_time ?? (c.status === "present" ? nowISOTime() : null),
+          checkin_time: c.checkin_time ?? null,
         })),
       };
       await addBatchAttendance(payload);
@@ -279,7 +279,7 @@ const handleSubmit = async () => {
                                 onClick={() =>
                                   setRecord(s.student_user_id, {
                                     status: "present",
-                                    checkin_time: nowISOTime(),
+                                    checkin_time: null,
                                   })
                                 }
                                 className={`px-3 py-1 rounded ${
