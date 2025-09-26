@@ -37,7 +37,7 @@ export interface AttendanceBatchCreate {
 
 /** Update late payload (AttendanceUpdateLate) */
 export interface AttendanceUpdateLate {
-  checkin_time: string; // "HH:MM:SS"
+  checkin_time: string | null; // "HH:MM:SS"
   attendance_date: string; // "YYYY-MM-DD"
 }
 

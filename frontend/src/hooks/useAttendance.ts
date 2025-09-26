@@ -27,6 +27,38 @@ export function useAttendance() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // helper: format various error shapes to a safe string
+  const errorToMessage = (err: any) => {
+    try {
+      if (!err) return "Lỗi không xác định.";
+      // axios response with data
+      const respData = err?.response?.data ?? err?.response ?? err;
+      // FastAPI validation error often in respData.detail (array)
+      if (respData) {
+        if (typeof respData === "string") return respData;
+        if (Array.isArray(respData)) {
+          return respData.map((e: any) => (e?.msg ? e.msg : JSON.stringify(e))).join(", ");
+        }
+        if (typeof respData === "object") {
+          if (Array.isArray(respData.detail)) {
+            return respData.detail.map((e: any) => (e?.msg ? e.msg : JSON.stringify(e))).join(", ");
+          }
+          if (typeof respData.detail === "string") return respData.detail;
+          // check common fields
+          if (respData.message) return respData.message;
+          if (respData.detail && typeof respData.detail === "string") return respData.detail;
+          // fallback stringify
+          return JSON.stringify(respData);
+        }
+      }
+      // finally try err.message
+      if (err.message) return err.message;
+      return String(err);
+    } catch (e) {
+      return "Lỗi không xác định.";
+    }
+  };
+
   // common fetch wrapper
   const handleFetch = useCallback(async <T,>(apiFn: () => Promise<T>, successMsg?: string) => {
     setLoading(true);
@@ -36,7 +68,7 @@ export function useAttendance() {
       if (successMsg) toast.success(successMsg);
       return data;
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || "Lỗi khi tải dữ liệu điểm danh.";
+      const msg = errorToMessage(err) || "Lỗi khi tải dữ liệu điểm danh.";
       toast.error(msg);
       setError(msg);
       return null;

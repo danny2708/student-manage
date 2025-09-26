@@ -33,6 +33,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   const [recordsMap, setRecordsMap] = React.useState<
     Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
   >({});
+  const [originalRecords, setOriginalRecords] = React.useState<typeof recordsMap>({}); // lưu bản gốc
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -40,6 +41,14 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
       mountedRef.current = false;
     };
   }, []);
+
+  // helper: time-only "HH:MM:SS"
+  const nowTimeOnly = () => {
+    const d = new Date();
+    // toLocaleTimeString might include AM/PM — use toTimeString and split
+    const t = d.toTimeString().split(" ")[0]; // "HH:MM:SS"
+    return t;
+  };
 
   const nowISOTime = () => new Date().toISOString();
 
@@ -101,7 +110,10 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
             map[s.student_user_id] = { status: "", checkin_time: null, attendance_id: null };
           }
         }
-        if (!cancelled && mountedRef.current) setRecordsMap(map);
+        if (!cancelled && mountedRef.current) {
+          setRecordsMap(map);
+          setOriginalRecords(map); // lưu bản gốc
+        }
       } catch (err: any) {
         console.error("Load students/attendances failed", err);
         let msg = "Failed to load attendance data.";
@@ -137,58 +149,87 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   }, [students, recordsMap]);
 
   // ---------- Submit ----------
-const handleSubmit = async () => {
-  if (!schedule) return;
-  setSubmitting(true);
-  try {
-    const scheduleIdForFetch = Number(
-      schedule.originalScheduleId ?? schedule.schedule_id ?? schedule.id ?? NaN
-    );
+  const handleSubmit = async () => {
+    if (!schedule) return;
+    setSubmitting(true);
+    try {
+      const scheduleIdForFetch = Number(
+        schedule.originalScheduleId ?? schedule.schedule_id ?? schedule.id ?? NaN
+      );
 
-    const entries = Object.entries(recordsMap).map(([k, v]) => ({
-      student_user_id: Number(k),
-      ...v,
-    }));
+      const entries = Object.entries(recordsMap).map(([k, v]) => ({
+        student_user_id: Number(k),
+        ...v,
+      }));
 
-    const toCreate = entries.filter((e) => !e.attendance_id);
-    const toUpdate = entries.filter((e) => e.attendance_id);
+      // create: records without attendance_id but with a status set
+      const toCreate = entries.filter((e) => !e.attendance_id && e.status);
+      // update: only those that were absent originally and now changed to present
+      const toUpdate = entries.filter(
+        (e) =>
+          e.attendance_id &&
+          e.status === "present" &&
+          originalRecords[e.student_user_id]?.status === "absent"
+      );
 
-    // --- Create new records ---
-    if (toCreate.length > 0) {
-      const payload: AttendanceBatchCreate = {
-        schedule_id: scheduleIdForFetch,
-        attendance_date: date,
-        records: toCreate.map((c) => ({
-          student_user_id: c.student_user_id,
-          status: c.status,
-          checkin_time: c.checkin_time ?? null,
-        })),
-      };
-      await addBatchAttendance(payload);
-    }
-
-    // --- Update existing records using editLateAttendance ONLY ---
-    await Promise.all(
-      toUpdate.map((upd) => {
-        return editLateAttendance(upd.student_user_id, scheduleIdForFetch, {
-          checkin_time: upd.status === "present" ? nowISOTime() : "",
+      // --- Create new records ---
+      if (toCreate.length > 0) {
+        const payload: AttendanceBatchCreate = {
+          schedule_id: scheduleIdForFetch,
           attendance_date: date,
-        });
-      })
-    );
+          records: toCreate.map((c) => ({
+            student_user_id: c.student_user_id,
+            status: c.status,
+            // for create: if present -> send time-only; else null
+            checkin_time: c.checkin_time ?? (c.status === "present" ? nowTimeOnly() : null),
+          })),
+        };
+        await addBatchAttendance(payload);
+      }
 
-    await fetchAttendancesBySchedule(scheduleIdForFetch);
-    if (onSubmitted) await onSubmitted();
-    toast.success("Attendance submitted.");
-    onClose();
-  } catch (err: any) {
-    console.error("Submit failed", err);
-    toast.error(err?.message ?? "Submit attendance failed.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+      // --- Update existing records: chỉ absent → present ---
+      await Promise.all(
+        toUpdate.map((upd) => {
+          // choose checkin_time: use existing if provided, otherwise current time in HH:MM:SS
+          const checkinTime = upd.checkin_time ?? nowTimeOnly();
+          return editLateAttendance(upd.student_user_id, scheduleIdForFetch, {
+            checkin_time: checkinTime,
+            attendance_date: date,
+          });
+        })
+      );
 
+      await fetchAttendancesBySchedule(scheduleIdForFetch);
+      if (onSubmitted) await onSubmitted();
+      toast.success("Attendance submitted.");
+      onClose();
+    } catch (err: any) {
+      console.error("Submit failed", err);
+      // Logic chuyển đối tượng lỗi thành chuỗi an toàn
+      let errMsg = "Submit attendance failed.";
+      if (err) {
+        if (typeof err === "string") errMsg = err;
+        else if (err.message) errMsg = err.message;
+        else if (err.msg) errMsg = err.msg;
+        else if (typeof err === "object" && err !== null) {
+          if (Array.isArray(err.detail)) {
+            errMsg = err.detail.map((e: any) => e.msg || JSON.stringify(e)).join(", ");
+          } else if ("msg" in err && typeof err.msg === "string") {
+            errMsg = err.msg;
+          } else {
+            try {
+              errMsg = JSON.stringify(err);
+            } catch {
+              errMsg = "An unknown error occurred.";
+            }
+          }
+        }
+      }
+      toast.error(errMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!open || !modalData || !schedule) return null;
   if (typeof document === "undefined" || !document.body) return null;
@@ -279,6 +320,7 @@ const handleSubmit = async () => {
                                 onClick={() =>
                                   setRecord(s.student_user_id, {
                                     status: "present",
+                                    // don't set ISO here; we'll convert properly in submit
                                     checkin_time: null,
                                   })
                                 }
@@ -289,18 +331,6 @@ const handleSubmit = async () => {
                                 }`}
                               >
                                 Present
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setRecord(s.student_user_id, { status: "absent", checkin_time: null })
-                                }
-                                className={`px-3 py-1 rounded ${
-                                  safe(rec.status) === "absent"
-                                    ? "bg-red-600 text-white"
-                                    : "bg-white/5 text-white"
-                                }`}
-                              >
-                                Absent
                               </button>
                               {rec.attendance_id && <div className="text-xs text-gray-300 ml-2">saved</div>}
                             </div>
@@ -322,7 +352,7 @@ const handleSubmit = async () => {
                     for (const s of students) {
                       newMap[s.student_user_id] = {
                         ...(newMap[s.student_user_id] ?? { attendance_id: null }),
-                        status: "absent",
+                        status: "present",
                         checkin_time: null,
                       };
                     }
@@ -330,7 +360,7 @@ const handleSubmit = async () => {
                   }}
                   className="px-3 py-1 bg-white/5 rounded text-white"
                 >
-                  Mark all absent
+                  Mark all present
                 </button>
 
                 <button
