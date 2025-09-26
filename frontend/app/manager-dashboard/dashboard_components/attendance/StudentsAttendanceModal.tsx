@@ -5,7 +5,7 @@ import ReactDOM from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAttendance } from "../../../../src/hooks/useAttendance";
 import { getStudentsInClass, Student } from "../../../../src/services/api/class";
-import { getScheduleById } from "../../../../src/services/api/schedule"; 
+import { getScheduleById } from "../../../../src/services/api/schedule";
 import { Attendance, AttendanceBatchCreate } from "../../../../src/services/api/attendance";
 import toast from "react-hot-toast";
 
@@ -33,7 +33,9 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   const [recordsMap, setRecordsMap] = React.useState<
     Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
   >({});
-  const [originalRecords, setOriginalRecords] = React.useState<typeof recordsMap>({}); // lưu bản gốc
+  const [originalRecords, setOriginalRecords] = React.useState<
+    Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
+  >({});
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -42,15 +44,10 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
     };
   }, []);
 
-  // helper: time-only "HH:MM:SS"
   const nowTimeOnly = () => {
     const d = new Date();
-    // toLocaleTimeString might include AM/PM — use toTimeString and split
-    const t = d.toTimeString().split(" ")[0]; // "HH:MM:SS"
-    return t;
+    return d.toTimeString().split(" ")[0];
   };
-
-  const nowISOTime = () => new Date().toISOString();
 
   // ---------- Load students and attendance ----------
   React.useEffect(() => {
@@ -112,7 +109,12 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
         }
         if (!cancelled && mountedRef.current) {
           setRecordsMap(map);
-          setOriginalRecords(map); // lưu bản gốc
+          const copy: typeof originalRecords = {};
+          Object.keys(map).forEach((k) => {
+            const key = Number(k);
+            copy[key] = { ...map[key] };
+          });
+          setOriginalRecords(copy);
         }
       } catch (err: any) {
         console.error("Load students/attendances failed", err);
@@ -162,9 +164,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
         ...v,
       }));
 
-      // create: records without attendance_id but with a status set
       const toCreate = entries.filter((e) => !e.attendance_id && e.status);
-      // update: only those that were absent originally and now changed to present
       const toUpdate = entries.filter(
         (e) =>
           e.attendance_id &&
@@ -172,7 +172,6 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
           originalRecords[e.student_user_id]?.status === "absent"
       );
 
-      // --- Create new records ---
       if (toCreate.length > 0) {
         const payload: AttendanceBatchCreate = {
           schedule_id: scheduleIdForFetch,
@@ -180,17 +179,14 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
           records: toCreate.map((c) => ({
             student_user_id: c.student_user_id,
             status: c.status,
-            // for create: if present -> send time-only; else null
             checkin_time: c.checkin_time ?? (c.status === "present" ? nowTimeOnly() : null),
           })),
         };
         await addBatchAttendance(payload);
       }
 
-      // --- Update existing records: chỉ absent → present ---
       await Promise.all(
         toUpdate.map((upd) => {
-          // choose checkin_time: use existing if provided, otherwise current time in HH:MM:SS
           const checkinTime = upd.checkin_time ?? nowTimeOnly();
           return editLateAttendance(upd.student_user_id, scheduleIdForFetch, {
             checkin_time: checkinTime,
@@ -205,7 +201,6 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error("Submit failed", err);
-      // Logic chuyển đối tượng lỗi thành chuỗi an toàn
       let errMsg = "Submit attendance failed.";
       if (err) {
         if (typeof err === "string") errMsg = err;
@@ -305,6 +300,8 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                         checkin_time: null,
                         attendance_id: null,
                       };
+                      const orig = originalRecords[s.student_user_id];
+
                       return (
                         <tr key={s.student_user_id}>
                           <td className="px-3 py-2 align-top text-white">{idx + 1}</td>
@@ -316,22 +313,70 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                           <td className="px-3 py-2 align-top text-white">{safe(s.gender)}</td>
                           <td className="px-3 py-2 align-top">
                             <div className="flex items-center gap-2">
-                              <button
-                                onClick={() =>
-                                  setRecord(s.student_user_id, {
-                                    status: "present",
-                                    // don't set ISO here; we'll convert properly in submit
-                                    checkin_time: null,
-                                  })
-                                }
-                                className={`px-3 py-1 rounded ${
-                                  safe(rec.status) === "present"
-                                    ? "bg-green-600 text-white"
-                                    : "bg-white/5 text-white"
-                                }`}
-                              >
-                                Present
-                              </button>
+                              {modalData.mode === "edit" ? (
+                                rec.status === "present" ? (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded bg-green-600 text-white">
+                                    ✓ Present
+                                  </span>
+                                ) : rec.attendance_id && orig?.status === "absent" ? (
+                                  <button
+                                    onClick={() =>
+                                      setRecord(s.student_user_id, {
+                                        status: "present",
+                                        checkin_time: null,
+                                      })
+                                    }
+                                    className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600"
+                                  >
+                                    Late
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() =>
+                                      setRecord(s.student_user_id, {
+                                        status: "present",
+                                        checkin_time: null,
+                                      })
+                                    }
+                                    className="px-3 py-1 rounded bg-white/5 text-white"
+                                  >
+                                    Present
+                                  </button>
+                                )
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      setRecord(s.student_user_id, {
+                                        status: "present",
+                                        checkin_time: null,
+                                      })
+                                    }
+                                    className={`px-3 py-1 rounded ${
+                                      rec.status === "present"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-white/5 text-white"
+                                    }`}
+                                  >
+                                    Present
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setRecord(s.student_user_id, {
+                                        status: "absent",
+                                        checkin_time: null,
+                                      })
+                                    }
+                                    className={`px-3 py-1 rounded ${
+                                      rec.status === "absent"
+                                        ? "bg-red-600 text-white"
+                                        : "bg-white/5 text-white"
+                                    }`}
+                                  >
+                                    Absent
+                                  </button>
+                                </>
+                              )}
                               {rec.attendance_id && <div className="text-xs text-gray-300 ml-2">saved</div>}
                             </div>
                           </td>
