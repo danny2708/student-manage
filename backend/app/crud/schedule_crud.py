@@ -27,6 +27,7 @@ def get_schedule_with_class_name_query():
             Schedule.end_time,
             Subject.name.label("subject"),
             func.count(Enrollment.student_user_id).label("students"),  
+            Schedule.class_id
         )
         .select_from(
             join(
@@ -207,3 +208,4 @@ def get_schedule(db: Session, schedule_id: int) -> Schedule | None:
     Trả về Schedule object hoặc None nếu không tìm thấy.
     """
     return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+

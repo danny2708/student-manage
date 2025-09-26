@@ -114,10 +114,17 @@ def create_batch_attendance(
         current_user=current_user,
     )
 
-    # Lấy teacher của lớp (phục vụ tạo evaluation)
-    class_info = class_crud.get_class(db, attendance_data.schedule_id)
+    schedule = schedule_crud.get_schedule(db, attendance_data.schedule_id)
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Không tìm thấy lịch học.")
+
+    # Sử dụng schedule.class_id để lấy class_info
+    class_info = class_crud.get_class(db, schedule.class_id)
     if not class_info:
-        raise HTTPException(status_code=404, detail="Không tìm thấy lớp học với ID đã cung cấp.")
+        # Lỗi này chỉ xảy ra khi data trong DB không nhất quán
+        raise HTTPException(status_code=404, detail="Không tìm thấy lớp học liên kết với lịch trình.")
+
+    # Lấy teacher của lớp (phục vụ tạo evaluation)
     teacher_user_id = class_info.teacher_user_id
 
     # Tạo bản ghi điểm danh
@@ -270,7 +277,6 @@ def update_late_attendance(
 def get_attendances(
     db: Session,
     schedule_id: Optional[int] = None,
-    attendance_date: Optional[dt_date] = None,
     current_user=None
 ) -> List[Attendance]:
     query = (
@@ -283,13 +289,9 @@ def get_attendances(
         )
     )
 
-    # Nếu có schedule_id filter theo schedule
+    # filter theo schedule_id
     if schedule_id:
         query = query.filter(Attendance.schedule_id == schedule_id)
-
-    # Nếu có attendance_date filter thêm
-    if attendance_date:
-        query = query.filter(Attendance.attendance_date == attendance_date)
 
     # Nếu là teacher thì chỉ trả về attendances của các lớp mà teacher dạy
     if current_user and "teacher" in current_user.roles:

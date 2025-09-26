@@ -57,8 +57,14 @@ export async function getAttendanceById(id: number): Promise<Attendance> {
 
 /** Get attendances by schedule id */
 export async function getAttendancesBySchedule(schedule_id: number): Promise<Attendance[]> {
-  const res = await api.get<Attendance[]>(`/attendances/by_schedule/${schedule_id}`);
-  return res.data;
+  try {
+    const res = await api.get<Attendance[]>(`/attendances/${schedule_id}`);
+    return res.data;
+  } catch (err) {
+    // fallback: query param
+    const res = await api.get<Attendance[]>("/attendances", { params: { schedule_id } });
+    return res.data;
+  }
 }
 
 /** Create single attendance record */

@@ -18,25 +18,23 @@ TEACHER_ONLY = has_roles(["teacher"])
 def create_attendance_records_for_class(
     attendance_data: AttendanceBatchCreate,
     db: Session = Depends(deps.get_db),
-    current_user=Depends(get_current_active_user)  # thêm dòng này
+    current_user=Depends(get_current_active_user) 
 ):
     return attendance_service.create_batch_attendance(db, attendance_data, current_user)
 
 @router.get(
-    "/",
+    "/{schedule_id}",
     response_model=List[AttendanceRead],
     dependencies=[Depends(TEACHER_ONLY)]
 )
 def get_attendance_records(
+    schedule_id: int,
     db: Session = Depends(deps.get_db),
-    current_user=Depends(get_current_active_user),
-    schedule_id: int | None = None,
-    attendance_date: date | None = Query(None, description="Lọc theo ngày")
+    current_user=Depends(get_current_active_user)
 ):
     return attendance_service.get_attendances(
         db,
         schedule_id=schedule_id,
-        attendance_date=attendance_date,
         current_user=current_user,
     )
 
@@ -63,3 +61,14 @@ def update_student_late_attendance(
     if not updated_record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bản ghi điểm danh để cập nhật.")
     return updated_record
+
+@router.get(
+    "/",
+    response_model=List[AttendanceRead],
+    dependencies=[Depends(TEACHER_ONLY)]
+)
+def get_all_attendances(
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(get_current_active_user)
+):
+    return attendance_service.get_attendances(db, current_user=current_user)

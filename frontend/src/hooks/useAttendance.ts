@@ -8,7 +8,6 @@ import {
   createAttendance,
   createBatchAttendance,
   updateLateAttendance,
-  updateAttendance,
   deleteAttendance,
   Attendance,
   AttendanceCreate,
@@ -77,12 +76,6 @@ export function useAttendance() {
     return created;
   }, [handleFetch]);
 
-  const editAttendance = useCallback(async (id: number, payload: Partial<AttendanceCreate>) => {
-    const updated = await handleFetch(() => updateAttendance(id, payload), "Cập nhật điểm danh thành công!");
-    if (updated) setAttendances((prev) => prev.map((a) => (a.attendance_id === id ? updated : a)));
-    return updated;
-  }, [handleFetch]);
-
   const removeAttendance = useCallback(async (id: number) => {
     const ok = await handleFetch(() => deleteAttendance(id), "Xóa điểm danh thành công!");
     if (ok !== null) setAttendances((prev) => prev.filter((a) => a.attendance_id !== id));
@@ -114,7 +107,6 @@ export function useAttendance() {
     fetchAttendancesBySchedule,
     addAttendance,
     addBatchAttendance,
-    editAttendance,
     editLateAttendance,
     removeAttendance,
   };

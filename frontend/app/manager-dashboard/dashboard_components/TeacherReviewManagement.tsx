@@ -23,6 +23,8 @@ const formatDate = (dateString: string) => {
 // chuẩn hóa về YYYY-MM-DD để so sánh filter
 const normalizeDate = (dateString: string) => {
   if (!dateString) return "";
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return "";
   return d.toISOString().split("T")[0];
@@ -75,6 +77,12 @@ export default function TeacherReviewManagement({
   // ---- popover open ----
   const [openPopover, setOpenPopover] = React.useState<null | "teacher" | "student" | "rating" | "date">(null);
 
+  // Refs for filter buttons to calculate popover position
+  const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Ref cho toàn bộ khu vực quản lý để đóng popover khi click ra ngoài
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+
   // ---- options ----
   const teacherOptions = React.useMemo(
     () => Array.from(new Set(reviews.map((r) => r.teacher_name).filter(Boolean))),
@@ -85,12 +93,11 @@ export default function TeacherReviewManagement({
     [reviews]
   );
 
-  // click outside để close popover — ref attached to thead only
-  const containerRef = React.useRef<HTMLTableSectionElement | null>(null);
+  // click outside to close popovers
   React.useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) {
         setOpenPopover(null);
       }
     }
@@ -146,8 +153,27 @@ export default function TeacherReviewManagement({
   if (loading) return <div className="text-gray-300">Loading reviews...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
+
+  // Function to calculate popover position relative to the root div
+  const getPopoverPosition = (filterName: "teacher" | "student" | "rating" | "date") => {
+    const button = filterButtonRefs.current[filterName];
+    if (!button || !rootRef.current) return { left: 0, top: 0, show: false };
+
+    const buttonRect = button.getBoundingClientRect();
+    const rootRect = rootRef.current.getBoundingClientRect();
+
+    // The popover should appear right below the button
+    const top = buttonRect.bottom - rootRect.top + 5; // +5px margin
+
+    // Position it to align its right edge with the button, accounting for padding/margin
+    const left = buttonRect.left - rootRect.left;
+
+    return { left, top, show: openPopover === filterName };
+  };
+
   return (
-    <div className="space-y-4">
+    // Make the root div relative for absolute positioning of popovers
+    <div className="space-y-4 relative" ref={rootRef}>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Teacher Review Management</h2>
       </div>
@@ -174,15 +200,17 @@ export default function TeacherReviewManagement({
       {/* results table */}
       <div className="bg-gray-800 rounded-lg overflow-x-auto">
         <table className="w-full table-auto">
-          <thead className="bg-gray-700" ref={containerRef}>
+          {/* Ref containerRef cũ đã được thay bằng rootRef ở div cha */}
+          <thead className="bg-gray-700">
             <tr>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
 
               {showTeacherCol && (
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase relative">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
                   <div className="flex items-center gap-1">
                     <span>TEACHER</span>
                     <button
+                      ref={(el) => { filterButtonRefs.current.teacher = el; }}
                       aria-label="Filter by teacher"
                       onClick={() => setOpenPopover(openPopover === "teacher" ? null : "teacher")}
                       className="cursor-pointer"
@@ -190,39 +218,15 @@ export default function TeacherReviewManagement({
                       <Filter className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <AnimatePresence>
-                    {openPopover === "teacher" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className="absolute z-20 mt-2 w-48 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                      >
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Teacher</label>
-                        <select
-                          aria-label="Select teacher to filter"
-                          value={filterTeacher}
-                          onChange={(e) => setFilterTeacher(e.target.value)}
-                          className="w-full border p-2 rounded text-gray-900"
-                        >
-                          <option value="">All</option>
-                          {teacherOptions.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </th>
               )}
 
               {showStudentCol && (
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase relative">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
                   <div className="flex items-center gap-1">
                     <span>STUDENT</span>
                     <button
+                      ref={(el) => { filterButtonRefs.current.student = el; }}
                       aria-label="Filter by student"
                       onClick={() => setOpenPopover(openPopover === "student" ? null : "student")}
                       className="cursor-pointer"
@@ -230,38 +234,14 @@ export default function TeacherReviewManagement({
                       <Filter className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <AnimatePresence>
-                    {openPopover === "student" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className="absolute z-20 mt-2 w-48 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                      >
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Student</label>
-                        <select
-                          aria-label="Select student to filter"
-                          value={filterStudent}
-                          onChange={(e) => setFilterStudent(e.target.value)}
-                          className="w-full border p-2 rounded text-gray-900"
-                        >
-                          <option value="">All</option>
-                          {studentOptions.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </th>
               )}
 
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase relative">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
                 <div className="flex items-center gap-1">
                   <span>RATING</span>
                   <button
+                    ref={(el) => { filterButtonRefs.current.rating = el; }}
                     aria-label="Filter by rating"
                     onClick={() => setOpenPopover(openPopover === "rating" ? null : "rating")}
                     className="cursor-pointer"
@@ -269,39 +249,15 @@ export default function TeacherReviewManagement({
                     <Filter className="h-4 w-4 text-gray-400" />
                   </button>
                 </div>
-                <AnimatePresence>
-                  {openPopover === "rating" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="absolute z-20 mt-2 w-44 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                    >
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Rating</label>
-                      <select
-                        aria-label="Select rating to filter"
-                        value={filterRating}
-                        onChange={(e) => setFilterRating(e.target.value)}
-                        className="w-full border p-2 rounded text-gray-900"
-                      >
-                        <option value="">All</option>
-                        {[5, 4, 3, 2, 1].map((rating) => (
-                          <option key={rating} value={rating}>
-                            {"★".repeat(rating)} ({rating})
-                          </option>
-                        ))}
-                      </select>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </th>
 
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">REVIEW</th>
 
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase relative">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
                 <div className="flex items-center gap-1">
                   <span>DATE</span>
                   <button
+                    ref={(el) => { filterButtonRefs.current.date = el; }}
                     aria-label="Filter by date"
                     onClick={() => setOpenPopover(openPopover === "date" ? null : "date")}
                     className="cursor-pointer"
@@ -309,24 +265,6 @@ export default function TeacherReviewManagement({
                     <CalendarIcon className="h-4 w-4 text-gray-400" />
                   </button>
                 </div>
-                <AnimatePresence>
-                  {openPopover === "date" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="absolute z-20 mt-2 w-44 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                    >
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
-                      <Input
-                        type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="w-full border p-2 rounded text-gray-900"
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </th>
             </tr>
           </thead>
@@ -355,6 +293,124 @@ export default function TeacherReviewManagement({
           </tbody>
         </table>
       </div>
+      <AnimatePresence>
+        {/* Teacher Filter Popover */}
+        {getPopoverPosition("teacher").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("teacher").top,
+              left: getPopoverPosition("teacher").left,
+              transform: 'translateX(calc(-100% + 40px))' 
+            }}
+            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Teacher</label>
+            <select
+              aria-label="Select teacher to filter"
+              value={filterTeacher}
+              onChange={(e) => setFilterTeacher(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {teacherOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+
+        {/* Student Filter Popover */}
+        {getPopoverPosition("student").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("student").top,
+              left: getPopoverPosition("student").left,
+              transform: 'translateX(calc(-100% + 40px))'
+            }}
+            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Student</label>
+            <select
+              aria-label="Select student to filter"
+              value={filterStudent}
+              onChange={(e) => setFilterStudent(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {studentOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+
+        {/* Rating Filter Popover */}
+        {getPopoverPosition("rating").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("rating").top,
+              left: getPopoverPosition("rating").left,
+              transform: 'translateX(calc(-100% + 40px))'
+            }}
+            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Rating</label>
+            <select
+              aria-label="Select rating to filter"
+              value={filterRating}
+              onChange={(e) => setFilterRating(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <option key={rating} value={rating}>
+                  {"★".repeat(rating)} ({rating})
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+
+        {/* Date Filter Popover */}
+        {getPopoverPosition("date").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("date").top,
+              left: getPopoverPosition("date").left,
+              transform: 'translateX(calc(-100% + 40px))'
+            }}
+            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
+            <Input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

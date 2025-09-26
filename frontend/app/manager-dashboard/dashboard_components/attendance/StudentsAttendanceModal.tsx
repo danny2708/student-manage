@@ -5,6 +5,7 @@ import ReactDOM from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAttendance } from "../../../../src/hooks/useAttendance";
 import { getStudentsInClass, Student } from "../../../../src/services/api/class";
+import { getScheduleById } from "../../../../src/services/api/schedule"; 
 import { Attendance, AttendanceBatchCreate } from "../../../../src/services/api/attendance";
 import toast from "react-hot-toast";
 
@@ -16,24 +17,33 @@ interface StudentsAttendanceModalProps {
   onSubmitted?: () => Promise<void> | void;
 }
 
-const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ open, onClose, modalData, date, onSubmitted }) => {
-  const { addBatchAttendance, editAttendance, fetchAttendancesBySchedule } = useAttendance();
+const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
+  open,
+  onClose,
+  modalData,
+  date,
+  onSubmitted,
+}) => {
+  const { addBatchAttendance, editLateAttendance, fetchAttendancesBySchedule } = useAttendance();
   const [students, setStudents] = React.useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const mountedRef = React.useRef(false);
 
-  // local records map: student_user_id -> { status, checkin_time?, attendance_id? }
-  const [recordsMap, setRecordsMap] = React.useState<Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>>({});
+  const [recordsMap, setRecordsMap] = React.useState<
+    Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
+  >({});
 
   React.useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const nowISOTime = () => new Date().toISOString(); // full ISO timestamp
+  const nowISOTime = () => new Date().toISOString();
 
-  // load when open/modalData changes
+  // ---------- Load students and attendance ----------
   React.useEffect(() => {
     if (!open || !modalData) return;
 
@@ -42,24 +52,43 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
       setLoadingStudents(true);
       try {
         const schedule = modalData.schedule;
-        // fetch students
-        const studentsData = await getStudentsInClass(schedule.class_id ?? schedule.id ?? schedule.class_id);
+
+        const scheduleIdForFetch = Number(
+          schedule.originalScheduleId ?? schedule.schedule_id ?? schedule.id ?? NaN
+        );
+
+        let classId: number | undefined = undefined;
+        if (schedule.class_id) classId = schedule.class_id;
+        else if (schedule.classId) classId = schedule.classId;
+        else if (schedule.class && (schedule.class.class_id || schedule.class.id)) {
+          classId = schedule.class.class_id ?? schedule.class.id;
+        }
+
+        if (!classId) {
+          if (!Number.isFinite(scheduleIdForFetch) || isNaN(scheduleIdForFetch)) {
+            throw new Error("Không tìm được class_id: schedule không có class_id và id hợp lệ");
+          }
+          const fullSchedule = await getScheduleById(scheduleIdForFetch);
+          classId = fullSchedule.class_id;
+          schedule.class_id = classId;
+          schedule.class_name = fullSchedule.class_name ?? schedule.class_name;
+        }
+
+        const studentsData = await getStudentsInClass(Number(classId));
         if (cancelled) return;
         setStudents(studentsData ?? []);
 
-        // fetch attendances for schedule and date
-        const attendancesResp = await fetchAttendancesBySchedule(schedule.id);
-        // fetchAttendancesBySchedule uses hook's handleFetch and returns data or null
-        const allForSchedule: Attendance[] = Array.isArray(attendancesResp) ? (attendancesResp as Attendance[]) : [];
-        const forDate = allForSchedule.filter((a) => a.attendance_date === date);
+        let allForSchedule: Attendance[] = [];
+        if (Number.isFinite(scheduleIdForFetch) && !isNaN(scheduleIdForFetch)) {
+          const resp = await fetchAttendancesBySchedule(scheduleIdForFetch);
+          allForSchedule = Array.isArray(resp) ? resp : [];
+        }
 
-        // build recordsMap initial
+        const forDate = allForSchedule.filter((a) => a.attendance_date === date);
         const map: typeof recordsMap = {};
-        // map existing attendances by student_user_id
         const byStudent = new Map<number, Attendance>();
         for (const a of forDate) byStudent.set(a.student_user_id, a);
 
-        // for every student, prefill with existing or empty
         for (const s of studentsData ?? []) {
           const hv = byStudent.get(s.student_user_id);
           if (hv) {
@@ -75,18 +104,26 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
         if (!cancelled && mountedRef.current) setRecordsMap(map);
       } catch (err: any) {
         console.error("Load students/attendances failed", err);
-        toast.error(err?.message || "Failed to load attendance data.");
+        let msg = "Failed to load attendance data.";
+        if (err) {
+          if (typeof err === "string") msg = err;
+          else if (err.message) msg = err.message;
+          else if (Array.isArray(err)) msg = err.map((e: any) => e.msg || JSON.stringify(e)).join(", ");
+          else if (err.msg) msg = err.msg;
+          else msg = JSON.stringify(err);
+        }
+        toast.error(msg);
       } finally {
         if (!cancelled && mountedRef.current) setLoadingStudents(false);
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, modalData, date, fetchAttendancesBySchedule]);
 
-  if (!open || !modalData) return null;
-
-  const schedule = modalData.schedule;
+  const schedule = modalData?.schedule;
 
   const setRecord = (student_user_id: number, patch: { status?: string; checkin_time?: string | null }) => {
     setRecordsMap((prev) => {
@@ -96,59 +133,72 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
   };
 
   const allMarked = React.useMemo(() => {
-    // require each student to have status non-empty
     return students.length > 0 && students.every((s) => (recordsMap[s.student_user_id]?.status ?? "") !== "");
   }, [students, recordsMap]);
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const entries = Object.entries(recordsMap).map(([k, v]) => ({ student_user_id: Number(k), ...v }));
-      const toUpdate = entries.filter((e) => e.attendance_id); // existing records
-      const toCreate = entries.filter((e) => !e.attendance_id); // new records
+  // ---------- Submit ----------
+const handleSubmit = async () => {
+  if (!schedule) return;
+  setSubmitting(true);
+  try {
+    const scheduleIdForFetch = Number(
+      schedule.originalScheduleId ?? schedule.schedule_id ?? schedule.id ?? NaN
+    );
 
-      // 1) batch create new records if any
-      if (toCreate.length > 0) {
-        const payload: AttendanceBatchCreate = {
-          schedule_id: schedule.id,
-          attendance_date: date,
-          records: toCreate.map((c) => ({
-            student_user_id: c.student_user_id,
-            status: c.status,
-            checkin_time: c.checkin_time ?? (c.status === "present" ? nowISOTime() : null),
-          })),
-        };
-        await addBatchAttendance(payload);
-      }
+    const entries = Object.entries(recordsMap).map(([k, v]) => ({
+      student_user_id: Number(k),
+      ...v,
+    }));
 
-      // 2) update existing individually
-      for (const upd of toUpdate) {
-        // editAttendance expects (id, payload)
-        const attendanceId = upd.attendance_id as number;
-        const payload = {
-          student_user_id: upd.student_user_id,
-          schedule_id: schedule.id,
-          status: upd.status,
-          checkin_time: upd.checkin_time ?? (upd.status === "present" ? nowISOTime() : null),
-          attendance_date: date,
-        };
-        // call editAttendance with id and payload (hook will toast)
-        // eslint-disable-next-line no-await-in-loop
-        await editAttendance(attendanceId, payload);
-      }
+    const toCreate = entries.filter((e) => !e.attendance_id);
+    const toUpdate = entries.filter((e) => e.attendance_id);
 
-      toast.success("Attendance submitted.");
-      // refresh parent attendances
-      await fetchAttendancesBySchedule(schedule.id);
-      if (onSubmitted) await onSubmitted();
-      onClose();
-    } catch (err: any) {
-      console.error("Submit failed", err);
-      toast.error(err?.message || "Submit attendance failed.");
-    } finally {
-      setSubmitting(false);
+    // --- Create new records ---
+    if (toCreate.length > 0) {
+      const payload: AttendanceBatchCreate = {
+        schedule_id: scheduleIdForFetch,
+        attendance_date: date,
+        records: toCreate.map((c) => ({
+          student_user_id: c.student_user_id,
+          status: c.status,
+          checkin_time: c.checkin_time ?? (c.status === "present" ? nowISOTime() : null),
+        })),
+      };
+      await addBatchAttendance(payload);
     }
-  };
+
+    // --- Update existing records using editLateAttendance ONLY ---
+    await Promise.all(
+      toUpdate.map((upd) => {
+        return editLateAttendance(upd.student_user_id, scheduleIdForFetch, {
+          checkin_time: upd.status === "present" ? nowISOTime() : "",
+          attendance_date: date,
+        });
+      })
+    );
+
+    await fetchAttendancesBySchedule(scheduleIdForFetch);
+    if (onSubmitted) await onSubmitted();
+    toast.success("Attendance submitted.");
+    onClose();
+  } catch (err: any) {
+    console.error("Submit failed", err);
+    toast.error(err?.message ?? "Submit attendance failed.");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+
+  if (!open || !modalData || !schedule) return null;
+  if (typeof document === "undefined" || !document.body) return null;
+
+  const safe = (v: any) =>
+    v === null || v === undefined
+      ? "—"
+      : typeof v === "string" || typeof v === "number" || React.isValidElement(v)
+      ? v
+      : JSON.stringify(v);
 
   return ReactDOM.createPortal(
     <AnimatePresence>
@@ -158,7 +208,6 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        {/* backdrop */}
         <motion.button
           aria-label="close"
           onClick={onClose}
@@ -169,7 +218,6 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
           className="absolute inset-0"
           style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
         />
-
         <motion.div
           initial={{ y: 12, opacity: 0, scale: 0.995 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -180,10 +228,12 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
           style={{ backgroundColor: "#031220ff", color: "#fff" }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Attendance — {schedule.class_name}</h3>
+            <h3 className="text-lg font-semibold">Attendance — {safe(schedule?.class_name)}</h3>
             <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-300">Date: {date}</div>
-              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-700 text-white">Close</button>
+              <div className="text-sm text-gray-300">Date: {safe(date)}</div>
+              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-700 text-white">
+                Close
+              </button>
             </div>
           </div>
 
@@ -209,27 +259,46 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
                   </thead>
                   <tbody>
                     {students.map((s, idx) => {
-                      const rec = recordsMap[s.student_user_id] ?? { status: "", checkin_time: null, attendance_id: null };
+                      const rec = recordsMap[s.student_user_id] ?? {
+                        status: "",
+                        checkin_time: null,
+                        attendance_id: null,
+                      };
                       return (
-                        <tr key={s.student_user_id} className="border-b last:border-b-0 border-gray-700">
+                        <tr key={s.student_user_id}>
                           <td className="px-3 py-2 align-top text-white">{idx + 1}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.student_user_id}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.full_name ?? "—"}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.email ?? "—"}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.date_of_birth ?? "—"}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.phone_number ?? "—"}</td>
-                          <td className="px-3 py-2 align-top text-white">{s.gender ?? "—"}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.student_user_id)}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.full_name)}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.email)}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.date_of_birth)}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.phone_number)}</td>
+                          <td className="px-3 py-2 align-top text-white">{safe(s.gender)}</td>
                           <td className="px-3 py-2 align-top">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => setRecord(s.student_user_id, { status: "present", checkin_time: nowISOTime() })}
-                                className={`px-3 py-1 rounded ${rec.status === "present" ? "bg-green-600 text-white" : "bg-white/5 text-white"}`}
+                                onClick={() =>
+                                  setRecord(s.student_user_id, {
+                                    status: "present",
+                                    checkin_time: nowISOTime(),
+                                  })
+                                }
+                                className={`px-3 py-1 rounded ${
+                                  safe(rec.status) === "present"
+                                    ? "bg-green-600 text-white"
+                                    : "bg-white/5 text-white"
+                                }`}
                               >
                                 Present
                               </button>
                               <button
-                                onClick={() => setRecord(s.student_user_id, { status: "absent", checkin_time: null })}
-                                className={`px-3 py-1 rounded ${rec.status === "absent" ? "bg-red-600 text-white" : "bg-white/5 text-white"}`}
+                                onClick={() =>
+                                  setRecord(s.student_user_id, { status: "absent", checkin_time: null })
+                                }
+                                className={`px-3 py-1 rounded ${
+                                  safe(rec.status) === "absent"
+                                    ? "bg-red-600 text-white"
+                                    : "bg-white/5 text-white"
+                                }`}
                               >
                                 Absent
                               </button>
@@ -244,13 +313,18 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
               </div>
 
               <div className="mt-4 flex items-center justify-end gap-3">
-                <div className="text-sm text-gray-300 mr-auto">Marked: {Object.values(recordsMap).filter(r => r.status).length}/{students.length}</div>
+                <div className="text-sm text-gray-300 mr-auto">
+                  Marked: {Object.values(recordsMap).filter((r) => r.status).length}/{students.length}
+                </div>
                 <button
                   onClick={() => {
-                    // mark all absent quickly
                     const newMap = { ...recordsMap };
                     for (const s of students) {
-                      newMap[s.student_user_id] = { ...(newMap[s.student_user_id] ?? { attendance_id: null }), status: "absent", checkin_time: null };
+                      newMap[s.student_user_id] = {
+                        ...(newMap[s.student_user_id] ?? { attendance_id: null }),
+                        status: "absent",
+                        checkin_time: null,
+                      };
                     }
                     setRecordsMap(newMap);
                   }}
@@ -262,7 +336,11 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
                 <button
                   onClick={handleSubmit}
                   disabled={!allMarked || submitting}
-                  className={`px-4 py-2 rounded ${!allMarked || submitting ? "bg-gray-600 text-gray-300 cursor-not-allowed" : "bg-cyan-500 hover:bg-cyan-600 text-white"}`}
+                  className={`px-4 py-2 rounded ${
+                    !allMarked || submitting
+                      ? "bg-gray-600 text-gray-300 cursor-not-allowed"
+                      : "bg-cyan-500 hover:bg-cyan-600 text-white"
+                  }`}
                 >
                   {submitting ? "Submitting..." : "Submit"}
                 </button>
@@ -277,5 +355,4 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({ 
 };
 
 const StudentsAttendanceModal = React.memo(StudentsAttendanceModalInner);
-
 export default StudentsAttendanceModal;

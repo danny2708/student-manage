@@ -33,15 +33,22 @@ export default function AttendanceManagement() {
     fetchAttendances();
   }, [fetchAttendances]);
 
+  const toISODate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const [d, m, y] = dateStr.split("/");
+    if (!d || !m || !y) return null;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  };
+
   const scheduleOccursOn = React.useCallback((sch: any, dateIso: string) => {
-    const selected = new Date(dateIso);
     if ((sch.schedule_type ?? "").toUpperCase() === "ONCE") {
-      return sch.date === dateIso;
+      const normalized = toISODate(sch.date);
+      return normalized === dateIso;
     }
     if ((sch.schedule_type ?? "").toUpperCase() === "WEEKLY") {
-      return (sch.day_of_week ?? "").toUpperCase() === weekdayToServer(selected);
+      return (sch.day_of_week ?? "").toUpperCase() === weekdayToServer(new Date(dateIso));
     }
-    return sch.date === dateIso;
+    return false;
   }, []);
 
   const availableClasses = React.useMemo(

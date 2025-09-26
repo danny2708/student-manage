@@ -22,6 +22,9 @@ const formatDate = (dateString: string) => {
 // Normalize to YYYY-MM-DD for filtering
 const normalizeDate = (dateString: string) => {
   if (!dateString) return "";
+  // Check if date is already in YYYY-MM-DD format (e.g. from filterDate state)
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+  
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return "";
   return d.toISOString().split("T")[0];
@@ -75,17 +78,23 @@ export default function EvaluationManagement({
   // which popover is open
   const [openPopover, setOpenPopover] = React.useState<null | "student" | "teacher" | "type" | "date">(null);
 
+  // Refs for filter buttons to calculate popover position
+  const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+
   // derived option lists
   const studentOptions = React.useMemo(() => Array.from(new Set(evaluations.map((e) => e.student).filter(Boolean))), [evaluations]);
   const teacherOptions = React.useMemo(() => Array.from(new Set(evaluations.map((e) => e.teacher).filter(Boolean))), [evaluations]);
   const typeOptions = React.useMemo(() => Array.from(new Set(evaluations.map((e) => e.type).filter(Boolean))), [evaluations]);
 
-  // click outside to close popovers — ref attached to THEAD only so it doesn't block the search input
-  const containerRef = React.useRef<HTMLTableSectionElement | null>(null);
+  // Ref cho toàn bộ khu vực quản lý để đóng popover khi click ra ngoài
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+
+  // click outside to close popovers
   React.useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) {
+      if (!rootRef.current) return;
+      // Close popover if click is outside the entire component (or specific popovers)
+      if (!rootRef.current.contains(e.target as Node)) {
         setOpenPopover(null);
       }
     }
@@ -93,7 +102,8 @@ export default function EvaluationManagement({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  // Filter logic + search (note: use normalizeDate for date comparison)
+
+  // Filter logic + search
   const filteredEvaluations = React.useMemo(() => {
     return evaluations.filter((evaluation) => {
       const matchesSearch =
@@ -105,6 +115,7 @@ export default function EvaluationManagement({
       const matchesStudent = filterStudent ? evaluation.student === filterStudent : true;
       const matchesTeacher = filterTeacher ? evaluation.teacher === filterTeacher : true;
       const matchesType = filterType ? evaluation.type === filterType : true;
+      // Use normalizeDate on both sides to handle potential date format inconsistencies
       const matchesDate = filterDate ? normalizeDate(evaluation.date) === filterDate : true;
 
       return matchesSearch && matchesStudent && matchesTeacher && matchesType && matchesDate;
@@ -135,8 +146,26 @@ export default function EvaluationManagement({
   const showTeacherCol = !isTeacherRole;
   const visibleCols = 1 /* ID */ + (showStudentCol ? 1 : 0) + (showTeacherCol ? 1 : 0) + 1 /* TYPE */ + 1 /* DATE */;
 
+  // Function to calculate popover position relative to the root div
+  const getPopoverPosition = (filterName: "student" | "teacher" | "type" | "date") => {
+    const button = filterButtonRefs.current[filterName];
+    if (!button || !rootRef.current) return { left: 0, top: 0, show: false };
+
+    const buttonRect = button.getBoundingClientRect();
+    const rootRect = rootRef.current.getBoundingClientRect();
+
+    // The popover should appear right below the button
+    const top = buttonRect.bottom - rootRect.top + 5; // +5px margin
+    
+    // Position it slightly to the left relative to the button
+    const left = buttonRect.left - rootRect.left;
+
+    return { left, top, show: openPopover === filterName };
+  };
+
   return (
-    <div className="space-y-4">
+    // Make the root div relative for absolute positioning of popovers
+    <div className="space-y-4 relative" ref={rootRef}>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Evaluation Management</h2>
       </div>
@@ -146,7 +175,6 @@ export default function EvaluationManagement({
           <input
             type="text"
             placeholder="Search evaluations..."
-            // bind to local state for instant typing
             value={localSearch}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
@@ -164,8 +192,8 @@ export default function EvaluationManagement({
       {/* Results table */}
       <div className="bg-gray-800 rounded-lg overflow-hidden">
         <table className="w-full table-auto">
-          {/* attach ref to thead only (so popovers inside thead are considered for outside click) */}
-          <thead className="bg-gray-700" ref={containerRef}>
+          {/* THEAD does not need the containerRef anymore since popovers are outside */}
+          <thead className="bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
 
@@ -173,35 +201,16 @@ export default function EvaluationManagement({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative">
                   <div className="flex items-center gap-1">
                     <span>STUDENT</span>
-                    <button onClick={() => setOpenPopover((s) => (s === "student" ? null : "student"))} title="Filter by student" className="cursor-pointer">
+                    <button
+                      ref={(el) => { filterButtonRefs.current.student = el; }}
+                      onClick={() => setOpenPopover((s) => (s === "student" ? null : "student"))}
+                      title="Filter by student"
+                      className="cursor-pointer"
+                    >
                       <Filter className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <AnimatePresence>
-                    {openPopover === "student" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className="absolute z-20 mt-2 w-48 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                      >
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Student</label>
-                        <select
-                          aria-label="Filter by student"
-                          value={filterStudent}
-                          onChange={(e) => setFilterStudent(e.target.value)}
-                          className="w-full border p-2 rounded text-gray-900"
-                        >
-                          <option value="">All</option>
-                          {studentOptions.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {/* Popover is MOVED OUTSIDE of <thead> and rendered below */}
                 </th>
               )}
 
@@ -209,97 +218,44 @@ export default function EvaluationManagement({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative">
                   <div className="flex items-center gap-1">
                     <span>TEACHER</span>
-                    <button onClick={() => setOpenPopover((s) => (s === "teacher" ? null : "teacher"))} title="Filter by teacher" className="cursor-pointer">
+                    <button
+                      ref={(el) => { filterButtonRefs.current.teacher = el; }}
+                      onClick={() => setOpenPopover((s) => (s === "teacher" ? null : "teacher"))}
+                      title="Filter by teacher"
+                      className="cursor-pointer"
+                    >
                       <Filter className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <AnimatePresence>
-                    {openPopover === "teacher" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        className="absolute z-20 mt-2 w-48 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                      >
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Teacher</label>
-                        <select
-                          aria-label="Filter by teacher"
-                          value={filterTeacher}
-                          onChange={(e) => setFilterTeacher(e.target.value)}
-                          className="w-full border p-2 rounded text-gray-900"
-                        >
-                          <option value="">All</option>
-                          {teacherOptions.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </th>
               )}
 
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative">
                 <div className="flex items-center gap-1">
                   <span>TYPE</span>
-                  <button onClick={() => setOpenPopover((s) => (s === "type" ? null : "type"))} title="Filter by type" className="cursor-pointer">
+                  <button
+                    ref={(el) => { filterButtonRefs.current.type = el; }}
+                    onClick={() => setOpenPopover((s) => (s === "type" ? null : "type"))}
+                    title="Filter by type"
+                    className="cursor-pointer"
+                  >
                     <Filter className="h-4 w-4 text-gray-400" />
                   </button>
                 </div>
-                <AnimatePresence>
-                  {openPopover === "type" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="absolute z-20 mt-2 w-44 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                    >
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Type</label>
-                      <select
-                        aria-label="Filter by type"
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="w-full border p-2 rounded text-gray-900"
-                      >
-                        <option value="">All</option>
-                        {typeOptions.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative">
                 <div className="flex items-center gap-1">
                   <span>DATE</span>
-                  <button onClick={() => setOpenPopover((s) => (s === "date" ? null : "date"))} title="Filter by date" className="cursor-pointer">
+                  <button
+                    ref={(el) => { filterButtonRefs.current.date = el; }}
+                    onClick={() => setOpenPopover((s) => (s === "date" ? null : "date"))}
+                    title="Filter by date"
+                    className="cursor-pointer"
+                  >
                     <Filter className="h-4 w-4 text-gray-400" />
                   </button>
                 </div>
-                <AnimatePresence>
-                  {openPopover === "date" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="absolute z-20 mt-2 w-44 bg-white border rounded shadow-lg p-3 pointer-events-auto"
-                    >
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
-                      <Input
-                        type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                        className="w-full border p-2 rounded text-gray-900"
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </th>
             </tr>
           </thead>
@@ -316,7 +272,7 @@ export default function EvaluationManagement({
                       {evaluation.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{formatDate(normalizeDate(evaluation.date))}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{formatDate(evaluation.date)}</td>
                 </tr>
               ))
             ) : (
@@ -327,6 +283,128 @@ export default function EvaluationManagement({
           </tbody>
         </table>
       </div>
+      
+      {/* ========================================================================= */}
+      {/* POPUP FILTERS RENDERED HERE (outside the table to fix the clipping issue) */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {/* Student Filter Popover */}
+        {getPopoverPosition("student").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("student").top,
+              left: getPopoverPosition("student").left,
+              transform: 'translateX(calc(-100% + 40px))' // Shift left to align the right edge with the button
+            }}
+            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Student</label>
+            <select
+              aria-label="Filter by student"
+              value={filterStudent}
+              onChange={(e) => setFilterStudent(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {studentOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+      
+        {/* Teacher Filter Popover */}
+        {getPopoverPosition("teacher").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("teacher").top,
+              left: getPopoverPosition("teacher").left,
+              transform: 'translateX(calc(-100% + 40px))' // Shift left
+            }}
+            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Teacher</label>
+            <select
+              aria-label="Filter by teacher"
+              value={filterTeacher}
+              onChange={(e) => setFilterTeacher(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {teacherOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+        
+        {/* Type Filter Popover */}
+        {getPopoverPosition("type").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("type").top,
+              left: getPopoverPosition("type").left,
+              transform: 'translateX(calc(-100% + 40px))' // Shift left
+            }}
+            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Type</label>
+            <select
+              aria-label="Filter by type"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            >
+              <option value="">All</option>
+              {typeOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </motion.div>
+        )}
+        
+        {/* Date Filter Popover */}
+        {getPopoverPosition("date").show && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              position: 'absolute',
+              top: getPopoverPosition("date").top,
+              left: getPopoverPosition("date").left,
+              transform: 'translateX(calc(-100% + 40px))' // Shift left
+            }}
+            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
+          >
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
+            <Input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full border p-2 rounded text-gray-900"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
