@@ -29,16 +29,23 @@ api.interceptors.request.use(
   }
 )
 
-// Interceptor: xử lý lỗi 401 tự động logout
+
 api.interceptors.response.use(
-  (response) => response,
+  (resp) => resp,
   (error) => {
-    if (error.response?.status === 401) {
-      AuthService.logout()
-      window.location.href = "/login"
+    // if unauthorized, clear auth and broadcast logout so other tabs update
+    const status = error?.response?.status;
+    if (status === 401) {
+      try {
+        // force logout and broadcast
+        AuthService.logout();
+        // ensure storage event triggers (authService.logout already broadcasts)
+      } catch (e) {
+        console.error("Error during global logout on 401:", e);
+      }
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 export default api

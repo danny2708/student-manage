@@ -1,4 +1,4 @@
-// src/services/api/auth.ts
+// src/services/authService.ts
 export interface ILoginResponse {
   access_token: string;
   token_type: string;
@@ -7,11 +7,9 @@ export interface ILoginResponse {
   email: string;
   full_name: string;
   roles: string[];
-
-  // thêm các field mới backend trả về
-  phone: string;
-  gender: string;
-  dob: string;
+  phone?: string;
+  gender?: string;
+  dob?: string;
 }
 
 export interface IUser {
@@ -20,75 +18,95 @@ export interface IUser {
   email: string;
   full_name: string;
   roles: string[];
-  phone: string;
-  gender: string;
-  dob: string;
+  phone?: string;
+  gender?: string;
+  dob?: string;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
+// keys
+const AUTH_BROADCAST_KEY = "app_auth_event";
+const TOKEN_KEY = "access_token";
+const USER_KEY = "user";
 
 class AuthService {
   private _token: string | null = null;
   private _user: IUser | null = null;
-  private _ready = false;
+  private _initialized = false;
+  private _bc: BroadcastChannel | null = null;
 
   constructor() {
-    if (typeof window !== "undefined") {
-      this._ready = true;
-      this._token = localStorage.getItem("access_token");
-      this._user = this.getUser(); // ✅ đọc user khi khởi tạo
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      this._bc = new BroadcastChannel("app_auth_channel");
     }
   }
 
-  /** ✅ Đọc user từ localStorage an toàn */
-  getUser(): IUser | null {
+  async init(): Promise<void> {
+    if (typeof window === "undefined") {
+      this._initialized = true;
+      return;
+    }
+    this._token = localStorage.getItem(TOKEN_KEY);
+    this._user = this._safeGetUser();
+    this._initialized = true;
+  }
+
+  private _safeGetUser(): IUser | null {
     if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem("user");
+    const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as IUser;
     } catch {
-      localStorage.removeItem("user");
+      localStorage.removeItem(USER_KEY);
       return null;
     }
   }
 
-  /** ✅ Ghi user vào localStorage */
-  setUser(user: IUser | null) {
-    this._user = user;
-    if (typeof window !== "undefined") {
-      if (user) localStorage.setItem("user", JSON.stringify(user));
-      else localStorage.removeItem("user");
-    }
-  }
-
-  isReady(): boolean {
-    return this._ready;
+  get initialized() {
+    return this._initialized;
   }
 
   get token(): string | null {
     if (typeof window === "undefined") return null;
-    if (!this._token) this._token = localStorage.getItem("access_token");
+    if (!this._token) this._token = localStorage.getItem(TOKEN_KEY);
     return this._token;
   }
 
   set token(value: string | null) {
     this._token = value;
-    if (typeof window !== "undefined") {
-      if (value) localStorage.setItem("access_token", value);
-      else localStorage.removeItem("access_token");
-    }
+    if (typeof window === "undefined") return;
+    if (value) localStorage.setItem(TOKEN_KEY, value);
+    else localStorage.removeItem(TOKEN_KEY);
   }
 
-  /** ✅ Trả về this._user hoặc đọc lại từ localStorage nếu null */
   get user(): IUser | null {
-    if (!this._user) this._user = this.getUser();
+    if (!this._user) this._user = this._safeGetUser();
     return this._user;
   }
 
-  set user(value: IUser | null) {
-    this.setUser(value);
+  set user(u: IUser | null) {
+    this._user = u;
+    if (typeof window === "undefined") return;
+    if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_KEY);
+  }
+
+  /**
+   * Broadcast auth events (both localStorage + BroadcastChannel).
+   */
+  private broadcast(event: { type: "login" | "logout" | "token-changed"; ts?: number; user?: any }) {
+    if (typeof window === "undefined") return;
+    const payload = { ...event, ts: Date.now() };
+    try {
+      // via localStorage
+      localStorage.setItem(AUTH_BROADCAST_KEY, JSON.stringify(payload));
+      // via BroadcastChannel
+      this._bc?.postMessage(payload);
+    } catch {
+      /* ignore */
+    }
   }
 
   async login({ username, password }: { username: string; password: string }) {
@@ -98,71 +116,58 @@ class AuthService {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
+      const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Login failed");
+        const message = payload?.detail || payload?.message || "Login failed";
+        throw new Error(message);
       }
+      const data = payload as ILoginResponse;
 
-      const data: ILoginResponse = await res.json();
       this.token = data.access_token;
       const userData: IUser = {
         user_id: data.user_id,
         username: data.username,
         email: data.email,
         full_name: data.full_name,
-        roles: data.roles,
+        roles: data.roles || [],
         phone: data.phone,
         gender: data.gender,
         dob: data.dob,
       };
-      this.setUser(userData);
+      this.user = userData;
+
+      // broadcast login
+      this.broadcast({ type: "login", user: { user_id: userData.user_id, username: userData.username } });
 
       return { success: true, user: userData };
-    } catch (err) {
-      return { success: false, error: (err as Error).message };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Login failed" };
     }
   }
-
-async updatePassword(userId: number, oldPassword: string, newPassword: string) {
-    const res = await fetch(`${API_BASE_URL}/users/${userId}/password`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-      body: JSON.stringify({
-        old_password: oldPassword,
-        new_password: newPassword,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Đổi mật khẩu thất bại");
-    }
-
-    return await res.json();
-  }
-
 
   logout() {
     this.token = null;
-    this.setUser(null);
+    this.user = null;
+    this.broadcast({ type: "logout" });
+  }
+
+  reloadFromStorage() {
+    this._token = localStorage.getItem(TOKEN_KEY);
+    this._user = this._safeGetUser();
   }
 
   isAuthenticated(): boolean {
-    return this._ready && !!this.token && !!this.user;
+    return this._initialized && !!this.token && !!this.user;
   }
 
   hasRole(role: string): boolean {
     const u = this.user;
-    return !!u && u.roles.includes(role);
+    return !!u && Array.isArray(u.roles) && u.roles.includes(role);
   }
 
   getDashboardRoute(): string {
     const user = this.user;
-    if (!user || user.roles.length === 0) return "/login";
+    if (!user || !user.roles || user.roles.length === 0) return "/login";
 
     if (user.roles.includes("manager")) return "/manager-dashboard";
     if (user.roles.includes("teacher")) return "/teacher-dashboard";
@@ -170,16 +175,6 @@ async updatePassword(userId: number, oldPassword: string, newPassword: string) {
     if (user.roles.includes("parent")) return "/parent-dashboard";
 
     return "/login";
-  }
-
-  redirectToDashboardIfLoggedIn(): void {
-    if (!this._ready) return;
-    if (this.isAuthenticated()) {
-      const route = this.getDashboardRoute();
-      if (window.location.pathname !== route) {
-        window.location.href = route;
-      }
-    }
   }
 }
 

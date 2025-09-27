@@ -61,7 +61,7 @@ export function StudentRole({ user }: StudentRoleProps) {
   const loadInitialData = useCallback(async () => {
     const userId = user.user_id;
     try {
-      const [enrolls, evals, total, reviews] = await Promise.all([
+      const [enrolls, evals, total] = await Promise.all([
         getEnrollmentsByStudentId(userId),
         fetchEvaluationsOfStudent(userId),
         fetchSummaryAndCounts(userId),
@@ -86,7 +86,7 @@ export function StudentRole({ user }: StudentRoleProps) {
         setStudentEvaluations(
           evals.map((ev: any) => ({
             ...ev,
-            evaluation_date: formatDate(ev.evaluation_date),
+            date: formatDate(ev.date),
           }))
         );
       } else {
@@ -394,7 +394,7 @@ export function StudentRole({ user }: StudentRoleProps) {
                       <TableCell className="text-white">{ev.teacher}</TableCell>
                       <TableCell className="text-white">{ev.type}</TableCell>
                       <TableCell className="text-white">{ev.content}</TableCell>
-                      <TableCell className="text-white">{ev.evaluation_date}</TableCell>
+                      <TableCell className="text-white">{ev.date}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -22,7 +22,8 @@ import {
   getStudentsInClass,
   Student,
 } from "../services/api/class";
-import { toast } from "react-hot-toast"; 
+import { toast } from "react-hot-toast";
+import { useAuth } from "./AuthContext"; // <-- guard auth
 
 interface ClassContextType {
   classes: Class[];
@@ -44,7 +45,10 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-    const fetchStudentsInClass = useCallback(async (classId: number) => {
+  // auth guard
+  const { loading: authLoading, isAuthenticated } = useAuth();
+
+  const fetchStudentsInClass = useCallback(async (classId: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -53,7 +57,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       return students;
     } catch (err: any) {
       setLoading(false);
-      const msg = err.message || "Không thể tải danh sách học sinh của lớp.";
+      const msg = err?.message || "Không thể tải danh sách học sinh của lớp.";
       setError(msg);
       toast.error(msg);
       throw new Error(msg);
@@ -66,9 +70,9 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       const data = await getClasses();
-      setClasses(data);
+      setClasses(data ?? []);
     } catch (err: any) {
-      const msg = err.message || "Không thể tải danh sách lớp học";
+      const msg = err?.message || "Không thể tải danh sách lớp học";
       setError(msg);
       toast.error(msg);
     } finally {
@@ -83,7 +87,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       toast.success("Tạo lớp học thành công 🎉");
       return newClass;
     } catch (err: any) {
-      const msg = err.message || "Không thể tạo lớp học";
+      const msg = err?.message || "Không thể tạo lớp học";
       toast.error(msg);
       throw new Error(msg);
     }
@@ -96,7 +100,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       toast.success("Cập nhật lớp học thành công ✅");
       return updated;
     } catch (err: any) {
-      const msg = err.message || "Không thể cập nhật lớp học";
+      const msg = err?.message || "Không thể cập nhật lớp học";
       toast.error(msg);
       throw new Error(msg);
     }
@@ -108,7 +112,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       setClasses((prev) => prev.filter((c) => c.class_id !== id));
       toast.success("Xóa lớp học thành công 🗑️");
     } catch (err: any) {
-      const msg = err.message || "Không thể xóa lớp học";
+      const msg = err?.message || "Không thể xóa lớp học";
       toast.error(msg);
       throw new Error(msg);
     }
@@ -128,7 +132,7 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       return data;
     } catch (err: any) {
       setLoading(false);
-      const msg = err.message || "Không thể tải danh sách lớp học của giáo viên.";
+      const msg = err?.message || "Không thể tải danh sách lớp học của giáo viên.";
       setError(msg);
       toast.error(msg);
       throw new Error(msg);
@@ -140,16 +144,33 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
       await exportClass(id);
       toast.success("Xuất danh sách lớp thành công 📂");
     } catch (err: any) {
-      const msg = err.message || "Không thể xuất danh sách lớp";
+      const msg = err?.message || "Không thể xuất danh sách lớp";
       toast.error(msg);
       throw new Error(msg);
     }
   }, []);
 
-  // gọi 1 lần khi provider mount
+  // ---------- AUTH GUARD ----------
+  // Chỉ fetch classes khi auth đã init xong (authLoading === false)
+  // và user đã authenticated.
+  // Nếu auth init xong nhưng chưa authenticated -> clear classes & don't fetch.
   useEffect(() => {
+    // nếu auth còn đang init, không làm gì
+    if (authLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      // nếu chưa login thì clear data tránh hiển thị cũ / gọi API
+      setClasses([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // auth sẵn sàng và có user -> an toàn để fetch
     fetchClasses();
-  }, [fetchClasses]);
+  }, [authLoading, isAuthenticated, fetchClasses]);
 
   const value = useMemo(
     () => ({

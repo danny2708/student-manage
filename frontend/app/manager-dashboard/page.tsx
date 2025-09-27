@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import dynamic from "next/dynamic"
-import { useAuth } from "../../src/hooks/useAuth"
+import { useAuth } from "../../src/contexts/AuthContext"
 import type { LoginResponse } from "../../src/services/api/auth"
 
 import {
@@ -18,11 +18,10 @@ import { CreateModal } from "./showInfo/create_modal"
 import { ShowInfoModal } from "./showInfo/ShowInfoModal"
 import { UserAccountModal } from "../user_account"
 import { RoleModal } from "./users_management/roles-components/RoleModal"
-
 import DashboardContent from "./dashboard_components/DashboardContent"
 
 // ⚡ Lazy-load các component quản lý
-const UserManagement = dynamic(() => import("./dashboard_components/user/UserManagement"), { ssr: false, loading: () => <p>Loading...</p> })
+const UserManagement = dynamic(() => import("./dashboard_components/users/UserManagement"), { ssr: false, loading: () => <p>Loading...</p> })
 const TuitionManagement = dynamic(() => import("./dashboard_components/tuition/TuitionManagement"), { ssr: false, loading: () => <p>Loading...</p> })
 const ScheduleManagement = dynamic(() => import("./dashboard_components/schedule/ScheduleManagement"), { ssr: false, loading: () => <p>Loading...</p> })
 const PayrollManagement = dynamic(() => import("./dashboard_components/payroll/PayrollManagement"), { ssr: false, loading: () => <p>Loading...</p> })
@@ -33,6 +32,7 @@ const SubjectManagement = dynamic(() => import("./dashboard_components/SubjectMa
 
 export default function ManagerDashboard() {
   const { user } = useAuth() as { user: LoginResponse | null }
+  const { logout } = useAuth();
   const router = useRouter()
 
   const [activeSection, setActiveSection] = useState("dashboard")
@@ -64,9 +64,9 @@ export default function ManagerDashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    router.push("/login")
-  }
+    logout();
+    router.replace("/login");
+  };
 
   const updateSearchTerm = (section: string, value: string) => {
     setSearchTerms((prev) => ({ ...prev, [section]: value }))

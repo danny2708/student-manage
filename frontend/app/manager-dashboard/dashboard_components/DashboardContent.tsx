@@ -65,7 +65,7 @@ export default function DashboardContent() {
   }
 return (
   <>
-    <style jsx>{`
+    <style>{`
       .stat-card-emerald {
         background: #10b981 !important;
         color: white !important;

@@ -10,7 +10,7 @@ import { CreateScheduleForm } from "./CreateScheduleForm";
 import { Input } from "../../../../components/ui/input";
 import { ConfirmModal } from "../../../../components/common/ConfirmModal";
 import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
-import { useAuth } from "../../../../src/hooks/useAuth";
+import { useAuth } from "../../../../src/contexts/AuthContext";
 
 // Tên các filter/cột cho popover
 type FilterKey = "class" | "day" | "room" | "date" | "type" | "start" | "end";

@@ -6,7 +6,7 @@ import ReactDOM from "react-dom";
 import { BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClasses } from "../../../../src/contexts/ClassContext";
-import { useAuth } from "../../../../src/hooks/useAuth";
+import { useAuth } from "../../../../src/contexts/AuthContext";
 import { ActionModal } from "../../showInfo/action_modal";
 import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
 import { CreateClassForm } from "./CreateClassForm";

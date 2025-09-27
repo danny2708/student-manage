@@ -28,7 +28,7 @@ interface ShowInfoModalProps {
   onClose: () => void;
   onUpdated: () => Promise<void>;
   extraActions?: React.ReactNode;
-  userRoles?: string[]; // expected as string[] of role names
+  userRoles?: string[];
 }
 
 export function ShowInfoModal({
@@ -52,7 +52,7 @@ export function ShowInfoModal({
   const isTeacher = !!userRoles?.includes("teacher");
   const isStudent = !!userRoles?.includes("student");
 
-  // convert date trước khi render
+  // convert date trước khi render form
   useEffect(() => {
     if (type === "schedule") {
       const s = data as Schedule;
@@ -91,18 +91,32 @@ export function ShowInfoModal({
         });
       } else if (type === "payroll") {
         const p = editedData as Payroll;
+        
         const updatedMonth =
-          p.month !== undefined && p.month !== null
-            ? Number(p.month)
-            : new Date(p.sent_at).getMonth();
+            p.month !== undefined && p.month !== null
+                ? Number(p.month)
+                : new Date(p.sent_at).getMonth() + 1;
+
+        let sentAtISO: string;
+        try {
+            const dateObj = new Date(p.sent_at);
+            if (isNaN(dateObj.getTime())) {
+                throw new Error("Invalid Date"); 
+            }
+            sentAtISO = dateObj.toISOString();
+        } catch (error) {
+            console.warn("Invalid sent_at value. Using current date as fallback.");
+            sentAtISO = new Date().toISOString(); 
+        }
+
         await editPayroll(p.id, {
-          month: updatedMonth,
-          total_base_salary: Number((p as any).total_base_salary ?? 0),
-          reward_bonus: Number((p as any).reward_bonus ?? 0),
-          sent_at: new Date(p.sent_at).toISOString(),
-          status: p.status,
+            month: updatedMonth,
+            total_base_salary: Number(p.base_salary ?? 0), 
+            reward_bonus: Number(p.bonus ?? 0),
+            sent_at: sentAtISO, 
+            status: p.status,
         });
-      } else if (type === "class") {
+    } else if (type === "class") {
         const c = editedData as Class;
         const classPayload: ClassUpdate = {
           class_name: c.class_name,
@@ -154,13 +168,37 @@ export function ShowInfoModal({
     }
 
     if (type === "tuition")
-      return <TuitionInfoForm data={editedData as Tuition} onInputChange={handleInputChange} disabled={disabled} />;
+      return (
+        <TuitionInfoForm
+          data={editedData as Tuition}
+          onInputChange={handleInputChange}
+          disabled={disabled}
+        />
+      );
     if (type === "payroll")
-      return <PayrollInfoForm data={editedData as Payroll} onInputChange={handleInputChange} disabled={disabled} />;
+      return (
+        <PayrollInfoForm
+          data={editedData as Payroll}
+          onInputChange={handleInputChange}
+          disabled={disabled}
+        />
+      );
     if (type === "class")
-      return <ClassInfoForm data={editedData as Class} onInputChange={handleInputChange} disabled={disabled} />;
+      return (
+        <ClassInfoForm
+          data={editedData as Class}
+          onInputChange={handleInputChange}
+          disabled={disabled}
+        />
+      );
     if (type === "schedule")
-      return <ScheduleInfoForm data={editedData as Schedule} onInputChange={handleInputChange} disabled={disabled} />;
+      return (
+        <ScheduleInfoForm
+          data={editedData as Schedule}
+          onInputChange={handleInputChange}
+          disabled={disabled}
+        />
+      );
     return <div className="text-white">No information to display.</div>;
   };
 
@@ -181,42 +219,47 @@ export function ShowInfoModal({
       </button>
 
       <h2 className="text-xl font-bold mb-4 text-center">
-        {type === "tuition" ? "Tuition " : type === "payroll" ? "Payroll " : type === "class" ? "Class " : "Schedule "}
-        details{" "}
+        {type === "tuition"
+          ? "Tuition "
+          : type === "payroll"
+          ? "Payroll "
+          : type === "class"
+          ? "Class "
+          : "Schedule "}
+        details
       </h2>
 
       {renderContent()}
 
-      <div className="flex justify-center mt-6 space-x-3">
-        {/* Manager: full quyền save */}
-        {isManager && (
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
-          >
-            {isSaving ? "Saving..." : "Saved"}
-          </button>
-        )}
+      {/* Save button cho tất cả loại, theo phân quyền */}
+      {["class", "schedule", "tuition", "payroll"].includes(type) && (
+        <div className="flex justify-center mt-6 space-x-3">
+          {isManager && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          )}
 
-        {/* Teacher: chỉ lưu nếu đang ở schedule */}
-        {isTeacher && type === "schedule" && (
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
-          >
-            {isSaving ? "Saving..." : "Saved"}
-          </button>
-        )}
+          {isTeacher && type === "schedule" && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          )}
+        </div>
+      )}
 
-        {/* Extra actions: hiển thị nếu có và user là manager hoặc teacher */}
-        {extraActions && (isManager || isTeacher) ? (
-          <div className="ml-2">
-            {extraActions}
-          </div>
-        ) : null}
-      </div>
+      {/* Extra actions */}
+      {extraActions && (isManager || isTeacher) ? (
+        <div className="mt-3 text-center">{extraActions}</div>
+      ) : null}
     </motion.div>
   );
 }

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../src/hooks/useAuth";
+import { useAuth } from "../../src/contexts/AuthContext";
 import type { LoginResponse } from "../../src/services/api/auth";
 import { toast } from "react-hot-toast";
 
@@ -45,6 +45,7 @@ const AttendanceManagement = dynamic(
 
 export default function TeacherDashboard() {
   const { user } = useAuth() as { user: LoginResponse | null };
+  const { logout } = useAuth();
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<string>("dashboard");
@@ -88,8 +89,8 @@ export default function TeacherDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+    logout();
+    router.replace("/login");
   };
 
   const stats: TeacherStats = {

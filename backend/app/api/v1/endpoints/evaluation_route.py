@@ -273,4 +273,4 @@ def get_evaluations_of_teacher(
             detail=f"Giáo viên có ID {teacher_user_id} không tồn tại."
         )
 
-    return evaluation_crud.get_evaluations_by_teacher_id(db, teacher_user_id)
+    return evaluation_crud.get_evaluations_by_teacher_user_id(db, teacher_user_id)

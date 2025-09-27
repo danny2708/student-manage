@@ -4,7 +4,7 @@ import * as React from "react";
 import { Filter } from "lucide-react";
 import { useEvaluations } from "../../../src/hooks/useEvaluation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../../src/hooks/useAuth";
+import { useAuth } from "../../../src/contexts/AuthContext";
 import { Input } from "../../../components/ui/input";
 
 interface EvaluationManagementProps {

@@ -1,81 +1,171 @@
-"use client"
+// src/contexts/AuthContext.tsx
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import authService from "../services/authService"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import authService from "../services/authService";
 
+/** Local user shape */
 interface User {
-  user_id: number
-  username: string
-  email: string
-  full_name: string
-  roles: string[]
-  date_of_birth?: string
-  gender?: string
-  phone_number?: string
+  user_id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  roles: string[];
+  date_of_birth?: string;
+  gender?: string;
+  phone_number?: string;
 }
 
 interface AuthContextType {
-  user: User | null
-  isAuthenticated: boolean
-  login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>
-  logout: () => void
-  loading: boolean
-  hasAnyRole: (roles: string[]) => boolean
+  user: User | null;
+  isAuthenticated: boolean;
+  loading: boolean; // true while auth init / login in progress
+  login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; user?: User | null; error?: string }>;
+  logout: () => void;
+  hasAnyRole: (roles: string[]) => boolean;
+  refresh: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error("useAuth must be used within AuthProvider")
-  return context
-}
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+};
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(authService.user as User | null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>((authService as any).user ?? null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Ép kiểu (as User | null) để khớp với useState
-    setUser(authService.user as User | null)
-    setLoading(false)
-  }, [])
+    let mounted = true;
+
+    (async () => {
+      setLoading(true);
+      try {
+        if (typeof (authService as any).init === "function") {
+          await (authService as any).init();
+        }
+      } catch (err) {
+        console.error("authService.init() failed:", err);
+      } finally {
+        if (!mounted) return;
+        setUser((authService as any).user ?? null);
+        setLoading(false);
+      }
+    })();
+
+    // ---- Event Handlers ----
+    const handleAuthUpdate = () => {
+      try {
+        (authService as any).reloadFromStorage?.();
+      } catch (err) {
+        console.error("reloadFromStorage error:", err);
+      }
+      setUser((authService as any).user ?? null);
+      setLoading(false);
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      const relevantKeys = ["app_auth_event", "access_token", "user"];
+      if (!relevantKeys.includes(e.key)) return;
+      handleAuthUpdate();
+    };
+
+    const onFocus = async () => {
+      try {
+        await (authService as any).init?.();
+      } catch {
+        /* ignore */
+      }
+      setUser((authService as any).user ?? null);
+      setLoading(false);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        onFocus();
+      }
+    };
+
+    // ---- Attach listeners ----
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // BroadcastChannel support (faster than storage)
+    const bc: BroadcastChannel | null =
+      typeof window !== "undefined" && "BroadcastChannel" in window
+        ? new BroadcastChannel("app_auth_channel")
+        : null;
+
+    const onBc = () => handleAuthUpdate();
+    bc?.addEventListener("message", onBc);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      bc?.removeEventListener("message", onBc);
+      bc?.close();
+    };
+  }, []);
 
   const login = async (credentials: { username: string; password: string }) => {
-    const result = await authService.login(credentials)
-    if (result.success) {
-      // Ép kiểu (as User) để đảm bảo khớp với state User
-      setUser(result.user as User)
+    setLoading(true);
+    try {
+      const res = await authService.login(credentials);
+      if (res.success) {
+        setUser((authService as any).user ?? (res.user ?? null));
+        setLoading(false);
+        return { success: true, user: (authService as any).user ?? (res.user ?? null) };
+      } else {
+        setUser(null);
+        setLoading(false);
+        return { success: false, error: res.error || "Login failed" };
+      }
+    } catch (err: any) {
+      setUser(null);
+      setLoading(false);
+      return { success: false, error: err?.message || "Login failed" };
     }
-    return result
-  }
+  };
 
   const logout = () => {
-    authService.logout()
-    setUser(null)
-  }
+    try {
+      authService.logout();
+    } catch (e) {
+      console.error("logout error:", e);
+    }
+    setUser(null);
+  };
 
-  const hasAnyRole = (requiredRoles: string[]): boolean => {
-    if (!user) return false
-    return requiredRoles.some(role => user.roles.includes(role))
-  }
+  const hasAnyRole = (requiredRoles: string[]) => {
+    if (!user) return false;
+    return requiredRoles.some((r) => user.roles.includes(r));
+  };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        loading,
-        hasAnyRole,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
+  const refresh = async () => {
+    await (authService as any).init?.();
+    setUser((authService as any).user ?? null);
+  };
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !loading && !!user && !!(authService as any).token,
+    loading,
+    login,
+    logout,
+    hasAnyRole,
+    refresh,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

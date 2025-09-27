@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Star, Filter, Calendar as CalendarIcon } from "lucide-react";
 import { useTeacherReviews } from "../../../src/hooks/useTeacherReview";
-import { useAuth } from "../../../src/hooks/useAuth";
+import { useAuth } from "../../../src/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../../../components/ui/input";
 

@@ -98,7 +98,7 @@ def get_all_evaluations_with_names(db: Session, skip: int = 0, limit: int = 100)
     return evaluations_list
 
 
-def get_evaluations_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, limit: int = 100) -> List[EvaluationView]:
+def get_evaluations_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100) -> List[EvaluationView]:
     """
     Lấy các evaluations do một giáo viên cụ thể tạo, bao gồm tên học sinh.
     """
@@ -115,7 +115,7 @@ def get_evaluations_by_teacher_id(db: Session, teacher_id: int, skip: int = 0, l
         .select_from(
             join(Evaluation, student_user, Evaluation.student_user_id == student_user.c.user_id)
         )
-        .where(Evaluation.teacher_user_id == teacher_id)
+        .where(Evaluation.teacher_user_id == teacher_user_id)
         .offset(skip)
         .limit(limit)
     )
