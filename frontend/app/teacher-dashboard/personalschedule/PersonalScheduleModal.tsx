@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, List, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, List, Clock, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BaseModal } from "../../../components/ui/base-modal";
 import { BaseButton } from "../../../components/ui/base-button";
@@ -22,6 +22,7 @@ interface ScheduleItem {
   students?: number;
   originalScheduleId?: number | string;
   scheduleType?: string; // "ONCE" | "WEEKLY" (uppercased)
+  color?: string; // Thêm color để tương thích với CalendarWeekView
 }
 
 interface PersonalScheduleModalProps {
@@ -78,19 +79,22 @@ const getStartOfWeek = (date = new Date()) => {
 const weekdayToIndex = (raw?: any): number | null => {
   if (raw === null || raw === undefined) return null;
   if (typeof raw === "number") {
+    // Nếu API trả về 1-7 (1=T2, 7=CN)
     if (raw >= 1 && raw <= 7) return raw === 7 ? 0 : raw;
+    // Nếu API trả về 0-6 (0=CN, 1=T2)
     if (raw >= 0 && raw <= 6) return raw;
     return null;
   }
   const s = String(raw).trim().toLowerCase();
   if (!s) return null;
-  if (/^su(n(day)?)?/.test(s)) return 0;
-  if (/^mo(n(day)?)?/.test(s)) return 1;
-  if (/^tu(e(day)?)?/.test(s)) return 2;
-  if (/^we(d(nesday)?)?/.test(s)) return 3;
-  if (/^th(u|ursday)?/.test(s)) return 4;
-  if (/^fr(i(day)?)?/.test(s)) return 5;
-  if (/^sa(t(urday)?)?/.test(s)) return 6;
+  // Chuẩn hóa sang định dạng Date.getDay() (0=CN, 1=T2, ..., 6=T7)
+  if (/^su(n(day)?)?/.test(s) || s === "7") return 0;
+  if (/^mo(n(day)?)?/.test(s) || s === "1") return 1;
+  if (/^tu(e(day)?)?/.test(s) || s === "2") return 2;
+  if (/^we(d(nesday)?)?/.test(s) || s === "3") return 3;
+  if (/^th(u|ursday)?/.test(s) || s === "4") return 4;
+  if (/^fr(i(day)?)?/.test(s) || s === "5") return 5;
+  if (/^sa(t(urday)?)?/.test(s) || s === "6") return 6;
   const num = Number(s);
   if (!Number.isNaN(num)) return weekdayToIndex(num);
   return null;
@@ -117,6 +121,8 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
 
   const referenceDate = useMemo(() => addDays(new Date(), weekOffset * 7), [weekOffset]);
   const startOfWeek = useMemo(() => getStartOfWeek(referenceDate), [referenceDate]);
+  
+  // Chỉ lấy 7 ngày của tuần đang xem
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => toYMD(addDays(startOfWeek, i))), [startOfWeek]);
 
   // Filters: room, class_name, schedule_type (ONCE / WEEKLY)
@@ -138,13 +144,15 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
     const result: ScheduleItem[] = [];
     const seen = new Set<string>();
 
-    // list range relative to reference date (startOfWeek) to cover future days from selected week
-    const LIST_RANGE_DAYS = 28;
-    const listRangeDates = Array.from({ length: LIST_RANGE_DAYS }).map((_, i) => toYMD(addDays(referenceDate, i)));
-
-    // union dates to check (week dates + list range)
-    const datesToCheckSet = new Set<string>([...weekDates, ...listRangeDates]);
-    const datesToCheck = Array.from(datesToCheckSet).sort();
+    // *** LOGIC CẬP NHẬT: Mở rộng phạm vi kiểm tra ngày cho lịch tuần ***
+    // Nếu ở chế độ week/day, chỉ kiểm tra tuần hiện tại (7 ngày).
+    // Nếu ở chế độ list, kiểm tra 4 tuần (28 ngày) kể từ đầu tuần hiện tại.
+    const DATES_TO_CHECK_COUNT = currentView === "list" ? 28 : 7; 
+    
+    // Bắt đầu từ ngày đầu tuần hiện tại
+    const datesToCheck = Array.from({ length: DATES_TO_CHECK_COUNT })
+        .map((_, i) => toYMD(addDays(startOfWeek, i)))
+        .sort();
 
     for (const s of schedules as any[]) {
       const originalId = s.id ?? s.schedule_id ?? s.class_id ?? Math.random().toString();
@@ -158,29 +166,30 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       const students = s.students ?? null;
 
       const scheduleType = (s.schedule_type ?? (s.type ?? "WEEKLY")).toString().toUpperCase();
-      const onceDateRaw = s.date ?? s.once_date ?? null; // could be dd/mm/yyyy or yyyy-mm-dd
+      const onceDateRaw = s.date ?? s.once_date ?? null; 
       const dayOfWeekRaw = s.day_of_week ?? s.day ?? s.weekday ?? s.week ?? null;
-      const dayIndex = weekdayToIndex(dayOfWeekRaw);
+      const dayIndex = weekdayToIndex(dayOfWeekRaw); // 0=Sun, 1=Mon, ..., 6=Sat
 
       for (const dateStr of datesToCheck) {
         let occurs = false;
+        const parsedDate = parseYMD(dateStr)!;
 
-        // ONCE: if onceDateRaw provided (accept dd/mm/yyyy too)
+        // 1. ONCE: match by exact date
         if ((scheduleType === "ONCE" || onceDateRaw) && onceDateRaw) {
-          // normalize onceDateRaw to yyyy-mm-dd
-          let parsedDate = parseYMD(String(onceDateRaw));
-          if (!parsedDate && typeof onceDateRaw === "number") {
-            parsedDate = new Date(Number(onceDateRaw));
+          let parsedOnceDate = parseYMD(String(onceDateRaw));
+          if (!parsedOnceDate && typeof onceDateRaw === "number") {
+            parsedOnceDate = new Date(Number(onceDateRaw));
           }
-          const onceStr = parsedDate ? toYMD(parsedDate) : null;
+          const onceStr = parsedOnceDate ? toYMD(parsedOnceDate) : null;
           if (onceStr === dateStr) occurs = true;
         }
 
-        // WEEKLY: match weekday if not already occurred (ONCE precedence)
+        // 2. WEEKLY: match by weekday
+        // Logic này đảm bảo các sự kiện WEEKLY sẽ được tạo ra cho các tuần tiếp theo
         if (!occurs && scheduleType === "WEEKLY") {
           if (dayIndex !== null) {
-            const parsed = parseYMD(dateStr)!;
-            if (parsed.getDay() === dayIndex) occurs = true;
+            // Lấy Day Index của ngày đang kiểm tra (0=Sun, 1=Mon,...)
+            if (parsedDate.getDay() === dayIndex) occurs = true;
           }
         }
 
@@ -200,6 +209,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               subject,
               students,
               scheduleType,
+              color: s.color ?? undefined, // Thêm color nếu có
             });
           }
         }
@@ -213,7 +223,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
     });
 
     return result;
-  }, [schedules, weekDates, referenceDate]);
+  }, [schedules, startOfWeek, currentView]); // Thêm startOfWeek và currentView vào dependencies
 
   // derive unique options for selects from schedules (rooms, class_names, schedule types)
   const rooms = useMemo(() => {
@@ -312,7 +322,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       return <CalendarDayView schedules={dayEvents} onEventClick={(e) => setSelectedEvent(e as ScheduleItem)} date={day} />;
     }
 
-    // list view: occurrences already cover the list range relative to reference
+    // list view: occurrences already cover the list range relative to startOfWeek (28 days)
     const listEvents = [...occurrences];
     return <CalendarListView schedules={listEvents} onEventClick={(e) => setSelectedEvent(e as ScheduleItem)} />;
   };
@@ -449,7 +459,6 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       <BaseModal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Class Details" size="md">
         {selectedEvent && (
           <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
-            <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Class Name</label>
@@ -476,14 +485,17 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Room</label>
-                <p className="text-lg">{selectedEvent.room}</p>
+                <p className="text-lg flex items-center gap-1">{selectedEvent.room} {selectedEvent.room && <MapPin className="h-4 w-4 text-primary" />}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Students</label>
                 <p className="text-lg">{selectedEvent.students ?? "N/A"}</p>
               </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Type</label>
+                <p className="text-lg">{selectedEvent.scheduleType}</p>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </BaseModal>
