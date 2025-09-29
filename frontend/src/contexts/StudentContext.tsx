@@ -8,6 +8,8 @@ import {
   Enrollment,
   EvaluationSummary,
   TeacherReview,
+  StudentStats,
+  getStudentStats as apiGetStudentStats,
 } from "../services/api/student";
 
 import {
@@ -20,6 +22,7 @@ interface StudentContextType {
   fetchTotalScoreByStudent: (studentUserId: number) => Promise<EvaluationSummary | undefined>;
   getReviewsByStudentId: (studentUserId: number) => Promise<TeacherReview[] | undefined>;
   getEvaluationsByStudentId: (studentUserId: number) => Promise<EvaluationView[] | undefined>;
+  fetchStudentStats: (studentUserId: number) => Promise<StudentStats | undefined>;
 }
 
 const StudentContext = createContext<StudentContextType | undefined>(undefined);
@@ -74,6 +77,15 @@ export const StudentProvider = ({ children }: { children: React.ReactNode }) => 
     }
   }, [formatDate]);
 
+  const fetchStudentStats = useCallback(async (studentUserId: number) => {
+    try {
+        const stats = await apiGetStudentStats(studentUserId);
+        return stats;
+    } catch (err) {
+        console.error(`Error fetching student stats for ID ${studentUserId}:`, err);
+    }
+  }, []);  
+
   return (
     <StudentContext.Provider
       value={{
@@ -81,6 +93,7 @@ export const StudentProvider = ({ children }: { children: React.ReactNode }) => 
         fetchTotalScoreByStudent,
         getReviewsByStudentId,
         getEvaluationsByStudentId,
+        fetchStudentStats,
       }}
     >
       {children}

@@ -267,7 +267,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
             <h3 className="text-lg font-semibold">Attendance — {safe(schedule?.class_name)}</h3>
             <div className="flex items-center gap-2">
               <div className="text-sm text-gray-300">Date: {safe(date)}</div>
-              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-700 text-white">
+              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-700 text-white cursor-pointer">
                 Close
               </button>
             </div>
@@ -315,7 +315,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                             <div className="flex items-center gap-2">
                               {modalData.mode === "edit" ? (
                                 rec.status === "present" ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded bg-green-600 text-white">
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded bg-green-600 text-white cursor-pointer">
                                     ✓ Present
                                   </span>
                                 ) : rec.attendance_id && orig?.status === "absent" ? (
@@ -326,7 +326,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600"
+                                    className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
                                   >
                                     Late
                                   </button>
@@ -338,7 +338,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className="px-3 py-1 rounded bg-white/5 text-white"
+                                    className="px-3 py-1 rounded bg-white/5 text-white cursor-pointer"
                                   >
                                     Present
                                   </button>
@@ -352,7 +352,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className={`px-3 py-1 rounded ${
+                                    className={`px-3 py-1 rounded cursor-pointer${
                                       rec.status === "present"
                                         ? "bg-green-600 text-white"
                                         : "bg-white/5 text-white"
@@ -367,7 +367,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className={`px-3 py-1 rounded ${
+                                    className={`px-3 py-1 rounded cursor-pointer${
                                       rec.status === "absent"
                                         ? "bg-red-600 text-white"
                                         : "bg-white/5 text-white"
@@ -403,7 +403,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                     }
                     setRecordsMap(newMap);
                   }}
-                  className="px-3 py-1 bg-white/5 rounded text-white"
+                  className="px-3 py-1 bg-white/5 rounded text-white hover:bg-white/10 cursor-pointer"
                 >
                   Mark all present
                 </button>
@@ -411,10 +411,10 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                 <button
                   onClick={handleSubmit}
                   disabled={!allMarked || submitting}
-                  className={`px-4 py-2 rounded ${
+                  className={`px-4 py-2 rounded${
                     !allMarked || submitting
                       ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                      : "bg-cyan-500 hover:bg-cyan-600 text-white"
+                      : "bg-cyan-500 hover:bg-cyan-600 text-white cursor-pointer"
                   }`}
                 >
                   {submitting ? "Submitting..." : "Submit"}

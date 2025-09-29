@@ -105,7 +105,7 @@ export default function AttendanceManagement() {
                   </div>
                   <button
                     onClick={() => handleOpenForSchedule(s)}
-                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded"
+                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded cursor-pointer"
                   >
                     Take attendance
                   </button>
@@ -144,9 +144,9 @@ export default function AttendanceManagement() {
                           fetchAttendancesBySchedule(schedule.id);
                         } else toast.error("Schedule info missing.");
                       }}
-                      className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded"
+                      className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded cursor-pointer"
                     >
-                      View / Edit
+                      Edit
                     </button>
                   </div>
                 );

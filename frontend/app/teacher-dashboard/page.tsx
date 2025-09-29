@@ -8,8 +8,8 @@ import { useAuth } from "../../src/contexts/AuthContext";
 import type { LoginResponse } from "../../src/services/api/auth";
 import { toast } from "react-hot-toast";
 
-import NotificationManagement from "./notification/NotificationManagement";
-import PersonalScheduleModal from "./personalschedule/PersonalScheduleModal";
+import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
 
 import { useTeacher } from "../../src/hooks/useTeacher";
@@ -44,8 +44,7 @@ const AttendanceManagement = dynamic(
 );
 
 export default function TeacherDashboard() {
-  const { user } = useAuth() as { user: LoginResponse | null };
-  const { logout } = useAuth();
+  const { user, logout } = useAuth() as { user: LoginResponse | null; logout: () => void };
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<string>("dashboard");
@@ -69,7 +68,10 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     if (user?.user_id) {
-      fetchTeacherStats(user.user_id);
+      fetchTeacherStats(user.user_id).catch(() => {});
+    } else {
+      // fallback: pass 0 or a default user id if user is not available
+      fetchTeacherStats?.(0).catch(() => {});
     }
   }, [fetchTeacherStats, user?.user_id]);
 
@@ -115,22 +117,22 @@ export default function TeacherDashboard() {
 
       {/* Main content */}
       <div className="flex-1 p-8 overflow-y-auto">
-        <div className="flex justify-between items-start w-full mb-6">
-          <h1 className="text-2xl font-bold flex-1 text-center">Teacher Dashboard</h1>
-          <NotificationManagement />
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowPersonalSchedule(true)}
+              className="px-3 py-2 rounded-md bg-slate-600 text-white hover:bg-slate-500 cursor-pointer"
+            >
+              My Schedule
+            </button>
+            <NotificationManagement />
+          </div>
         </div>
 
         {/* Dashboard view */}
         <div className={activeSection === "dashboard" ? "block" : "hidden"}>
           <TeacherDashboardContent stats={stats} />
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <button
-              onClick={() => setShowPersonalSchedule(true)}
-              className="px-3 py-2 bg-slate-700 text-white rounded hover:bg-slate-600"
-            >
-              Open Personal Schedule
-            </button>
-          </div>
         </div>
 
         {/* Attendance */}
@@ -157,10 +159,7 @@ export default function TeacherDashboard() {
         {/* Evaluation */}
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
-            <EvaluationManagement
-              searchTerm={searchTerms.evaluation}
-              updateSearchTerm={() => {}}
-            />
+            <EvaluationManagement searchTerm={searchTerms.evaluation} updateSearchTerm={() => {}} />
           </div>
         )}
 
@@ -174,10 +173,7 @@ export default function TeacherDashboard() {
         {/* Teacher Review */}
         {visitedSections.includes("teacher-review") && (
           <div className={activeSection === "teacher-review" ? "block" : "hidden"}>
-            <TeacherReviewManagement
-              searchTerm={searchTerms.reviews}
-              updateSearchTerm={() => {}}
-            />
+            <TeacherReviewManagement searchTerm={searchTerms.reviews} updateSearchTerm={() => {}} />
           </div>
         )}
 
@@ -189,10 +185,7 @@ export default function TeacherDashboard() {
         )}
 
         {/* Personal Schedule modal */}
-        <PersonalScheduleModal
-          open={showPersonalSchedule}
-          onClose={() => setShowPersonalSchedule(false)}
-        />
+        <PersonalScheduleModal open={showPersonalSchedule} onClose={() => setShowPersonalSchedule(false)} />
 
         {/* Account modal overlay */}
         <AnimatePresence>
@@ -226,12 +219,7 @@ export default function TeacherDashboard() {
                 className="relative w-[90vw] max-w-4xl mx-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {user && (
-                  <UserAccountModal
-                    user={user}
-                    onClose={() => setShowAccountModal(false)}
-                  />
-                )}
+                {user && <UserAccountModal user={user} onClose={() => setShowAccountModal(false)} />}
               </motion.div>
             </motion.div>
           )}

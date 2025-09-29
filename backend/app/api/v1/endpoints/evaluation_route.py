@@ -79,7 +79,7 @@ def get_evaluations_by_role(
     elif "teacher" in current_user.roles:
         # Nếu là teacher, chỉ trả về evaluations của chính họ
         teacher_id = current_user.user_id
-        return evaluation_crud.get_evaluations_by_teacher_id(db, teacher_id, skip=skip, limit=limit)
+        return evaluation_crud.get_evaluations_by_teacher_user_id(db, teacher_id, skip=skip, limit=limit)
     
     else:
         raise HTTPException(

@@ -35,11 +35,18 @@ export default function EvaluationManagement({
   updateSearchTerm,
 }: EvaluationManagementProps) {
   const { evaluations, loading, error, fetchAllEvaluations } = useEvaluations();
-  const { user } = useAuth?.() ?? { user: null };
+  const { user } = useAuth();
 
-  React.useEffect(() => {
-    fetchAllEvaluations();
+    React.useEffect(() => {
+    fetchAllEvaluations()
+      .then(() => {
+        console.log("Evaluations fetched successfully");
+      })
+      .catch((err) => {
+        console.error("Error fetching evaluations:", err);
+      });
   }, [fetchAllEvaluations]);
+
 
   // === LOCAL search state to ensure immediate typing feedback ===
   const [localSearch, setLocalSearch] = React.useState<string>(searchTerm ?? "");

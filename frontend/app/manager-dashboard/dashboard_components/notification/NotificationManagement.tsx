@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { Bell, Check, X, Clock, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useNotifications } from "../../../src/hooks/useNotification";
-import { BaseButton } from "../../../components/ui/base-button";
-import { cn } from "../../../src/lib/utils";
-import type { Notification } from "../../../src/services/api/notification";
+import { useNotifications } from "../../../../src/hooks/useNotification";
+import { BaseButton } from "../../../../components/ui/base-button";
+import { cn } from "../../../../src/lib/utils";
+import type { Notification } from "../../../../src/services/api/notification";
 
 export default function NotificationManagement() {
   const { notifications, loading, error, fetchNotifications, markAsRead } = useNotifications();
@@ -60,10 +60,10 @@ export default function NotificationManagement() {
     <div className="relative">
       <button
         onClick={() => setOpen((s) => !s)}
-        className="relative p-3 rounded-xl hover:bg-accent/50 transition-all duration-200 group"
+        className="relative p-3 rounded-xl hover:bg-accent/50 transition-all duration-200 group cursor-pointer"
         aria-label="Notifications"
       >
-        <Bell className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        <Bell className="w-6 h-6 group-hover:scale-110 transition-transform cursor-pointer" />
         {unreadCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
@@ -116,7 +116,7 @@ export default function NotificationManagement() {
                       )}
                       <button
                         onClick={() => setOpen(false)}
-                        className="p-1 rounded-lg hover:bg-accent/50 transition-colors"
+                        className="p-1 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
                         aria-label="Close notifications"
                       >
                         <X className="h-4 w-4" />
@@ -130,7 +130,7 @@ export default function NotificationManagement() {
                         key={filterType}
                         onClick={() => setFilter(filterType)}
                         className={cn(
-                          "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200",
+                          "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer",
                           filter === filterType
                             // Active tab: darker blue background to indicate selected
                             ? "bg-blue-700 text-white shadow-sm dark:bg-slate-700 dark:text-white"
@@ -230,7 +230,7 @@ export default function NotificationManagement() {
                 </div>
 
                 {filteredNotifications.length > 0 && (
-                  <div className="p-3 border-t border-border/50 text-center bg-white dark:bg-slate-800">
+                  <div className="p-3 border-t border-border/50 text-center bg-white dark:bg-slate-800 ">
                     <BaseButton variant="ghost" size="sm" className="text-sm">
                       View all notifications
                     </BaseButton>

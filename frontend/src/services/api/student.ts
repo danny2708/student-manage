@@ -34,6 +34,13 @@ export interface TeacherReview {
   review_text: string
 }
 
+export interface StudentStats {
+    classes_enrolled: number | null
+    gpa: number | null
+    study_point: number | null
+    discipline_point: number | null
+}
+
 // ===== CRUD Students =====
 export const getStudents = async (): Promise<Student[]> => {
   const res = await api.get("/students/")
@@ -78,4 +85,9 @@ export const getReviewsByStudentId = async (studentUserId: number): Promise<Teac
 export const getEvaluationsByStudent = async (studentUserId: number): Promise<EvaluationView[]> => {
   const res = await api.get(`/evaluations/student/${studentUserId}`)
   return res.data
+}
+
+export const getStudentStats = async (studentUserId: number): Promise<StudentStats> => {
+    const res = await api.get(`/students/${studentUserId}/stats`)
+    return res.data
 }

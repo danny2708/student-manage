@@ -8,6 +8,7 @@ from app.api import deps
 from app.crud import student_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import student_schema
+from app.schemas.stats_schema import StudentStats
 
 router = APIRouter()
 
@@ -65,7 +66,7 @@ def assign_student(
     "/",
     response_model=List[student_schema.Student],
     summary="Lấy danh sách tất cả học sinh",
-    dependencies=[Depends(MANAGER_OR_TEACHER)]
+    # dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_all_students(
     skip: int = 0,
@@ -122,3 +123,21 @@ def delete_student(user_id: int, db: Session = Depends(deps.get_db)):
         "deleted_at": datetime.utcnow().isoformat(),
         "status": "success"
     }
+
+@router.get(
+    "/{user_id}/stats",
+    response_model=StudentStats,
+    summary="Lấy các chỉ số thống kê của một học sinh (GPA, điểm học tập/kỷ luật, số lớp)",
+    # dependencies=[Depends(MANAGER_OR_TEACHER)] # Hoặc tùy chỉnh quyền truy cập
+)
+def get_student_stats(user_id: int, db: Session = Depends(deps.get_db)):
+    # 1. Kiểm tra học sinh tồn tại
+    db_student = student_crud.get_student(db, user_id=user_id)
+    if not db_student:
+        raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
+    
+    # 2. Lấy thống kê
+    # Vì hàm CRUD không còn là async, ta gọi trực tiếp
+    stats = student_crud.get_student_stats(db, student_user_id=user_id)
+    
+    return stats

@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, List, Clock, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BaseModal } from "../../../components/ui/base-modal";
-import { BaseButton } from "../../../components/ui/base-button";
-import { CalendarWeekView } from "../../../components/calendar/calendar-week-view";
-import { CalendarDayView } from "../../../components/calendar/calendar-day-view";
-import { CalendarListView } from "../../../components/calendar/calendar-list-view";
-import { useSchedules } from "../../../src/hooks/useSchedule";
+import { BaseModal } from "../../../../components/ui/base-modal";
+import { BaseButton } from "../../../../components/ui/base-button";
+import { CalendarWeekView } from "../../../../components/calendar/calendar-week-view";
+import { CalendarDayView } from "../../../../components/calendar/calendar-day-view";
+import { CalendarListView } from "../../../../components/calendar/calendar-list-view";
+import { useSchedules } from "../../../../src/hooks/useSchedule";
 
 interface ScheduleItem {
   id?: string;

@@ -1,13 +1,16 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import select, delete
+from sqlalchemy import func, select, delete
 from app.models.student_model import Student
 from app.schemas.student_schema import StudentUpdate, StudentCreate
 from app.models.parent_model import Parent
 from app.models.user_model import User
 from app.models.role_model import Role
 from app.models.association_tables import user_roles
-
+from app.models.test_model import Test
+from app.schemas.stats_schema import StudentStats
+from app.services.evaluation_service import summarize_end_of_semester
+from app.models.enrollment_model import Enrollment
 
 def get_student(db: Session, user_id: int) -> Optional[Student]:
     return db.execute(
@@ -104,3 +107,61 @@ def delete_student(db: Session, user_id: int):
     db.delete(db_student)
     db.commit()
     return db_student
+
+
+def calculate_gpa(db: Session, student_user_id: int) -> Optional[float]:
+    """
+    Tính điểm trung bình học tập (GPA) từ tất cả các bản ghi Test của học sinh.
+    GIẢ ĐỊNH: Model Test có trường 'score' (float) và liên kết với student_user_id.
+    """
+    # Lấy điểm trung bình của tất cả các bài kiểm tra (Test)
+    avg_score = db.execute(
+        select(func.avg(Test.score))
+        .where(Test.student_user_id == student_user_id)
+    ).scalar_one_or_none()
+    
+    return avg_score
+
+
+def get_classes_enrolled_count(db: Session, student_user_id: int) -> int:
+    student = get_student(db, student_user_id)
+    if not student:
+        return 0
+    
+    enrollment_count = db.execute(
+        select(func.count(Enrollment.class_id))
+        .where(Enrollment.student_user_id == student_user_id)
+        .where(Enrollment.enrollment_status == "active")
+    ).scalar_one_or_none()
+    
+    return enrollment_count if enrollment_count is not None else 0
+
+# Bỏ async vì không còn gọi API bất đồng bộ
+def get_student_stats(db: Session, student_user_id: int) -> StudentStats:
+    """
+    Tổng hợp các chỉ số thống kê của học sinh.
+    """
+    # 1. Tính GPA
+    gpa_result = calculate_gpa(db, student_user_id)
+
+    # 2. Đếm số lớp đã đăng ký
+    classes_count = get_classes_enrolled_count(db, student_user_id)
+
+    # 3. Lấy điểm học tập và kỷ luật bằng cách gọi hàm trực tiếp
+    evaluation_summary = summarize_end_of_semester(db, student_user_id)
+    
+    study_point = None
+    discipline_point = None
+    
+    if evaluation_summary:
+        # Lấy giá trị số nguyên từ kết quả trả về
+        study_point = 100 + evaluation_summary.get("final_study_point")
+        discipline_point = 100 + evaluation_summary.get("final_discipline_point")
+
+    return StudentStats(
+        classes_enrolled=classes_count,
+        # Làm tròn GPA để dễ hiển thị
+        gpa=round(gpa_result, 2) if gpa_result is not None else None,
+        study_point=study_point,
+        discipline_point=discipline_point,
+    )

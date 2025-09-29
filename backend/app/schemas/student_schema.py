@@ -24,4 +24,3 @@ class Student(StudentBase):
 
     class Config:
         from_attributes = True
-
