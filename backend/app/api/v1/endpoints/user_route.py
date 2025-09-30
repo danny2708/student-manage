@@ -46,7 +46,7 @@ def create_user_info(user: UserCreate, db: Session = Depends(deps.get_db)):
     "/",
     response_model=List[UserView],
     summary="Lấy danh sách tất cả người dùng",
-    dependencies=[Depends(MANAGER_OR_TEACHER)] # Chỉ manager và teacher có quyền xem
+    # dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """

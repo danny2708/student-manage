@@ -51,10 +51,11 @@ export interface ImportUsersResponse {
 }
 
 // Lấy tất cả người dùng
-export const getUsers = async (): Promise<User[]> => {
-  const res = await api.get<User[]>("/users");
+export const getUsers = async (options?: { signal?: AbortSignal }): Promise<User[]> => {
+  const res = await api.get<User[]>("/users", { signal: options?.signal });
   return res.data;
 };
+
 
 // Lấy thông tin người dùng theo ID
 export const getUserById = async (id: number): Promise<UserViewDetails> => {

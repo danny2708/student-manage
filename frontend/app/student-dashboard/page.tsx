@@ -82,7 +82,7 @@ export default function StudentDashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 cursor-pointer">
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}

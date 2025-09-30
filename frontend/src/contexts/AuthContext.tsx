@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
@@ -19,11 +18,13 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  loading: boolean; // true while auth init / login in progress
+  loading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; user?: User | null; error?: string }>;
   logout: () => void;
   hasAnyRole: (roles: string[]) => boolean;
-  refresh: () => void;
+  refresh: () => Promise<void>;
+  // NEW: expose setAuthUser to allow trusted callers to update the current user directly
+  setAuthUser: (u: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,7 +61,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     })();
 
-    // ---- Event Handlers ----
     const handleAuthUpdate = () => {
       try {
         (authService as any).reloadFromStorage?.();
@@ -94,12 +94,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // ---- Attach listeners ----
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // BroadcastChannel support (faster than storage)
     const bc: BroadcastChannel | null =
       typeof window !== "undefined" && "BroadcastChannel" in window
         ? new BroadcastChannel("app_auth_channel")
@@ -157,6 +155,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser((authService as any).user ?? null);
   };
 
+  // Expose a safe setter so other trusted providers can update current user
+  const setAuthUser = (u: User | null) => {
+    setUser(u);
+    try {
+      // persist to authService if available
+      if (typeof (authService as any).setUser === "function") {
+        (authService as any).setUser(u);
+      } else {
+        // optional fallback persist
+        if (u === null) {
+          localStorage.removeItem("user");
+        } else {
+          localStorage.setItem("user", JSON.stringify(u));
+        }
+      }
+    } catch (e) {
+      console.warn("setAuthUser: persist failed", e);
+    }
+
+    // broadcast to other tabs/listeners (and to any listeners that rely on storage event)
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("app_auth_channel");
+        bc.postMessage({ type: "auth_update", ts: Date.now() });
+        bc.close();
+      } else {
+        // fallback: trigger a storage key change (storage event will fire in other tabs)
+        localStorage.setItem("app_auth_event", String(Date.now()));
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !loading && !!user && !!(authService as any).token,
@@ -165,6 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     hasAnyRole,
     refresh,
+    setAuthUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

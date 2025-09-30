@@ -23,9 +23,9 @@ import {
   UpdatePasswordRequest,
   ImportUsersResponse,
 } from "../services/api/users";
-import { useAuth } from "./AuthContext"; // <-- guard auth
+import { useAuth } from "./AuthContext";
 
-// Interface User
+// Local (provider) user shape -- keep minimal fields used by consuming components
 export interface User {
   user_id: number;
   username: string;
@@ -34,44 +34,62 @@ export interface User {
   roles?: string[];
 }
 
-// Context type
 interface UsersContextType {
   users: User[];
   loading: boolean;
   error: string | null;
   fetchUsers: () => Promise<void>;
-  getUserDetails: (id: number) => Promise<UserViewDetails | null>;
-  addUser: (newUser: UserCreateType) => Promise<void>;
-  editUser: (id: number, data: UserUpdateType) => Promise<void>;
+  getUserDetails: (id: number) => Promise<(UserViewDetails & { roles: string[] }) | null>;
+  addUser: (newUser: UserCreateType) => Promise<User | null>;
+  editUser: (id: number, data: UserUpdateType) => Promise<User | null>;
   updatePassword: (id: number, data: UpdatePasswordRequest) => Promise<void>;
   removeUser: (id: number) => Promise<void>;
   importFromFile: (file: File) => Promise<ImportUsersResponse | null>;
 }
 
-// Tạo Context
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-// Provider
+/**
+ * Helper: normalize user object so UI can always use `.roles: string[]`
+ * The API sometimes returns `roles` and sometimes `user_roles`. This makes them consistent.
+ */
+const normalizeUser = (u: any) => {
+  if (!u) return u;
+  const roles = Array.isArray(u.roles) && u.roles.length > 0
+    ? u.roles
+    : Array.isArray(u.user_roles) && u.user_roles.length > 0
+    ? u.user_roles
+    : [];
+  return { ...u, roles };
+};
+
 export const UsersProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // auth guard from AuthContext
-  const { loading: authLoading, isAuthenticated } = useAuth();
+  // auth guard and helpers from AuthContext
+  const {
+    loading: authLoading,
+    isAuthenticated,
+    refresh,
+    user: authUser,
+    setAuthUser,
+  } = useAuth();
 
-  // Fetch all users; safe to call only when authenticated
+  // Fetch all users (safe only when authenticated)
   const fetchUsers = useCallback(async () => {
-    if (!isAuthenticated) {
-      // don't call API if not authenticated
-      return;
-    }
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
+
     try {
       const res = await getUsers();
-      setUsers(res ?? []);
+      // Normalize roles để tránh undefined
+      const normalized = (res ?? []).map((u: any) => normalizeUser(u));
+      setUsers(normalized);
     } catch (err: any) {
+      console.error("fetchUsers error:", err);
       setError(err?.message || "Failed to fetch users");
       toast.error("Không thể tải danh sách users ❌");
     } finally {
@@ -79,7 +97,7 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isAuthenticated]);
 
-  // Get user details by ID
+  // Get user details by id (no state change, returns data)
   const getUserDetails = useCallback(
     async (id: number) => {
       if (!isAuthenticated) {
@@ -88,8 +106,12 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
       }
       setLoading(true);
       try {
-        return await getUserById(id);
+        const res = await getUserById(id);
+        // normalize before returning
+        const normalized = normalizeUser(res);
+        return normalized as UserViewDetails & { roles: string[] };
       } catch (err: any) {
+        console.error("getUserDetails error:", err);
         setError(err?.message || "Failed to fetch user details");
         toast.error("Không thể tải thông tin user ❌");
         return null;
@@ -100,80 +122,120 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
     [isAuthenticated]
   );
 
-  // Create a new user
+  // Create user
   const addUser = useCallback(
     async (newUser: UserCreateType) => {
       if (!isAuthenticated) {
         toast.error("Bạn cần đăng nhập để thực hiện thao tác này.");
         throw new Error("Unauthorized");
       }
+      setLoading(true);
       try {
         const res = await createUser(newUser);
-        setUsers((prev) => [...prev, res]);
+        const normalized = normalizeUser(res);
+        setUsers((prev) => [...prev, normalized]);
         toast.success("Thêm user thành công 🎉");
+        return normalized;
       } catch (err: any) {
+        console.error("addUser error:", err);
         setError(err?.message || "Failed to create user");
         toast.error("Thêm user thất bại ❌");
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
     [isAuthenticated]
   );
 
-  // Update a user
+  // Update user
   const editUser = useCallback(
     async (id: number, data: UserUpdateType) => {
       if (!isAuthenticated) {
         toast.error("Bạn cần đăng nhập để thực hiện thao tác này.");
         throw new Error("Unauthorized");
       }
+      setLoading(true);
       try {
         const res = await updateUser(id, data);
-        setUsers((prev) => prev.map((u) => (u.user_id === id ? res : u)));
+        const normalized = normalizeUser(res);
+
+        // Update local users list
+        setUsers((prev) => prev.map((u) => (u.user_id === id ? normalized : u)));
+
+        // If updated user is the currently authenticated user, update AuthContext immediately
+        try {
+          if (authUser && authUser.user_id === normalized.user_id) {
+            if (typeof setAuthUser === "function") {
+              setAuthUser(normalized as any);
+            } else if (typeof refresh === "function") {
+              // fallback
+              await refresh();
+            }
+          } else {
+            // Optionally: refetch list for full sync
+            // await fetchUsers();
+          }
+        } catch (innerErr) {
+          console.warn("Failed to sync auth user after edit:", innerErr);
+        }
+
         toast.success("Cập nhật user thành công ✅");
+        return normalized;
       } catch (err: any) {
+        console.error("editUser error:", err);
         setError(err?.message || "Failed to update user");
         toast.error("Cập nhật user thất bại ❌");
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, authUser, refresh, setAuthUser]
   );
 
-  // Update user password
+  // Update password
   const updatePassword = useCallback(
     async (id: number, data: UpdatePasswordRequest) => {
       if (!isAuthenticated) {
         toast.error("Bạn cần đăng nhập để thực hiện thao tác này.");
         throw new Error("Unauthorized");
       }
+      setLoading(true);
       try {
         await updateUserPassword(id, data);
         toast.success("Cập nhật mật khẩu thành công ✅");
       } catch (err: any) {
+        console.error("updatePassword error:", err);
         setError(err?.message || "Failed to update password");
         toast.error("Cập nhật mật khẩu thất bại ❌");
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
     [isAuthenticated]
   );
 
-  // Delete a user
+  // Delete user
   const removeUser = useCallback(
     async (id: number) => {
       if (!isAuthenticated) {
         toast.error("Bạn cần đăng nhập để thực hiện thao tác này.");
         throw new Error("Unauthorized");
       }
+      setLoading(true);
       try {
         await deleteUser(id);
         setUsers((prev) => prev.filter((u) => u.user_id !== id));
         toast.success("Xóa user thành công 🗑️");
       } catch (err: any) {
+        console.error("removeUser error:", err);
         setError(err?.message || "Failed to delete user");
         toast.error("Xóa user thất bại ❌");
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
     [isAuthenticated]
@@ -186,12 +248,17 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Bạn cần đăng nhập để thực hiện thao tác này.");
         return null;
       }
+      setLoading(true);
       try {
         const res = await importUsers(file);
-        const importedCount = Object.keys(res.imported).length;
+        const importedCount = res?.imported ? Object.keys(res.imported).length : 0;
 
         if (importedCount > 0) {
-          await fetchUsers();
+          try {
+            await fetchUsers();
+          } catch (e) {
+            console.warn("fetchUsers failed after import:", e);
+          }
           toast.success(`Import thành công (${importedCount} user)! 🎉`);
         } else {
           toast.error("Import thành công nhưng không có user mới ⚠️");
@@ -199,33 +266,27 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
 
         return res;
       } catch (err: any) {
+        console.error("importFromFile error:", err);
         setError(err?.message || "Failed to import users");
         toast.error("Import users thất bại ❌");
         return null;
+      } finally {
+        setLoading(false);
       }
     },
     [fetchUsers, isAuthenticated]
   );
 
-  // ---------- AUTH GUARD ----------
-  // Only fetch users when auth has finished initializing and user is authenticated.
-  // If auth init done but NOT authenticated -> clear users & don't fetch.
+  // ---------- AUTH GUARD: fetch users when auth ready ----------
   useEffect(() => {
-    if (authLoading) {
-      // auth still initializing -> do nothing
-      return;
-    }
-
+    if (authLoading) return;
     if (!isAuthenticated) {
-      // not logged in: clear state and don't call API
       setUsers([]);
       setError(null);
       setLoading(false);
       return;
     }
-
-    // auth ready and authenticated -> safe to fetch
-    fetchUsers();
+    void fetchUsers();
   }, [authLoading, isAuthenticated, fetchUsers]);
 
   return (
@@ -248,11 +309,8 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook để sử dụng context
 export const useUsers = (): UsersContextType => {
   const context = useContext(UsersContext);
-  if (!context) {
-    throw new Error("useUsers must be used within a UsersProvider");
-  }
+  if (!context) throw new Error("useUsers must be used within a UsersProvider");
   return context;
 };
