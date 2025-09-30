@@ -1,4 +1,4 @@
-"use client";
+"use client"; 
 
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, List, Clock, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
@@ -9,20 +9,21 @@ import { CalendarWeekView } from "../../../../components/calendar/calendar-week-
 import { CalendarDayView } from "../../../../components/calendar/calendar-day-view";
 import { CalendarListView } from "../../../../components/calendar/calendar-list-view";
 import { useSchedules } from "../../../../src/hooks/useSchedule";
+import { MultipleChoiceFilter } from "../../../../components/ui/multiple-choice-filter"; 
 
 interface ScheduleItem {
   id?: string;
-  date?: string; // yyyy-mm-dd or dd/mm/yyyy from API
-  start?: string; // HH:MM or HH:MM:SS
+  date?: string; 
+  start?: string; 
   end?: string;
-  title?: string; // display title (class_name or title)
+  title?: string; 
   class_name?: string;
   room?: string;
   subject?: string;
   students?: number;
   originalScheduleId?: number | string;
-  scheduleType?: string; // "ONCE" | "WEEKLY" (uppercased)
-  color?: string; // Thêm color để tương thích với CalendarWeekView
+  scheduleType?: string; 
+  color?: string; 
 }
 
 interface PersonalScheduleModalProps {
@@ -126,9 +127,10 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => toYMD(addDays(startOfWeek, i))), [startOfWeek]);
 
   // Filters: room, class_name, schedule_type (ONCE / WEEKLY)
-  const [filterRoom, setFilterRoom] = useState<string>("");
-  const [filterClassName, setFilterClassName] = useState<string>("");
-  const [filterScheduleType, setFilterScheduleType] = useState<string>("");
+  // CẬP NHẬT: Dùng string[] cho Multiple Choice
+  const [filterRoom, setFilterRoom] = useState<string[]>([]);
+  const [filterClassName, setFilterClassName] = useState<string[]>([]);
+  const [filterScheduleType, setFilterScheduleType] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -139,14 +141,13 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
 
   // occurrences generation (raw)
   const occurrencesAll = useMemo(() => {
+    // ... (Logic occurrencesAll không thay đổi)
     if (!schedules || schedules.length === 0) return [];
 
     const result: ScheduleItem[] = [];
     const seen = new Set<string>();
 
     // *** LOGIC CẬP NHẬT: Mở rộng phạm vi kiểm tra ngày cho lịch tuần ***
-    // Nếu ở chế độ week/day, chỉ kiểm tra tuần hiện tại (7 ngày).
-    // Nếu ở chế độ list, kiểm tra 4 tuần (28 ngày) kể từ đầu tuần hiện tại.
     const DATES_TO_CHECK_COUNT = currentView === "list" ? 28 : 7; 
     
     // Bắt đầu từ ngày đầu tuần hiện tại
@@ -168,7 +169,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       const scheduleType = (s.schedule_type ?? (s.type ?? "WEEKLY")).toString().toUpperCase();
       const onceDateRaw = s.date ?? s.once_date ?? null; 
       const dayOfWeekRaw = s.day_of_week ?? s.day ?? s.weekday ?? s.week ?? null;
-      const dayIndex = weekdayToIndex(dayOfWeekRaw); // 0=Sun, 1=Mon, ..., 6=Sat
+      const dayIndex = weekdayToIndex(dayOfWeekRaw); 
 
       for (const dateStr of datesToCheck) {
         let occurs = false;
@@ -185,10 +186,8 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
         }
 
         // 2. WEEKLY: match by weekday
-        // Logic này đảm bảo các sự kiện WEEKLY sẽ được tạo ra cho các tuần tiếp theo
         if (!occurs && scheduleType === "WEEKLY") {
           if (dayIndex !== null) {
-            // Lấy Day Index của ngày đang kiểm tra (0=Sun, 1=Mon,...)
             if (parsedDate.getDay() === dayIndex) occurs = true;
           }
         }
@@ -209,7 +208,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
               subject,
               students,
               scheduleType,
-              color: s.color ?? undefined, // Thêm color nếu có
+              color: s.color ?? undefined,
             });
           }
         }
@@ -223,7 +222,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
     });
 
     return result;
-  }, [schedules, startOfWeek, currentView]); // Thêm startOfWeek và currentView vào dependencies
+  }, [schedules, startOfWeek, currentView]);
 
   // derive unique options for selects from schedules (rooms, class_names, schedule types)
   const rooms = useMemo(() => {
@@ -259,9 +258,25 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
   // filtered occurrences based on selected filters
   const occurrences = useMemo(() => {
     return occurrencesAll.filter((o) => {
-      if (filterRoom && (o.room ?? "") !== filterRoom) return false;
-      if (filterClassName && (o.class_name ?? "") !== filterClassName) return false;
-      if (filterScheduleType && (o.scheduleType ?? "").toUpperCase() !== filterScheduleType.toUpperCase()) return false;
+      // CẬP NHẬT LOGIC LỌC: Nếu mảng lọc có phần tử, kiểm tra xem event có trong mảng đó không
+      
+      // Lọc theo Room
+      if (filterRoom.length > 0 && o.room && !filterRoom.includes(o.room)) {
+        return false;
+      }
+      
+      // Lọc theo Class Name
+      if (filterClassName.length > 0 && o.class_name && !filterClassName.includes(o.class_name)) {
+        return false;
+      }
+      
+      // Lọc theo Schedule Type (chuẩn hóa về chữ hoa để so sánh)
+      const eventType = (o.scheduleType ?? "").toUpperCase();
+      const upperFilterType = filterScheduleType.map(t => t.toUpperCase());
+      if (filterScheduleType.length > 0 && eventType && !upperFilterType.includes(eventType)) {
+        return false;
+      }
+      
       return true;
     });
   }, [occurrencesAll, filterRoom, filterClassName, filterScheduleType]);
@@ -275,6 +290,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
   }, [referenceDate, open]);
 
   const renderCurrentView = () => {
+    // ... (Logic renderCurrentView không thay đổi)
     if (loading) {
       return (
         <div className="flex items-center justify-center h-96">
@@ -379,60 +395,42 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
 
                 {/* Filters row: room, class_name, schedule_type */}
                 <div className="flex items-center gap-2 mt-1">
-                  <select
-                    value={filterRoom}
-                    onChange={(e) => setFilterRoom(e.target.value)}
-                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
-                    aria-label="Filter by room"
-                  >
-                    <option value="">All Rooms</option>
-                    {rooms.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
+                  {/* THAY THẾ SELECT ROOM */}
+                  <MultipleChoiceFilter
+                    label="Rooms"
+                    options={rooms}
+                    selectedValues={filterRoom}
+                    onChange={setFilterRoom}
+                  />
 
-                  <select
-                    value={filterClassName}
-                    onChange={(e) => setFilterClassName(e.target.value)}
-                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
-                    aria-label="Filter by class"
-                  >
-                    <option value="">All Classes</option>
-                    {classNames.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  {/* THAY THẾ SELECT CLASS NAME */}
+                  <MultipleChoiceFilter
+                    label="Classes"
+                    options={classNames}
+                    selectedValues={filterClassName}
+                    onChange={setFilterClassName}
+                  />
 
-                  <select
-                    value={filterScheduleType}
-                    onChange={(e) => setFilterScheduleType(e.target.value)}
-                    className="border px-3 py-2 rounded-lg bg-white dark:bg-gray-800"
-                    aria-label="Filter by schedule type"
-                  >
-                    <option value="">All Types</option>
-                    {scheduleTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                  {/* THAY THẾ SELECT SCHEDULE TYPE */}
+                  <MultipleChoiceFilter
+                    label="Types"
+                    options={scheduleTypes}
+                    selectedValues={filterScheduleType}
+                    onChange={setFilterScheduleType}
+                  />
 
                   {/* clear filters */}
-                  <button
+                  <BaseButton
+                    variant="outline"
                     onClick={() => {
-                      setFilterRoom("");
-                      setFilterClassName("");
-                      setFilterScheduleType("");
+                      setFilterRoom([]); // Dùng [] để clear array
+                      setFilterClassName([]); // Dùng [] để clear array
+                      setFilterScheduleType([]); // Dùng [] để clear array
                     }}
                     className="px-3 py-2 rounded-lg border ml-2"
-                    title="Clear filters"
                   >
-                    Clear
-                  </button>
+                    Clear All
+                  </BaseButton>
                 </div>
               </div>
             </div>
@@ -441,7 +439,7 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
             <div className="flex-1 p-6 overflow-auto">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={currentView + weekOffset + filterRoom + filterClassName + filterScheduleType}
+                  key={currentView + weekOffset + filterRoom.join(',') + filterClassName.join(',') + filterScheduleType.join(',')}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
