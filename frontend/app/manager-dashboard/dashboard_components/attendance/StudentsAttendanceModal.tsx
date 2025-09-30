@@ -17,6 +17,8 @@ interface StudentsAttendanceModalProps {
   onSubmitted?: () => Promise<void> | void;
 }
 
+type RecordValue = { status: string; checkin_time?: string | null; attendance_id?: number | null };
+
 const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   open,
   onClose,
@@ -30,12 +32,9 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   const [submitting, setSubmitting] = React.useState(false);
   const mountedRef = React.useRef(false);
 
-  const [recordsMap, setRecordsMap] = React.useState<
-    Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
-  >({});
-  const [originalRecords, setOriginalRecords] = React.useState<
-    Record<number, { status: string; checkin_time?: string | null; attendance_id?: number | null }>
-  >({});
+  // Use string keys everywhere for object map
+  const [recordsMap, setRecordsMap] = React.useState<Record<string, RecordValue>>({});
+  const [originalRecords, setOriginalRecords] = React.useState<Record<string, RecordValue>>({});
 
   React.useEffect(() => {
     mountedRef.current = true;
@@ -49,7 +48,6 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
     return d.toTimeString().split(" ")[0];
   };
 
-  // ---------- Load students and attendance ----------
   React.useEffect(() => {
     if (!open || !modalData) return;
 
@@ -91,28 +89,29 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
         }
 
         const forDate = allForSchedule.filter((a) => a.attendance_date === date);
-        const map: typeof recordsMap = {};
+        const map: Record<string, RecordValue> = {};
         const byStudent = new Map<number, Attendance>();
         for (const a of forDate) byStudent.set(a.student_user_id, a);
 
         for (const s of studentsData ?? []) {
           const hv = byStudent.get(s.student_user_id);
           if (hv) {
-            map[s.student_user_id] = {
+            map[String(s.student_user_id)] = {
               status: hv.status ?? "absent",
               checkin_time: hv.checkin_time ?? null,
               attendance_id: hv.attendance_id,
             };
           } else {
-            map[s.student_user_id] = { status: "", checkin_time: null, attendance_id: null };
+            map[String(s.student_user_id)] = { status: "", checkin_time: null, attendance_id: null };
           }
         }
+
         if (!cancelled && mountedRef.current) {
           setRecordsMap(map);
-          const copy: typeof originalRecords = {};
+          // deep copy
+          const copy: Record<string, RecordValue> = {};
           Object.keys(map).forEach((k) => {
-            const key = Number(k);
-            copy[key] = { ...map[key] };
+            copy[k] = { ...map[k] };
           });
           setOriginalRecords(copy);
         }
@@ -139,15 +138,18 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
 
   const schedule = modalData?.schedule;
 
-  const setRecord = (student_user_id: number, patch: { status?: string; checkin_time?: string | null }) => {
+  // useCallback + string keys
+  const setRecord = React.useCallback((student_user_id: number, patch: { status?: string; checkin_time?: string | null }) => {
+    const key = String(student_user_id);
     setRecordsMap((prev) => {
-      const cur = prev[student_user_id] ?? { status: "", checkin_time: null, attendance_id: null };
-      return { ...prev, [student_user_id]: { ...cur, ...patch } };
+      const cur = prev[key] ?? { status: "", checkin_time: null, attendance_id: null };
+      const next = { ...prev, [key]: { ...cur, ...patch } };
+      return next;
     });
-  };
+  }, []);
 
   const allMarked = React.useMemo(() => {
-    return students.length > 0 && students.every((s) => (recordsMap[s.student_user_id]?.status ?? "") !== "");
+    return students.length > 0 && students.every((s) => (recordsMap[String(s.student_user_id)]?.status ?? "") !== "");
   }, [students, recordsMap]);
 
   // ---------- Submit ----------
@@ -169,7 +171,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
         (e) =>
           e.attendance_id &&
           e.status === "present" &&
-          originalRecords[e.student_user_id]?.status === "absent"
+          originalRecords[String(e.student_user_id)]?.status === "absent"
       );
 
       if (toCreate.length > 0) {
@@ -261,62 +263,68 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
           transition={{ duration: 0.18 }}
           className="relative w-[95vw] max-w-4xl mx-4 rounded-lg shadow-xl p-4 overflow-auto"
           onClick={(e) => e.stopPropagation()}
-          style={{ backgroundColor: "#031220ff", color: "#fff" }}
+          // Changed background to white and text to black
+          style={{ backgroundColor: "#ffffff", color: "#000" }} 
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Attendance — {safe(schedule?.class_name)}</h3>
+            <h3 className="text-lg font-semibold text-black">Attendance — {safe(schedule?.class_name)}</h3>
             <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-300">Date: {safe(date)}</div>
-              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-700 text-white cursor-pointer">
+              {/* Changed text-gray-300 to text-gray-600 for contrast on white */}
+              <div className="text-sm text-gray-600">Date: {safe(date)}</div> 
+              {/* Changed border-gray-700 to border-gray-300 and text-white to text-black */}
+              <button onClick={onClose} className="px-3 py-1 rounded border border-gray-300 text-black cursor-pointer">
                 Close
               </button>
             </div>
           </div>
 
           {loadingStudents ? (
-            <div className="text-white">Loading students...</div>
+            // Changed text-white to text-black
+            <div className="text-black">Loading students...</div>
           ) : students.length === 0 ? (
-            <div className="text-white">No students enrolled.</div>
+            // Changed text-white to text-black
+            <div className="text-black">No students enrolled.</div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full table-auto">
                   <thead>
-                    <tr className="text-left border-b border-gray-700">
-                      <th className="px-3 py-2 text-white">#</th>
-                      <th className="px-3 py-2 text-white">ID</th>
-                      <th className="px-3 py-2 text-white">Full name</th>
-                      <th className="px-3 py-2 text-white">Email</th>
-                      <th className="px-3 py-2 text-white">DOB</th>
-                      <th className="px-3 py-2 text-white">Phone</th>
-                      <th className="px-3 py-2 text-white">Gender</th>
-                      <th className="px-3 py-2 text-white">Status</th>
+                    {/* Changed border-gray-700 to border-gray-300 and text-white to text-black */}
+                    <tr className="text-left border-b border-gray-300">
+                      <th className="px-3 py-2 text-black">#</th>
+                      <th className="px-3 py-2 text-black">ID</th>
+                      <th className="px-3 py-2 text-black">Full name</th>
+                      <th className="px-3 py-2 text-black">Email</th>
+                      <th className="px-3 py-2 text-black">DOB</th>
+                      <th className="px-3 py-2 text-black">Phone</th>
+                      <th className="px-3 py-2 text-black">Gender</th>
+                      <th className="px-3 py-2 text-black">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.map((s, idx) => {
-                      const rec = recordsMap[s.student_user_id] ?? {
-                        status: "",
-                        checkin_time: null,
-                        attendance_id: null,
-                      };
-                      const orig = originalRecords[s.student_user_id];
+                      const key = String(s.student_user_id);
+                      const rec = recordsMap[key] ?? { status: "", checkin_time: null, attendance_id: null };
+                      const orig = originalRecords[key];
 
                       return (
                         <tr key={s.student_user_id}>
-                          <td className="px-3 py-2 align-top text-white">{idx + 1}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.student_user_id)}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.full_name)}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.email)}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.date_of_birth)}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.phone_number)}</td>
-                          <td className="px-3 py-2 align-top text-white">{safe(s.gender)}</td>
+                          {/* Changed text-white to text-black */}
+                          <td className="px-3 py-2 align-top text-black">{idx + 1}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.student_user_id)}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.full_name)}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.email)}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.date_of_birth)}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.phone_number)}</td>
+                          <td className="px-3 py-2 align-top text-black">{safe(s.gender)}</td>
                           <td className="px-3 py-2 align-top">
                             <div className="flex items-center gap-2">
                               {modalData.mode === "edit" ? (
                                 rec.status === "present" ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded bg-green-600 text-white cursor-pointer">
-                                    ✓ Present
+                                  // Present badge (edit mode) with tick AFTER text. Text is white for contrast on green.
+                                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-green-600 text-white cursor-pointer whitespace-nowrap">
+                                    <span className="font-medium">Present</span>
+                                    <span className="text-sm opacity-95">✓</span>
                                   </span>
                                 ) : rec.attendance_id && orig?.status === "absent" ? (
                                   <button
@@ -326,7 +334,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 cursor-pointer"
+                                    className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 cursor-pointer whitespace-nowrap"
                                   >
                                     Late
                                   </button>
@@ -338,12 +346,13 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className="px-3 py-1 rounded bg-white/5 text-white cursor-pointer"
+                                    className="px-3 py-1 rounded bg-gray-100 text-black cursor-pointer whitespace-nowrap"
                                   >
                                     Present
                                   </button>
                                 )
                               ) : (
+                                // take mode: two buttons side by side; tick shown AFTER text when selected
                                 <>
                                   <button
                                     onClick={() =>
@@ -352,13 +361,16 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className={`px-3 py-1 rounded cursor-pointer${
-                                      rec.status === "present"
-                                        ? "bg-green-600 text-white"
-                                        : "bg-white/5 text-white"
-                                    }`}
+                                    className={
+                                      "px-3 py-1 rounded cursor-pointer whitespace-nowrap " +
+                                      // If present, use green bg with white text. Otherwise, use light gray bg with black text.
+                                      (rec.status === "present" ? "bg-green-600 text-white" : "bg-gray-100 text-black")
+                                    }
                                   >
-                                    Present
+                                    <span className="inline-flex items-center gap-2">
+                                      <span>Present</span>
+                                      {rec.status === "present" && <span className="text-sm opacity-95">✓</span>}
+                                    </span>
                                   </button>
                                   <button
                                     onClick={() =>
@@ -367,17 +379,21 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                                         checkin_time: null,
                                       })
                                     }
-                                    className={`px-3 py-1 rounded cursor-pointer${
-                                      rec.status === "absent"
-                                        ? "bg-red-600 text-white"
-                                        : "bg-white/5 text-white"
-                                    }`}
+                                    className={
+                                      "px-3 py-1 rounded cursor-pointer whitespace-nowrap " +
+                                      // If absent, use red bg with white text. Otherwise, use light gray bg with black text.
+                                      (rec.status === "absent" ? "bg-red-600 text-white" : "bg-gray-100 text-black")
+                                    }
                                   >
-                                    Absent
+                                    <span className="inline-flex items-center gap-2">
+                                      <span>Absent</span>
+                                      {rec.status === "absent" && <span className="text-sm opacity-95">✕</span>}
+                                    </span>
                                   </button>
                                 </>
                               )}
-                              {rec.attendance_id && <div className="text-xs text-gray-300 ml-2">saved</div>}
+                              {/* Changed text-gray-300 to text-gray-600 */}
+                              {rec.attendance_id && <div className="text-xs text-gray-600 ml-2">saved</div>} 
                             </div>
                           </td>
                         </tr>
@@ -388,22 +404,24 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
               </div>
 
               <div className="mt-4 flex items-center justify-end gap-3">
-                <div className="text-sm text-gray-300 mr-auto">
+                {/* Changed text-gray-300 to text-gray-600 */}
+                <div className="text-sm text-gray-600 mr-auto">
                   Marked: {Object.values(recordsMap).filter((r) => r.status).length}/{students.length}
                 </div>
                 <button
                   onClick={() => {
-                    const newMap = { ...recordsMap };
+                    const newMap: Record<string, RecordValue> = { ...recordsMap };
                     for (const s of students) {
-                      newMap[s.student_user_id] = {
-                        ...(newMap[s.student_user_id] ?? { attendance_id: null }),
+                      const k = String(s.student_user_id);
+                      newMap[k] = {
+                        ...(newMap[k] ?? { attendance_id: null }),
                         status: "present",
                         checkin_time: null,
                       };
                     }
                     setRecordsMap(newMap);
                   }}
-                  className="px-3 py-1 bg-white/5 rounded text-white hover:bg-white/10 cursor-pointer"
+                  className="px-3 py-1 bg-gray-100 rounded text-black hover:bg-gray-200 cursor-pointer"
                 >
                   Mark all present
                 </button>
@@ -413,8 +431,9 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                   disabled={!allMarked || submitting}
                   className={`px-4 py-2 rounded${
                     !allMarked || submitting
-                      ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                      : "bg-cyan-500 hover:bg-cyan-600 text-white cursor-pointer"
+                      // Changed disabled colors
+                      ? " bg-gray-300 text-gray-500 cursor-not-allowed" 
+                      : " bg-cyan-500 hover:bg-cyan-600 text-white cursor-pointer"
                   }`}
                 >
                   {submitting ? "Submitting..." : "Submit"}
@@ -429,5 +448,4 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
   );
 };
 
-const StudentsAttendanceModal = React.memo(StudentsAttendanceModalInner);
-export default StudentsAttendanceModal;
+export default React.memo(StudentsAttendanceModalInner);

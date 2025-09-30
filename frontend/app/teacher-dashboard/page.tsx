@@ -67,13 +67,10 @@ export default function TeacherDashboard() {
   const { teacherStats, fetchTeacherStats, loading, error } = useTeacher();
 
   useEffect(() => {
-    if (user?.user_id) {
+    if (user) {
       fetchTeacherStats(user.user_id).catch(() => {});
-    } else {
-      // fallback: pass 0 or a default user id if user is not available
-      fetchTeacherStats?.(0).catch(() => {});
     }
-  }, [fetchTeacherStats, user?.user_id]);
+  }, [fetchTeacherStats, user]);
 
   useEffect(() => {
     if (error) toast.error(error);
