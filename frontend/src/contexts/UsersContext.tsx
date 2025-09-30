@@ -52,14 +52,39 @@ const UsersContext = createContext<UsersContextType | undefined>(undefined);
 /**
  * Helper: normalize user object so UI can always use `.roles: string[]`
  * The API sometimes returns `roles` and sometimes `user_roles`. This makes them consistent.
+ * Also handles:
+ * - roles: string ("manager,teacher")
+ * - roles: array of objects like [{ name: 'manager' }] or [{ role: 'teacher' }]
  */
 const normalizeUser = (u: any) => {
   if (!u) return u;
-  const roles = Array.isArray(u.roles) && u.roles.length > 0
-    ? u.roles
-    : Array.isArray(u.user_roles) && u.user_roles.length > 0
-    ? u.user_roles
-    : [];
+
+  const extractNamesFromArray = (arr: any[]) =>
+    arr
+      .map((it) => {
+        if (!it) return null;
+        if (typeof it === "string") return it;
+        if (typeof it === "object") {
+          return (it.name ?? it.role ?? it.role_name ?? it.key ?? null);
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+  let roles: string[] = [];
+
+  if (Array.isArray(u.roles) && u.roles.length > 0) {
+    roles = extractNamesFromArray(u.roles);
+  } else if (typeof u.roles === "string" && u.roles.trim()) {
+    roles = u.roles.split(",").map((s: string) => s.trim()).filter(Boolean);
+  } else if (Array.isArray(u.user_roles) && u.user_roles.length > 0) {
+    roles = extractNamesFromArray(u.user_roles);
+  } else if (typeof u.user_roles === "string" && u.user_roles.trim()) {
+    roles = u.user_roles.split(",").map((s: string) => s.trim()).filter(Boolean);
+  } else {
+    roles = [];
+  }
+
   return { ...u, roles };
 };
 
@@ -157,17 +182,35 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
       }
       setLoading(true);
       try {
+        // remember previous roles from current state (if any)
+        const existing = users.find((u) => u.user_id === id);
+        const previousRoles = Array.isArray(existing?.roles) ? existing!.roles! : [];
+
         const res = await updateUser(id, data);
         const normalized = normalizeUser(res);
 
-        // Update local users list
-        setUsers((prev) => prev.map((u) => (u.user_id === id ? normalized : u)));
+        // Determine final roles: prefer API-provided if non-empty, otherwise keep previous
+        const finalRoles = (Array.isArray(normalized?.roles) && normalized.roles.length > 0)
+          ? normalized.roles
+          : previousRoles;
+
+        const finalNormalized = { ...normalized, roles: finalRoles };
+
+        // Update local users list (merge/replace)
+        setUsers((prev) => {
+          const found = prev.some((u) => u.user_id === id);
+          if (found) {
+            return prev.map((u) => (u.user_id === id ? finalNormalized : u));
+          }
+          // if not found, append
+          return [...prev, finalNormalized as any];
+        });
 
         // If updated user is the currently authenticated user, update AuthContext immediately
         try {
-          if (authUser && authUser.user_id === normalized.user_id) {
+          if (authUser && authUser.user_id === finalNormalized.user_id) {
             if (typeof setAuthUser === "function") {
-              setAuthUser(normalized as any);
+              setAuthUser(finalNormalized as any);
             } else if (typeof refresh === "function") {
               // fallback
               await refresh();
@@ -181,7 +224,7 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
         }
 
         toast.success("Cập nhật user thành công ✅");
-        return normalized;
+        return finalNormalized;
       } catch (err: any) {
         console.error("editUser error:", err);
         setError(err?.message || "Failed to update user");
@@ -191,7 +234,7 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    [isAuthenticated, authUser, refresh, setAuthUser]
+    [isAuthenticated, authUser, refresh, setAuthUser, users]
   );
 
   // Update password

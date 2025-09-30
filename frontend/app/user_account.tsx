@@ -12,14 +12,20 @@ import { useUsers } from "../src/contexts/UsersContext";
 interface UserAccountModalProps {
   user: {
     username?: string;
+    // GIỮ CÁC TRƯỜNG DỰ PHÒNG CŨ (dob, phone, user_roles) để đảm bảo tương thích ngược
     user_roles?: string[];
-    roles?: string[];
+    dob?: string; 
+    phone?: string;
+    
+    // CẬP NHẬT: Thêm/Ưu tiên các trường mới từ API/Context
+    roles?: string[]; // Đã được normalize trong UsersContext
+    date_of_birth?: string; // 'YYYY-MM-DD'
+    phone_number?: string;
+    
     user_id: number;
     full_name?: string;
     email?: string;
     gender?: string;
-    dob?: string; // 'YYYY-MM-DD'
-    phone?: string;
     password?: string;
   };
   onClose: () => void;
@@ -45,6 +51,7 @@ const convertDDMMYYYYtoYYYYMMDD = (dateString: string): string | null => {
     const d = parseInt(day, 10);
     const y = parseInt(year, 10);
     if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1900 && y < 2100) {
+        // preserve leading zeros from the input
         return `${year}-${month}-${day}`;
     }
   }
@@ -56,17 +63,31 @@ const capitalizeFirstLetter = (s: string) => s ? s.charAt(0).toUpperCase() + s.s
 export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
   const { editUser, updatePassword } = useUsers();
   const [isEditing, setIsEditing] = useState(false);
-
+  
+  // HÀM HELPER: Lấy giá trị data ưu tiên trường mới, fallback về trường cũ
+  const getField = (newKey: string, oldKey: string) => {
+      return (user as any)?.[newKey] ?? (user as any)?.[oldKey] ?? "";
+  };
+  
   // Safe defaults to avoid controlled -> uncontrolled
   const initialUserData = {
     full_name: user?.full_name ?? "",
     email: user?.email ?? "",
-    phone: user?.phone ?? "",
+    // FIX: Ưu tiên phone_number, fallback về phone
+    phone: getField('phone_number', 'phone'),
     gender: user?.gender ? String(user.gender).toLowerCase() : "",
-    dob: user?.dob ?? "",
+    // FIX: Ưu tiên date_of_birth, fallback về dob
+    dob: getField('date_of_birth', 'dob'), 
     old_password: "",
     password: "",
   };
+
+  // FIX: Ưu tiên roles (đã được normalized từ UsersContext), fallback về user_roles
+  const rolesList: string[] = Array.isArray((user as any)?.roles) && (user as any).roles.length > 0
+    ? (user as any).roles
+    : Array.isArray(user?.user_roles) && user.user_roles.length > 0
+    ? user.user_roles
+    : [];
 
   const [userData, setUserData] = useState(initialUserData);
 
@@ -75,16 +96,20 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
 
   // Sync local state when prop `user` changes
   useEffect(() => {
+    // Tái tính toán các giá trị khi prop `user` thay đổi
+    const newPhone = getField('phone_number', 'phone');
+    const newDob = getField('date_of_birth', 'dob');
+    
     setUserData({
       full_name: user?.full_name ?? "",
       email: user?.email ?? "",
-      phone: user?.phone ?? "",
+      phone: newPhone,
       gender: user?.gender ? String(user.gender).toLowerCase() : "",
-      dob: user?.dob ?? "",
+      dob: newDob,
       old_password: "",
       password: "",
     });
-    setInputDobText(formatDateToDDMMYYYY(user?.dob ?? ""));
+    setInputDobText(formatDateToDDMMYYYY(newDob));
     setIsEditing(false);
   }, [user]);
 
@@ -109,14 +134,18 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
           return;
       }
 
-      // Debug: log payload and return
-      const payload = {
+      // FIX: Đảm bảo payload gửi lên API dùng các tên trường mới
+      // và bảo toàn `roles` hiện có (component này ko sửa role nên gửi kèm để tránh server overwrite)
+      const payload: any = {
         full_name: userData.full_name,
         email: userData.email,
-        phone_number: userData.phone,
+        phone_number: userData.phone, // Sử dụng phone_number cho API
         gender: userData.gender ? userData.gender.toLowerCase() : userData.gender,
-        date_of_birth: userData.dob,
+        date_of_birth: userData.dob, // Sử dụng date_of_birth cho API
+        // bảo toàn roles hiện tại (nếu API overwrite khi thiếu trường này)
+        roles: rolesList,
       };
+
       console.log("UserAccountModal: sending editUser payload:", payload);
 
       const res = await editUser(user.user_id, payload as any);
@@ -146,13 +175,6 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
     }
   };
 
-  // Safety: prefer roles normalized, fallback to user_roles if present
-  const rolesList: string[] = Array.isArray(user?.user_roles) && user.user_roles.length > 0
-    ? user.user_roles
-    : Array.isArray((user as any)?.roles) && (user as any).roles.length > 0
-    ? (user as any).roles
-    : [];
-
   return (
     <div className="relative bg-white rounded-lg shadow-xl w-full h-full flex flex-col overflow-hidden">
       <button aria-label="Close" onClick={onClose} className="absolute top-4 right-4 z-10 text-gray-400 hover:text-red-500 transition-colors">
@@ -172,6 +194,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
           </div>
           <h3 className="font-semibold text-lg mb-1">{user?.username ?? "—"}</h3>
           <div className="flex flex-wrap gap-1 mb-3">
+            {/* FIX: Hiển thị rolesList đã được chuẩn hóa */}
             {rolesList.length > 0 ? (
               rolesList.map((role) => (
                 <Badge key={role} className={getRoleBadgeColor(role)}>{capitalizeFirstLetter(role)}</Badge>
@@ -185,6 +208,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
             onClick={() => {
               setIsEditing(!isEditing);
               if (!isEditing) {
+                // Đảm bảo DOB được reset về giá trị ban đầu (định dạng DD/MM/YYYY)
                 setInputDobText(formatDateToDDMMYYYY(userData.dob));
               }
             }}
@@ -241,6 +265,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
                   className="flex-1 bg-transparent text-gray-600 outline-none border-b border-blue-500"
                 />
               ) : (
+                // FIX: Hiển thị DOB từ userData.dob (đã được sync từ date_of_birth)
                 <p className="flex-1 text-gray-600">{formatDateToDDMMYYYY(userData.dob)}</p>
               )}
             </div>
@@ -280,6 +305,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
               <Input
                 type="tel"
                 name="phone"
+                // FIX: Dùng userData.phone (đã được sync từ phone_number)
                 value={userData.phone}
                 onChange={handleInputChange}
                 readOnly={!isEditing}
