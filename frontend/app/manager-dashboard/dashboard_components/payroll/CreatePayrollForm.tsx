@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "../../../../components/ui/input";
 import { useUsers, User } from "../../../../src/contexts/UsersContext";
-import { createPayroll, PayrollCreate } from "../../../../src/services/api/payroll";
+import { usePayrolls } from "../../../../src/hooks/usePayroll"; 
 
 interface CreatePayrollFormProps {
   onClose: () => void;
@@ -17,6 +17,8 @@ export function CreatePayrollForm({
   onCreated,
 }: CreatePayrollFormProps) {
   const { users, loading } = useUsers();
+  const { addPayroll } = usePayrolls(); 
+
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const [month, setMonth] = useState("");
 
@@ -29,7 +31,9 @@ export function CreatePayrollForm({
   const [errorMessage, setErrorMessage] = useState("");
 
   // Filter only teachers
-  const teachers: User[] = users.filter((user) => user.roles?.includes("teacher"));
+  const teachers: User[] = users.filter((user) =>
+    user.roles?.includes("teacher")
+  );
 
   const handleNumberInput = (
     e: ChangeEvent<HTMLInputElement>,
@@ -63,18 +67,16 @@ export function CreatePayrollForm({
     }
 
     try {
-      const payrollPayload: PayrollCreate = {
+      await addPayroll({
         teacher_user_id: Number(selectedTeacherId),
         month: Number(month),
         total_base_salary: baseSalaryValue,
         reward_bonus: bonusValue,
         sent_at: new Date().toISOString(),
-      };
+      });
 
-      await createPayroll(payrollPayload);
       onClose();
       await onCreated();
-      alert("Tạo bảng lương thành công!");
     } catch (error) {
       console.error("Failed to create payroll:", error);
       setErrorMessage("Có lỗi xảy ra khi tạo bảng lương.");
@@ -108,14 +110,14 @@ export function CreatePayrollForm({
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Tạo bảng lương mới</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Create new payroll</h2>
 
         <div className="space-y-4">
           {/* Teacher Select */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Giáo viên</label>
+            <label className="text-cyan-400 font-medium mb-1">Teacher</label>
             {loading ? (
-              <p className="text-gray-400">Đang tải danh sách giáo viên...</p>
+              <p className="text-gray-400">Loading teachers list...</p>
             ) : (
               <select
                 aria-label="Chọn giáo viên"
@@ -141,7 +143,7 @@ export function CreatePayrollForm({
 
           {/* Month Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Tháng</label>
+            <label className="text-cyan-400 font-medium mb-1">Month</label>
             <Input
               type="number"
               value={month}
@@ -154,21 +156,23 @@ export function CreatePayrollForm({
 
           {/* Base Salary Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Lương cơ bản</label>
+            <label className="text-cyan-400 font-medium mb-1">Total base salary</label>
             <Input
               type="text"
               value={baseSalaryDisplay}
               onChange={(e) =>
                 handleNumberInput(e, setBaseSalaryDisplay, setBaseSalaryValue)
               }
-              onBlur={() => handleFormatOnBlur(baseSalaryDisplay, setBaseSalaryDisplay)}
+              onBlur={() =>
+                handleFormatOnBlur(baseSalaryDisplay, setBaseSalaryDisplay)
+              }
               className="w-full"
             />
           </div>
 
           {/* Bonus Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Thưởng</label>
+            <label className="text-cyan-400 font-medium mb-1">Reward bonus</label>
             <Input
               type="text"
               value={bonusDisplay}
@@ -190,7 +194,7 @@ export function CreatePayrollForm({
             onClick={handleCreatePayroll}
             className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg cursor-pointer"
           >
-            Tạo mới
+            Create
           </button>
         </div>
       </motion.div>

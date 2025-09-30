@@ -1,9 +1,8 @@
-// app/.../ClassManagement.tsx
 "use client";
 
 import * as React from "react";
 import ReactDOM from "react-dom";
-import { BookOpen } from "lucide-react";
+import { User, BookOpen, Users, DollarSign, Presentation } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClasses } from "../../../../src/contexts/ClassContext";
 import { useAuth } from "../../../../src/contexts/AuthContext";
@@ -13,6 +12,7 @@ import { CreateClassForm } from "./CreateClassForm";
 import { Class } from "../../../../src/services/api/class";
 import { getStudentsInClass, Student } from "../../../../src/services/api/class";
 import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
+import { ConfirmModal } from "../../../../components/common/ConfirmModal";
 import toast from "react-hot-toast";
 
 export default function ClassManagement() {
@@ -24,7 +24,7 @@ export default function ClassManagement() {
     fetchClasses,
     exportClassData,
   } = useClasses();
-  const { user } = useAuth(); // Lấy thông tin user
+  const { user } = useAuth();
   const { isOpen, message, onConfirm, openConfirm, closeConfirm } = useConfirmDialog();
 
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -32,8 +32,6 @@ export default function ClassManagement() {
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-
-  // students sub-modal visibility only (no heavy state)
   const [showStudentsModal, setShowStudentsModal] = React.useState(false);
 
   const [filterTeacher, setFilterTeacher] = React.useState("");
@@ -42,7 +40,7 @@ export default function ClassManagement() {
   const teachers = Array.from(new Set(classes.map(c => c.teacher_name).filter(Boolean)));
   const subjects = Array.from(new Set(classes.map(c => c.subject_name).filter(Boolean)));
 
-  // === normalize roles (hỗ trợ string[] hoặc [{name}] hoặc [{role}] )
+  // normalize roles
   const getRoleNames = (roles: any): string[] => {
     if (!roles) return [];
     if (Array.isArray(roles)) {
@@ -102,7 +100,6 @@ export default function ClassManagement() {
     if (e.target === e.currentTarget) close();
   };
 
-  // Open students sub-modal (only toggles a boolean; StudentsModal fetches data itself)
   const openStudentsModal = (e?: React.MouseEvent) => {
     e?.stopPropagation?.();
     if (!selectedClass) return;
@@ -169,21 +166,43 @@ export default function ClassManagement() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => handleCardClick(cls)}
-            className="bg-gray-800 p-6 rounded-lg shadow-xl hover:bg-gray-900 transition-colors cursor-pointer space-y-4"
+            className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg hover:bg-blue-50 transition-all cursor-pointer border border-gray-200"
           >
-            <p className="text-lg font-semibold text-white">{cls.class_name}</p>
-            <p className="text-gray-400">
-              Teacher: <span className="text-gray-300">{cls.teacher_name ?? "—"}</span>
-            </p>
-            <p className="text-gray-400">
-              Subject: <span className="text-gray-300">{cls.subject_name ?? "—"}</span>
-            </p>
-            <p className="text-gray-400">
-              Capacity: <span className="text-gray-300">{cls.capacity ?? "—"}</span>
-            </p>
-            <p className="text-gray-400">
-              Fee: <span className="text-gray-300">{cls.fee?.toLocaleString() ?? "—"}</span>
-            </p>
+            <h2 className="text-lg font-semibold text-blue-700 flex items-center justify-center gap-2 mb-3">
+              <Presentation className="w-6 h-6 text-blue-600" />
+              {cls.class_name ?? "—"}
+            </h2>
+            <hr className="border-gray-300 mb-4" />
+            <div className="space-y-3 text-gray-900">
+              <div className="flex items-center justify-between text-gray-900">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-900" />
+                  <span>Teacher:</span>
+                </div>
+                <span className="font-medium text-gray-900">{cls.teacher_name ?? "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-90">
+                  <BookOpen className="w-4 h-4 text-gray-900" />
+                  <span>Subject:</span>
+                </div>
+                <span className="font-medium text-gray-900">{cls.subject_name ?? "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-900">
+                  <Users className="w-4 h-4 text-gray-900" />
+                  <span>Capacity:</span>
+                </div>
+                <span className="font-medium text-gray-900">{cls.capacity ?? "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-900">
+                  <DollarSign className="w-4 h-4" />
+                  <span>Fee:</span>
+                </div>
+                <span className="font-medium text-gray-900">{cls.fee?.toLocaleString() ?? "—"}</span>
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -236,7 +255,7 @@ export default function ClassManagement() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      openStudentsModal(e); // open sub-modal from here
+                      openStudentsModal(e);
                     }}
                     className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors ml-2"
                   >
@@ -249,7 +268,7 @@ export default function ClassManagement() {
         )}
       </AnimatePresence>
 
-      {/* Students Sub-Modal (portal) */}
+      {/* Students Modal */}
       <StudentsModal
         open={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
@@ -280,18 +299,20 @@ export default function ClassManagement() {
         )}
       </AnimatePresence>
 
-      {isOpen && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-        {/* Confim Dialog */}
-      </div>}
+      {/* ConfirmModal */}
+          <ConfirmModal
+            isOpen={isOpen}
+            message={message}
+            onConfirm={() => {
+              onConfirm();
+              closeConfirm();
+            }}
+            onCancel={closeConfirm}
+          />
     </div>
   );
 }
 
-/* --------------------------- StudentsModal (portal) --------------------------- */
-/**
- * StudentsModal được tách riêng, fetch dữ liệu khi mount và render qua portal.
- * Sử dụng React.memo để tránh render lại nếu props không đổi.
- */
 interface StudentsModalProps {
   open: boolean
   onClose: () => void
@@ -309,9 +330,7 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
 
   React.useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    }
+    return () => { mountedRef.current = false; };
   }, []);
 
   React.useEffect(() => {
@@ -320,7 +339,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
       setStudents([]);
       return;
     }
-
     let cancelled = false;
     const load = async () => {
       setLoading(true);
@@ -336,9 +354,7 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [open, classId]);
 
   const handleExport = async (e?: React.MouseEvent) => {
@@ -366,7 +382,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        {/* backdrop */}
         <motion.button
           aria-label="close"
           onClick={onClose}
@@ -377,8 +392,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
           className="absolute inset-0"
           style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
         />
-
-        {/* panel */}
         <motion.div
           initial={{ y: 12, opacity: 0, scale: 0.995 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -386,12 +399,10 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
           transition={{ duration: 0.18 }}
           className="relative w-[95vw] max-w-4xl mx-4 rounded-lg shadow-xl p-4 overflow-auto"
           onClick={(e) => e.stopPropagation()}
-          // immediate dark background inline to avoid any flash
           style={{ backgroundColor: "#031220ff", color: "#fff" }}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Students in {classNameLabel}</h3>
-
             <div className="flex items-center gap-2">
               {canExport && (
                 <button
@@ -402,7 +413,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
                   {exporting ? "Exporting..." : "Export"}
                 </button>
               )}
-
               <button
                 onClick={onClose}
                 className="px-3 py-1 rounded border border-gray-700 text-white"
@@ -411,7 +421,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
               </button>
             </div>
           </div>
-
           {loading ? (
             <div className="text-center py-8 text-white">Loading students...</div>
           ) : students.length === 0 ? (
@@ -419,7 +428,6 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
           ) : (
             <div className="overflow-x-auto">
               <div className="mb-3 text-sm text-gray-200">Total: {students.length}</div>
-
               <div className="rounded-lg overflow-hidden shadow-inner">
                 <table className="w-full table-auto">
                   <thead>

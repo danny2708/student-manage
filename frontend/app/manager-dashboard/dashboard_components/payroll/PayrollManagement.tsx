@@ -168,7 +168,6 @@ export default function PayrollManagement() {
         try {
             if (selectedRow) {
                 await removePayroll(selectedRow.id);
-                alert("Xoá thành công!");
                 closeConfirm(); // Đóng ConfirmModal
                 setShowAction(false); // Đóng ActionModal nếu nó mở
                 await fetchPayrolls(); // Tải lại danh sách

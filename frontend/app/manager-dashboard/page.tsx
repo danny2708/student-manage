@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useAuth } from "../../src/contexts/AuthContext"
 import type { LoginResponse } from "../../src/services/api/auth"
@@ -31,9 +31,13 @@ const ClassManagement = dynamic(() => import("./dashboard_components/class/Class
 const SubjectManagement = dynamic(() => import("./dashboard_components/SubjectManagement"), { ssr: false, loading: () => <p>Loading...</p> })
 
 export default function ManagerDashboard() {
-  const { user } = useAuth() as { user: LoginResponse | null }
-  const { logout } = useAuth();
+  const { user, logout } = useAuth() as { user: LoginResponse | null, logout: () => void }
   const router = useRouter()
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const [activeSection, setActiveSection] = useState("dashboard")
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["general"])
@@ -121,12 +125,14 @@ export default function ManagerDashboard() {
 
           <div
             className="flex flex-col items-center gap-2 mb-6 text-center cursor-pointer"
-            onClick={() => setShowAccountModal(true)}
+            onClick={() => mounted && setShowAccountModal(true)}
           >
             <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center">
               <UserIcon className="h-6 w-6 text-white" />
             </div>
-            <span className="text-sm text-gray-300">{user?.username ?? "User Account"}</span>
+            <span className="text-sm text-gray-300">
+              {mounted ? (user?.username ?? "User Account") : "User Account"}
+            </span>
           </div>
 
           {/* Các category menu */}
@@ -180,17 +186,17 @@ export default function ManagerDashboard() {
         )}
         {visitedSections.includes("tuition") && (
           <div className={activeSection === "tuition" ? "block" : "hidden"}>
-            <TuitionManagement searchTerm={searchTerms.tuition} updateSearchTerm={updateSearchTerm} handleCreateNew={handleCreateNew} handleTableRowClick={handleTableRowClick}/>
+            <TuitionManagement/>
           </div>
         )}
         {visitedSections.includes("schedule") && (
           <div className={activeSection === "schedule" ? "block" : "hidden"}>
-            <ScheduleManagement searchTerm={searchTerms.schedule} updateSearchTerm={updateSearchTerm} handleCreateNew={handleCreateNew} handleTableRowClick={handleTableRowClick}/>
+            <ScheduleManagement/>
           </div>
         )}
         {visitedSections.includes("payroll") && (
           <div className={activeSection === "payroll" ? "block" : "hidden"}>
-            <PayrollManagement searchTerm={searchTerms.payroll} updateSearchTerm={updateSearchTerm} handleCreateNew={handleCreateNew} handleTableRowClick={handleTableRowClick}/>
+            <PayrollManagement/>
           </div>
         )}
         {visitedSections.includes("teacher-review") && (
@@ -205,7 +211,7 @@ export default function ManagerDashboard() {
         )}
         {visitedSections.includes("class") && (
           <div className={activeSection === "class" ? "block" : "hidden"}>
-            <ClassManagement searchTerm={searchTerms.class} updateSearchTerm={updateSearchTerm} handleCreateNew={handleCreateNew} handleClassCardClick={handleClassCardClick}/>
+            <ClassManagement/>
           </div>
         )}
         {visitedSections.includes("subject") && (
@@ -220,7 +226,11 @@ export default function ManagerDashboard() {
         {showActionModal && <Modal><ActionModal onClose={()=>setShowActionModal(null)} onShowInfo={handleShowInfo} onDelete={()=>{}} /></Modal>}
         {showCreateModal && <Modal><CreateModal type={showCreateModal} onClose={()=>setShowCreateModal(null)} onCreate={()=>{}} /></Modal>}
         {showInfoModal && <Modal><ShowInfoModal type={showInfoModal.type} data={showInfoModal.data} onClose={()=>setShowInfoModal(null)} onUpdated={async () => {}} /></Modal>}
-        {showAccountModal && user && <Modal dark onClose={()=>setShowAccountModal(false)}><UserAccountModal user={user} onClose={()=>setShowAccountModal(false)}/></Modal>}
+        {mounted && showAccountModal && user && (
+          <Modal dark onClose={()=>setShowAccountModal(false)}>
+            <UserAccountModal user={user} onClose={()=>setShowAccountModal(false)}/>
+          </Modal>
+        )}
       </div>
     </div>
   )

@@ -83,7 +83,6 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
       await addClass(payload);
       onClose();
       await onCreated();
-      alert("Tạo lớp học thành công!");
     } catch (error) {
       console.error("Failed to create class:", error);
       setErrorMessage("Có lỗi xảy ra khi tạo lớp học.");

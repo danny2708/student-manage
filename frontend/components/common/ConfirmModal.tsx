@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -14,31 +15,53 @@ export function ConfirmModal({ isOpen, message, onConfirm, onCancel }: ConfirmMo
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          onClick={onCancel}
         >
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
-            className="bg-white rounded-lg p-6 shadow-lg w-96"
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Confirm Action
-            </h3>
-            <p className="text-gray-700 mb-6">{message}</p>
-            <div className="flex justify-end gap-3">
+            {/* Header: Căn giữa tiêu đề */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              {/* Thêm flex-grow và text-center cho tiêu đề để căn giữa nó trong không gian */}
+              <h3 className="text-xl font-bold text-gray-800 flex-grow text-center">
+                Confirm Action
+              </h3>
               <button
                 onClick={onCancel}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg"
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Nội dung modal: Thêm text-center để căn giữa chữ */}
+            <div className="p-6 text-center">
+              <p className="text-gray-900 text-base leading-relaxed font-semibold">{message}</p>
+            </div>
+
+            {/* Footer và các nút hành động: Thay justify-end thành justify-center */}
+            <div className="flex justify-center gap-3 p-4 bg-gray-50 rounded-b-xl border-t border-gray-200">
+              {/* Nút Hủy */}
+              <button
+                onClick={onCancel}
+                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100 transition-colors duration-200"
               >
                 Cancel
               </button>
+              {/* Nút Xác nhận */}
               <button
                 onClick={onConfirm}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
+                className="px-5 py-2 text-sm font-medium text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 Confirm
               </button>
