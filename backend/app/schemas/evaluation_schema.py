@@ -10,6 +10,7 @@ class EvaluationBase(BaseModel):
     """
     teacher_user_id: int
     student_user_id: int
+    class_id: int
     study_point: int
     discipline_point: int
     evaluation_type: EvaluationType
@@ -20,10 +21,18 @@ class EvaluationBase(BaseModel):
 class EvaluationCreate(BaseModel):
     student_user_id: int
     study_point: int
+    class_id: int
     discipline_point: int
     evaluation_type: EvaluationType
     evaluation_content: Optional[str] = None
     evaluation_date: date = date.today()
+
+class EvaluationUpdate(BaseModel):
+    study_point: Optional[int] = None
+    discipline_point: Optional[int] = None
+    evaluation_type: Optional[EvaluationType] = None
+    evaluation_content: Optional[str] = None
+    evaluation_date: Optional[date] = None
 
 # Lớp dùng để đọc/trả về dữ liệu từ cơ sở dữ liệu
 class Evaluation(EvaluationBase):
@@ -36,6 +45,8 @@ class Evaluation(EvaluationBase):
 
 class EvaluationSummary(BaseModel):
     student_user_id: int
+    class_name: str
+    subject: str
     final_study_point: int = Field(..., description="Tổng điểm học tập, giới hạn ở 100.")
     final_discipline_point: int = Field(..., description="Tổng điểm kỷ luật, giới hạn ở 100.")
     study_plus_count: int = Field(..., description="Số lần điểm học tập được cộng.")
@@ -48,7 +59,7 @@ class EvaluationSummary(BaseModel):
 
 class EvaluationView(BaseModel):
     id: int
-    teacher: int
+    class_name: str
     student: str
     teacher: str
     type: EvaluationType

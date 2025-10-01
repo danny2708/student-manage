@@ -1,5 +1,121 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from datetime import datetime, date as dt_date, time as dt_time
+from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload
+from app.crud import (
+    attendance_crud,
+    evaluation_crud,
+    notification_crud,
+    student_crud,
+    class_crud,
+    schedule_crud,
+)
+from app.schemas.attendance_schema import AttendanceBatchCreate
+from app.schemas.evaluation_schema import EvaluationCreate
+from app.schemas.notification_schema import NotificationCreate, NotificationUpdate
+from app.models.attendance_model import Attendance, AttendanceStatus
+from app.models.evaluation_model import EvaluationType
+from app.models.notification_model import Notification, NotificationType
+from app.models.schedule_model import Schedule, ScheduleTypeEnum, DayOfWeekEnum
+from app.models.class_model import Class
+from app.services import evaluation_service
+
+def _resolve_schedule_for_class_and_date(
+    db: Session, schedule_id: int, attendance_date: dt_date
+) -> Optional[Schedule]:
+    """
+    Lấy lịch học hợp lệ cho lớp tại ngày attendance_date.
+    Ưu tiên ONCE, nếu không có thì WEEKLY theo thứ.
+    """
+    # ONCE
+    once = schedule_crud.search_schedules(db, schedule_id, ScheduleTypeEnum.ONCE, date=attendance_date)
+    if once:
+        return once[0]
+
+    # WEEKLY
+    dow_name = attendance_date.strftime("%A").upper()
+    try:
+        dow_enum = DayOfWeekEnum[dow_name]
+    except KeyError:
+        raise HTTPException(500, f"DayOfWeekEnum không khớp với ngày {attendance_date} ({dow_name})")
+
+    weekly = schedule_crud.search_schedules(db, schedule_id, ScheduleTypeEnum.WEEKLY, day_of_week=dow_enum)
+    if weekly:
+        return weekly[0]
+    return None
+
+# ----------------- helper để chuẩn hóa time -----------------
+def _to_naive_time(t: Optional[dt_time]) -> Optional[dt_time]:
+    """
+    Chuyển time (hoặc datetime.time/datetime) có tzinfo -> naive (loại bỏ tzinfo).
+    Nếu t là None trả về None.
+    """
+    if t is None:
+        return None
+
+    # Nếu client gửi một datetime thay vì time (hiếm), lấy phần time
+    if isinstance(t, datetime):
+        t = t.time()
+
+    tz = getattr(t, "tzinfo", None)
+    if tz is not None:
+        try:
+            return t.replace(tzinfo=None)
+        except Exception:
+            # Nếu không thể replace (rất hiếm), fallback lấy giờ phút giây
+            return dt_time(t.hour, t.minute, t.second, t.microsecond)
+    return t
+
+# ----------------- check permission (fix timezone compare) -----------------
+def check_attendance_permission(
+    db: Session,
+    schedule_id: int,
+    attendance_date: dt_date,
+    checkin_time: Optional[dt_time],
+    current_user,
+) -> Schedule:
+    """
+    Kiểm tra quyền điểm danh và khung giờ:
+    - schedule phải tồn tại
+    - user phải là teacher của lớp
+    - checkin_time (hoặc giờ hiện tại) phải nằm trong start_time..end_time của schedule
+    Toàn bộ so sánh time đều được chuyển về naive để tránh lỗi offset-aware/naive.
+    """
+    schedule = schedule_crud.get_schedule(db, schedule_id)
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Không tìm thấy lịch học.")
+    if schedule.class_info.teacher_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Bạn không được phép điểm danh cho lớp này.")
+
+    # dùng checkin_time nếu có, nếu không dùng giờ hiện tại
+    raw_check_time = checkin_time or datetime.now().time()
+
+    # chuẩn hóa tất cả về naive
+    time_to_check = _to_naive_time(raw_check_time)
+    start_time_naive = _to_naive_time(schedule.start_time)
+    end_time_naive = _to_naive_time(schedule.end_time)
+
+    if start_time_naive is None or end_time_naive is None:
+        # phòng trường hợp dữ liệu trong DB thiếu start/end
+        raise HTTPException(status_code=500, detail="Lịch học thiếu thông tin giờ bắt đầu/kết thúc.")
+
+    # kiểm tra thứ tự: nếu start > end (ví dụ qua nửa đêm) xử lý riêng (nếu cần)
+    if start_time_naive <= end_time_naive:
+        in_range = (start_time_naive <= time_to_check <= end_time_naive)
+    else:
+        # trường hợp lịch bắc qua nửa đêm: ví dụ start 22:00, end 02:00
+        in_range = (time_to_check >= start_time_naive) or (time_to_check <= end_time_naive)
+
+    if not in_range:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Bạn chỉ có thể điểm danh trong giờ học ({schedule.start_time} - {schedule.end_time})."
+        )
+
+    return schedule
+
+from typing import List, Optional
+from sqlalchemy.orm import Session, joinedload
 from app.crud import (
     attendance_crud,
     notification_crud,
@@ -8,7 +124,6 @@ from app.crud import (
     class_crud,
     schedule_crud,
 )
-from sqlalchemy.orm import joinedload
 from app.schemas.attendance_schema import AttendanceBatchCreate
 from app.schemas.notification_schema import NotificationCreate, NotificationUpdate
 from app.schemas.evaluation_schema import EvaluationCreate
@@ -20,48 +135,29 @@ from datetime import time as dt_time, datetime, date as dt_date
 from fastapi import HTTPException
 from app.models.class_model import Class
 
-
-def _resolve_schedule_for_class_and_date(
-    db: Session, schedule_id: int, attendance_date: dt_date
-) -> Optional[Schedule]:
+# ----------------- helper để chuẩn hóa time -----------------
+def _to_naive_time(t: Optional[dt_time]) -> Optional[dt_time]:
     """
-    Tìm lịch học hợp lệ của lớp tại ngày attendance_date:
-      - Ưu tiên lịch ONCE khớp đúng ngày
-      - Nếu không có, fallback lịch WEEKLY khớp theo thứ
+    Chuyển time (hoặc datetime.time/datetime) có tzinfo -> naive (loại bỏ tzinfo).
+    Nếu t là None trả về None.
     """
-    # 1) Lịch ONCE theo ngày
-    once_matches = schedule_crud.search_schedules(
-        db=db,
-        schedule_id=schedule_id,
-        schedule_type=ScheduleTypeEnum.ONCE,
-        date=attendance_date,
-    )
-    if once_matches:
-        return once_matches[0]
+    if t is None:
+        return None
 
-    # 2) Lịch WEEKLY theo thứ
-    # Chuyển attendance_date -> DayOfWeekEnum
-    dow_name = attendance_date.strftime("%A").upper()  # e.g. 'THURSDAY'
-    try:
-        dow_enum = DayOfWeekEnum[dow_name]
-    except KeyError:
-        # Nếu enum khác format, báo lỗi rõ ràng
-        raise HTTPException(
-            status_code=500,
-            detail=f"DayOfWeekEnum không khớp với ngày {attendance_date} ({dow_name}).",
-        )
+    # Nếu client gửi một datetime thay vì time (hiếm), lấy phần time
+    if isinstance(t, datetime):
+        t = t.time()
 
-    weekly_matches = schedule_crud.search_schedules(
-        db=db,
-        schedule_id=schedule_id,
-        schedule_type=ScheduleTypeEnum.WEEKLY,
-        day_of_week=dow_enum,
-    )
-    if weekly_matches:
-        return weekly_matches[0]
+    tz = getattr(t, "tzinfo", None)
+    if tz is not None:
+        try:
+            return t.replace(tzinfo=None)
+        except Exception:
+            # Nếu không thể replace (rất hiếm), fallback lấy giờ phút giây
+            return dt_time(t.hour, t.minute, t.second, t.microsecond)
+    return t
 
-    return None
-
+# ----------------- check permission (fix timezone compare) -----------------
 def check_attendance_permission(
     db: Session,
     schedule_id: int,
@@ -69,27 +165,47 @@ def check_attendance_permission(
     checkin_time: Optional[dt_time],
     current_user,
 ) -> Schedule:
+    """
+    Kiểm tra quyền điểm danh và khung giờ:
+    - schedule phải tồn tại
+    - user phải là teacher của lớp
+    - checkin_time (hoặc giờ hiện tại) phải nằm trong start_time..end_time của schedule
+    Toàn bộ so sánh time đều được chuyển về naive để tránh lỗi offset-aware/naive.
+    """
     schedule = schedule_crud.get_schedule(db, schedule_id)
     if not schedule:
         raise HTTPException(status_code=404, detail="Không tìm thấy lịch học.")
     if schedule.class_info.teacher_user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Bạn không được phép điểm danh cho lớp này.")
 
-    # Nếu checkin_time None thì dùng giờ hiện tại
-    time_to_check = checkin_time or datetime.now().time()
+    # dùng checkin_time nếu có, nếu không dùng giờ hiện tại
+    raw_check_time = checkin_time or datetime.now().time()
 
-    # Chuyển tất cả về naive time (không timezone)
-    start_time_naive = schedule.start_time.replace(tzinfo=None) if hasattr(schedule.start_time, "tzinfo") else schedule.start_time
-    end_time_naive = schedule.end_time.replace(tzinfo=None) if hasattr(schedule.end_time, "tzinfo") else schedule.end_time
+    # chuẩn hóa tất cả về naive
+    time_to_check = _to_naive_time(raw_check_time)
+    start_time_naive = _to_naive_time(schedule.start_time)
+    end_time_naive = _to_naive_time(schedule.end_time)
 
-    if not (start_time_naive <= time_to_check <= end_time_naive):
+    if start_time_naive is None or end_time_naive is None:
+        # phòng trường hợp dữ liệu trong DB thiếu start/end
+        raise HTTPException(status_code=500, detail="Lịch học thiếu thông tin giờ bắt đầu/kết thúc.")
+
+    # kiểm tra thứ tự: nếu start > end (ví dụ qua nửa đêm) xử lý riêng (nếu cần)
+    if start_time_naive <= end_time_naive:
+        in_range = (start_time_naive <= time_to_check <= end_time_naive)
+    else:
+        # trường hợp lịch bắc qua nửa đêm: ví dụ start 22:00, end 02:00
+        in_range = (time_to_check >= start_time_naive) or (time_to_check <= end_time_naive)
+
+    if not in_range:
         raise HTTPException(
             status_code=403,
-            detail=f"Bạn chỉ có thể điểm danh trong giờ học "
-                   f"({schedule.start_time} - {schedule.end_time})."
+            detail=f"Bạn chỉ có thể điểm danh trong giờ học ({schedule.start_time} - {schedule.end_time})."
         )
+
     return schedule
 
+# ----------------- create_batch_attendance (fix enum compare + timezone) -----------------
 def create_batch_attendance(
     db: Session, attendance_data: AttendanceBatchCreate, current_user
 ) -> List[Attendance]:
@@ -98,25 +214,26 @@ def create_batch_attendance(
     Nếu sinh viên vắng, tạo thông báo và bản ghi đánh giá.
     """
     now_time = datetime.now().time()
-    for record in attendance_data.records:
-        # Nếu status là present và checkin_time là None
-        if record.status == AttendanceStatus.present.value and record.checkin_time is None:
-            # Gán giờ hiện tại cho BE xử lý
-            record.checkin_time = now_time
-    # Lấy 1 checkin_time đại diện từ payload (nếu có)
-    representative_checkin: Optional[dt_time] = None
-    if attendance_data.records:
-        for r in attendance_data.records:
-            if r.checkin_time is not None:
-                representative_checkin = r.checkin_time
-                break
 
-    # Kiểm tra permission & khung giờ
+    # Gán giờ check-in cho các bản ghi present nếu client không gửi checkin_time
+    for record in attendance_data.records:
+        # SO SÁNH ENUM trực tiếp (không dùng .value)
+        if record.status == AttendanceStatus.present and record.checkin_time is None:
+            record.checkin_time = now_time
+
+    # Lấy 1 checkin_time đại diện từ payload (nếu có) và chuẩn hóa
+    representative_checkin: Optional[dt_time] = None
+    for r in attendance_data.records:
+        if r.checkin_time is not None:
+            representative_checkin = _to_naive_time(r.checkin_time)
+            break
+
+    # Kiểm tra permission & khung giờ (check_attendance_permission sẽ lấy giờ hiện tại nếu rep_checkin=None)
     check_attendance_permission(
         db=db,
         schedule_id=attendance_data.schedule_id,
         attendance_date=attendance_data.attendance_date,
-        checkin_time=representative_checkin,  # có thì dùng, không thì dùng now trong helper
+        checkin_time=representative_checkin,
         current_user=current_user,
     )
 
@@ -133,15 +250,16 @@ def create_batch_attendance(
     # Lấy teacher của lớp (phục vụ tạo evaluation)
     teacher_user_id = class_info.teacher_user_id
 
-    # Tạo bản ghi điểm danh
+    # Tạo bản ghi điểm danh (CRUD sẽ insert enum trực tiếp)
     try:
         db_records = attendance_crud.create_initial_attendance_records(db, attendance_data)
     except ValueError as e:
         # propagate lỗi của CRUD (trùng bản ghi, thiếu SV, ...)
-        raise e
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Hậu xử lý: với những record vắng -> notification + evaluation
     for record in db_records:
+        # record.status là enum AttendanceStatus (nếu model của bạn dùng SQLAlchemy Enum)
         if record.status == AttendanceStatus.absent:
             # Lấy thông tin student + user
             student_and_user_data = student_crud.get_student_with_user(db, record.student_user_id)
@@ -176,12 +294,12 @@ def create_batch_attendance(
             evaluation_data = EvaluationCreate(
                 student_user_id=record.student_user_id,
                 teacher_user_id=teacher_user_id,
+                class_id=class_info.class_id,  
                 study_point=-5,
                 discipline_point=-5,
                 evaluation_content="Vắng mặt không phép trong buổi học.",
                 evaluation_type=EvaluationType.discipline,
             )
-            # ⚠️ CRUD mới yêu cầu truyền teacher_user_id riêng -> đảm bảo tương thích
             evaluation_crud.create_evaluation(db, evaluation=evaluation_data, teacher_user_id=teacher_user_id)
 
     return db_records
@@ -230,7 +348,7 @@ def update_late_attendance(
         raise HTTPException(status_code=500, detail="Không tìm thấy thông tin lớp/giáo viên.")
     teacher_user_id = attendance_record.schedule.class_info.teacher_user_id
 
-    evaluation_crud.update_late_evaluation(
+    evaluation_service.update_late_evaluation(
         db=db,
         student_user_id=student_user_id,
         teacher_user_id=teacher_user_id,
@@ -280,26 +398,23 @@ def update_late_attendance(
 
     return updated_record
 
+
 def get_attendances(
     db: Session,
     schedule_id: Optional[int] = None,
     current_user=None
 ) -> List[Attendance]:
-    query = (
-        db.query(Attendance)
-        .join(Attendance.schedule)
-        .join(Schedule.class_info)
-        .options(
-            joinedload(Attendance.student),
-            joinedload(Attendance.schedule).joinedload(Schedule.class_info)
-        )
+    """
+    Lấy danh sách attendance; nếu teacher -> lọc theo lớp dạy.
+    """
+    query = db.query(Attendance).join(Attendance.schedule).join(Schedule.class_info).options(
+        joinedload(Attendance.student),
+        joinedload(Attendance.schedule).joinedload(Schedule.class_info)
     )
 
-    # filter theo schedule_id
     if schedule_id:
         query = query.filter(Attendance.schedule_id == schedule_id)
 
-    # Nếu là teacher thì chỉ trả về attendances của các lớp mà teacher dạy
     if current_user and "teacher" in current_user.roles:
         query = query.filter(Class.teacher_user_id == current_user.user_id)
 

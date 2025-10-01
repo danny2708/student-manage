@@ -1,34 +1,38 @@
 // services/api/evaluation.ts
 import api from "./api";
 
-// Enum tương ứng với backend, phản ánh loại đánh giá
-export type EvaluationType = "study" | "discipline" | "review";
+// Enum tương ứng với backend (theo app.models.evaluation_model.EvaluationType)
+export type EvaluationType = "initial" | "study" | "discipline";
 
-// Interface đại diện cho dữ liệu Evaluation từ backend (Evaluation.py)
+// Interface đại diện cho dữ liệu Evaluation từ backend
 export interface EvaluationRecord {
   evaluation_id: number;
   teacher_user_id: number;
   student_user_id: number;
+  class_id: number;
   study_point: number;
   discipline_point: number;
   evaluation_type: EvaluationType;
   evaluation_content?: string;
-  evaluation_date: string; 
+  evaluation_date: string; // ISO date string
 }
 
-// Payload để tạo một bản ghi đánh giá mới
+// Payload để tạo một bản ghi đánh giá mới (frontend chỉ gửi những field cần thiết; teacher_user_id lấy từ token trên backend)
 export interface EvaluationCreate {
   student_user_id: number;
+  class_id: number;
   study_point: number;
   discipline_point: number;
   evaluation_type: EvaluationType;
   evaluation_content?: string;
-  evaluation_date?: string;
+  evaluation_date?: string; // optional ISO date string; backend sẽ mặc định nếu không gửi
 }
 
-// Dữ liệu tóm tắt điểm
+// Dữ liệu tóm tắt điểm cho 1 học sinh trong toàn bộ lớp (hoặc per-class nếu endpoint trả về)
 export interface EvaluationSummary {
   student_user_id: number;
+  class_name?: string;         // cho trường hợp per-class summary (endpoint mới trả về)
+  subject?: string;            // cho summary theo lớp
   final_study_point: number;
   final_discipline_point: number;
   study_plus_count: number;
@@ -37,21 +41,23 @@ export interface EvaluationSummary {
   discipline_minus_count: number;
 }
 
-// Dữ liệu đánh giá dạng view, có tên thay vì id
+// Dữ liệu đánh giá dạng view, có tên thay vì id (dùng cho list hiển thị)
 export interface EvaluationView {
   id: number;
-  teacher: string;
+  class_name?: string;
   student: string;
+  teacher: string;
   type: EvaluationType;
-  date: string;
-  content: string;
+  date: string;    // ISO date string
+  content?: string;
 }
 
 // --- Endpoints ---
 
+
 // Lấy danh sách tất cả các đánh giá (cho manager và teacher)
-export async function getEvaluations(): Promise<EvaluationView[]> {
-  const res = await api.get<EvaluationView[]>("/evaluations");
+export async function getEvaluations(skip = 0, limit = 100): Promise<EvaluationView[]> {
+  const res = await api.get<EvaluationView[]>("/evaluations", { params: { skip, limit } });
   return res.data;
 }
 
@@ -61,17 +67,17 @@ export async function createEvaluation(payload: EvaluationCreate): Promise<Evalu
   return res.data;
 }
 
-// Lấy điểm tổng của một học sinh
+// Lấy điểm tổng của một học sinh (tất cả lớp)
 export async function getTotalScoreByStudent(studentUserId: number): Promise<EvaluationSummary> {
   const res = await api.get<EvaluationSummary>(`/evaluations/total_score/${studentUserId}`);
   return res.data;
 }
 
-// Lấy điểm tổng và số lần cộng/trừ điểm của một học sinh
-export async function getSummaryAndCounts(studentUserId: number): Promise<EvaluationSummary> {
-  const res = await api.get<EvaluationSummary>(`/evaluations/summary_and_counts/${studentUserId}`);
-  return res.data;
-}
+// Lấy điểm tổng và số lần cộng/trừ điểm của một học sinh (tất cả lớp)
+// export async function getSummaryAndCounts(studentUserId: number): Promise<EvaluationSummary> {
+//   const res = await api.get<EvaluationSummary>(`/evaluations/summary_and_counts/${studentUserId}`);
+//   return res.data;
+// }
 
 // Lấy một bản ghi đánh giá cụ thể bằng ID
 export async function getEvaluationRecord(evaluationId: number): Promise<EvaluationRecord> {
@@ -79,19 +85,41 @@ export async function getEvaluationRecord(evaluationId: number): Promise<Evaluat
   return res.data;
 }
 
-// Lấy danh sách đánh giá của một học sinh
-export async function getEvaluationsOfStudent(studentUserId: number): Promise<EvaluationView[]> {
-  const res = await api.get<EvaluationView[]>(`/evaluations/student/${studentUserId}`);
+// Lấy danh sách đánh giá của một học sinh (tất cả lớp)
+export async function getEvaluationsOfStudent(studentUserId: number, skip = 0, limit = 100): Promise<EvaluationView[]> {
+  const res = await api.get<EvaluationView[]>(`/evaluations/student/${studentUserId}`, { params: { skip, limit } });
   return res.data;
 }
 
 // Lấy danh sách đánh giá của một giáo viên
-export async function getEvaluationsOfTeacher(teacherUserId: number): Promise<EvaluationView[]> {
-  const res = await api.get<EvaluationView[]>(`/evaluations/teacher/${teacherUserId}`);
+export async function getEvaluationsOfTeacher(teacherUserId: number, skip = 0, limit = 100): Promise<EvaluationView[]> {
+  const res = await api.get<EvaluationView[]>(`/evaluations/teacher/${teacherUserId}`, { params: { skip, limit } });
   return res.data;
 }
 
-// Xóa một bản ghi đánh giá
+// Lấy danh sách evaluations của 1 học sinh trong 1 lớp (cần cho modal theo lớp)
+export async function getEvaluationsOfStudentInClass(
+  studentUserId: number,
+  classId: number,
+  skip = 0,
+  limit = 100
+): Promise<EvaluationView[]> {
+  const res = await api.get<EvaluationView[]>(`/evaluations/student/${studentUserId}/class/${classId}`, {
+    params: { skip, limit },
+  });
+  return res.data;
+}
+
+// Lấy summary (tổng & counts) của 1 học sinh trong 1 lớp (endpoint mới)
+export async function getEvaluationsSummaryOfStudentInClass(
+  studentUserId: number,
+  classId: number
+): Promise<EvaluationSummary> {
+  const res = await api.get<EvaluationSummary>(`/evaluations/student/${studentUserId}/class/${classId}/summary`);
+  return res.data;
+}
+
+// Xóa một bản ghi đánh giá (teacher only)
 export async function deleteEvaluation(evaluationId: number): Promise<void> {
   await api.delete(`/evaluations/${evaluationId}`);
 }

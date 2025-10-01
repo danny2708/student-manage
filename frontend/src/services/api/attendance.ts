@@ -6,6 +6,7 @@ export type AttendanceStatus = string; // giữ string để tương thích vớ
 export interface Attendance {
   attendance_id: number;
   student_user_id: number;
+  class_id: number;
   schedule_id: number;
   status: AttendanceStatus;
   checkin_time?: string | null; // "HH:MM:SS" hoặc "HH:MM"
@@ -16,6 +17,7 @@ export interface Attendance {
 export interface AttendanceCreate {
   student_user_id: number;
   schedule_id: number;
+  class_id: number;
   status: AttendanceStatus;
   checkin_time?: string | null;
   attendance_date?: string | null; // optional: backend can set today if null
@@ -31,6 +33,7 @@ export interface AttendanceInitialRecord {
 /** Batch create payload (AttendanceBatchCreate) */
 export interface AttendanceBatchCreate {
   schedule_id: number;
+  class_id: number;
   attendance_date: string; // "YYYY-MM-DD"
   records: AttendanceInitialRecord[];
 }

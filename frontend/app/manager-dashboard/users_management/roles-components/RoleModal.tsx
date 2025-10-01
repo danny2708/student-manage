@@ -1,71 +1,78 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs"
-import { StudentRole } from "./roles/student-role"
-import { TeacherRole } from "./roles/teacher-role"
-import { ParentRole } from "./roles/parent-role"
-import { User as UserIcon, GraduationCap, Users } from "lucide-react"
-import { AnimatePresence, motion } from "framer-motion"
-import { Button } from "../../../../components/ui/button"
-import { useUsers } from "../../../../src/contexts/UsersContext"   
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../../components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
+import { StudentRole } from "./roles/student-role";
+import { TeacherRole } from "./roles/teacher-role";
+import { ParentRole } from "./roles/parent-role";
+import { User as UserIcon, GraduationCap, Users } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Button } from "../../../../components/ui/button";
+import { useUsers } from "../../../../src/contexts/UsersContext";
 
 interface User {
-  user_id: number
-  username: string
-  roles: string[]
-  full_name: string
-  email: string
+  user_id: number;
+  username: string;
+  roles: string[];
+  full_name: string;
+  email: string;
 }
 
 interface RoleModalProps {
-  user: User
-  onClose: () => void
-  onShowInfo: () => void
-  onDelete?: () => void
+  user: User;
+  onClose: () => void;
+  onShowInfo?: () => void;
+  onDelete?: () => void;
 }
 
-export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProps) {
-  const [selectedRole, setSelectedRole] = useState(user.roles[0] as "student" | "teacher" | "parent")
-  const [loading, setLoading] = useState(false)
-  const { removeUser } = useUsers()
+export function RoleModal({ user, onClose }: RoleModalProps) {
+  const [selectedRole, setSelectedRole] = useState(user.roles[0] as "student" | "teacher" | "parent");
+  const [loading, setLoading] = useState(false);
+  const { removeUser } = useUsers();
 
   const handleDelete = async () => {
     try {
-      setLoading(true)
-      await removeUser(user.user_id)   
-      onClose()                        
+      setLoading(true);
+      await removeUser(user.user_id);
+      onClose();
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-[81vw] min-w-[1100px] w-full max-h-[95vh] overflow-y-auto bg-slate-800 text-white border-slate-600">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center text-white">
-            {user.full_name}
-          </DialogTitle>
+      <DialogContent className="max-w-[81vw] min-w-[1100px] w-full max-h-[95vh] overflow-y-auto bg-white text-black border border-gray-300 shadow-lg rounded-lg">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-2xl font-bold text-center text-black">{user.full_name}</DialogTitle>
         </DialogHeader>
 
         <Tabs value={selectedRole} onValueChange={(value) => setSelectedRole(value as any)} className="w-full">
-          <TabsList className={`grid w-full grid-cols-${user.roles.length} bg-slate-700 border-slate-600`}>
+          <TabsList className={`grid w-full grid-cols-${user.roles.length} bg-gray-100 border-b border-gray-300 rounded-t-lg`}>
             {user.roles.includes("student") && (
-              <TabsTrigger value="student" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
+              <TabsTrigger
+                value="student"
+                className="flex items-center gap-2 justify-center cursor-pointer data-[state=active]:bg-blue-100 data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-black text-gray-500 hover:text-black"
+              >
                 <UserIcon className="w-4 h-4" />
                 Student
               </TabsTrigger>
             )}
             {user.roles.includes("teacher") && (
-              <TabsTrigger value="teacher" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
+              <TabsTrigger
+                value="teacher"
+                className="flex items-center gap-2 justify-center cursor-pointer data-[state=active]:bg-green-100 data-[state=active]:border-b-2 data-[state=active]:border-green-500 data-[state=active]:text-black text-gray-500 hover:text-black"
+              >
                 <GraduationCap className="w-4 h-4" />
                 Teacher
               </TabsTrigger>
             )}
             {user.roles.includes("parent") && (
-              <TabsTrigger value="parent" className="flex items-center gap-2 cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">
+              <TabsTrigger
+                value="parent"
+                className="flex items-center gap-2 justify-center cursor-pointer data-[state=active]:bg-purple-100 data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:text-black text-gray-500 hover:text-black"
+              >
                 <Users className="w-4 h-4" />
                 Parent
               </TabsTrigger>
@@ -111,18 +118,13 @@ export function RoleModal({ user, onClose, onShowInfo, onDelete }: RoleModalProp
           </AnimatePresence>
         </Tabs>
 
-        {/* ✅ nút Delete căn giữa ở cuối modal */}
+        {/* Delete Button */}
         <div className="flex justify-center mt-8">
-          <Button
-            variant="destructive"
-            disabled={loading}
-            onClick={handleDelete}
-            className="px-8 py-2"
-          >
+          <Button variant="destructive" disabled={loading} onClick={handleDelete} className="px-8 py-2">
             {loading ? "Đang xóa..." : "Xóa User"}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -36,5 +36,17 @@ class Class(Base):
         cascade="all, delete-orphan"
     )
 
+    evaluations = relationship(  
+        "Evaluation",
+        back_populates="class_",
+        cascade="all, delete-orphan"
+    )
+
+    attendances = relationship(  
+        "Attendance",
+        back_populates="class_",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return f"<Class(name='{self.class_name}')>"

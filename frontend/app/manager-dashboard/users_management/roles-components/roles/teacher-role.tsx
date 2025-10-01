@@ -1,4 +1,3 @@
-// src/components/roles/TeacherRole.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -11,12 +10,12 @@ import {
 } from "../../../../../components/ui/table";
 import { Badge } from "../../../../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
-import { BookOpen, Star, Users, DollarSign } from "lucide-react";
+import { BookOpen, Star, Users, DollarSign, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
-import { ClassUpdate } from "../../../../../src/services/api/class"; 
+import { ClassUpdate } from "../../../../../src/services/api/class";
 import { useEvaluations } from "../../../../../src/hooks/useEvaluation";
 import { useTeacherReviews } from "../../../../../src/hooks/useTeacherReview";
 import { usePayrolls } from "../../../../../src/hooks/usePayroll";
@@ -76,6 +75,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
       if (payrolls) setTeacherPayrolls(payrolls);
     } catch (error) {
       console.error("Failed to load initial data:", error);
+      toast.error("Không thể tải dữ liệu ban đầu.");
     }
   }, [userId, fetchEvaluationsOfTeacher, fetchReviewsByTeacherId, fetchTeacherPayrolls, fetchClasses]);
 
@@ -83,7 +83,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
     loadInitialData();
   }, [loadInitialData]);
 
- // Manager dashboard: show class chưa có teacher hoặc đã gán cho teacher khác
+  // Manager dashboard: show class chưa có teacher hoặc đã gán cho teacher khác
   const availableAssignClasses = useMemo(() => {
     return (classes || []).filter((c: any) => {
       // nếu chưa có teacher
@@ -106,7 +106,7 @@ export function TeacherRole({ user }: TeacherRoleProps) {
       // gọi editClass từ context (editClass = async (id:number, data: ClassUpdate))
       await editClass(classId, payload);
 
-      toast.success("Assign thành công!");
+      toast.success("Gán lớp thành công!");
 
       // reload dữ liệu
       await fetchClasses();
@@ -121,88 +121,90 @@ export function TeacherRole({ user }: TeacherRoleProps) {
   };
 
   return (
-    <div className="space-y-6 text-white">
-      {/* --- Stats --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Available to Assign</CardTitle>
-              <BookOpen className="h-4 w-4 text-slate-300" />
+    <div className="space-y-6 bg-white text-black p-6 rounded-md">
+    {/* --- Stats --- */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[
+        { title: "Available to Assign", icon: BookOpen, value: availableAssignClasses.length, border: "border-blue-200", textColor: "text-black", valueColor: "text-black" },
+        { title: "Evaluations Given", icon: Star, value: teacherEvaluations.length, border: "border-yellow-200", textColor: "text-black", valueColor: "text-black" },
+        { title: "Student Reviews", icon: Users, value: teacherReviews.length, border: "border-green-200", textColor: "text-black", valueColor: "text-black" },
+        { title: "Monthly Salary", icon: DollarSign, value: formatVND(teacherPayrolls[0]?.total || 0), border: "border-purple-200", textColor: "text-black", valueColor: "text-green-700" },
+      ].map((card) => (
+        <motion.div key={card.title} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+          <Card className={`bg-white border-2 ${card.border} shadow-sm h-full flex flex-col`}>
+            <CardHeader className="flex items-center justify-between pb-2">
+              <div className="flex items-center gap-2">
+                <card.icon className="h-5 w-5 text-current" />
+                <CardTitle className={`text-sm font-medium ${card.textColor}`}>{card.title}</CardTitle>
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-300" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{availableAssignClasses.length}</div>
+            <CardContent className="flex justify-center items-center flex-1">
+              <div className={`text-3xl font-bold ${card.valueColor}`}>{card.value}</div>
             </CardContent>
           </Card>
         </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Evaluations Given</CardTitle>
-              <Star className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{teacherEvaluations.length}</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Student Reviews</CardTitle>
-              <Users className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{teacherReviews.length}</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[250px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Monthly Salary</CardTitle>
-              <DollarSign className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-400">{formatVND(teacherPayrolls[0]?.total || 0)}</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+      ))}
+    </div>
 
       {/* --- Tabs --- */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600">
-          <TabsTrigger value="assign-class" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Assign Class</TabsTrigger>
-          <TabsTrigger value="evaluations" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Evaluations</TabsTrigger>
-          <TabsTrigger value="reviews" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Reviews</TabsTrigger>
-          <TabsTrigger value="payroll" className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white">Payroll</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-white border-b border-gray-200">
+          <TabsTrigger
+            value="assign-class"
+            className="cursor-pointer data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-gray-600 hover:text-black border-r"
+          >
+            <div className="flex items-center gap-2"><BookOpen className="w-4 h-4" /> Assign Class</div>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="evaluations"
+            className="cursor-pointer data-[state=active]:bg-yellow-50 data-[state=active]:text-yellow-700 text-gray-600 hover:text-black border-r"
+          >
+            <div className="flex items-center gap-2"><Star className="w-4 h-4" /> Evaluations</div>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="reviews"
+            className="cursor-pointer data-[state=active]:bg-green-50 data-[state=active]:text-green-700 text-gray-600 hover:text-black border-r"
+          >
+            <div className="flex items-center gap-2"><Users className="w-4 h-4" /> Reviews</div>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="payroll"
+            className="cursor-pointer data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 text-gray-600 hover:text-black"
+          >
+            <div className="flex items-center gap-2"><DollarSign className="w-4 h-4" /> Payroll</div>
+          </TabsTrigger>
         </TabsList>
 
         {/* Assign Class tab */}
         <TabsContent value="assign-class" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Available Classes</CardTitle>
-              <CardDescription className="text-slate-300">Select a class to assign yourself to</CardDescription>
+              <CardTitle className="text-black">Available Classes</CardTitle>
+              <CardDescription className="text-gray-600">Select a class to assign yourself to</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
                 {availableAssignClasses.length > 0 ? (
                   availableAssignClasses.map((cls: any) => (
-                    <motion.div key={cls.class_id ?? cls.id} className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600" whileHover={{ scale: 1.01 }} transition={{ duration: 0.2 }}>
+                    <motion.div
+                      key={cls.class_id ?? cls.id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-white"
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <div>
-                        <h3 className="font-semibold text-white">{cls.class_name}</h3>
-                        <p className="text-sm text-slate-300">Capacity: {cls.capacity}</p>
+                        <h3 className="font-semibold text-black">{cls.class_name}</h3>
+                        <p className="text-sm text-gray-600">Capacity: {cls.capacity}</p>
                       </div>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           onClick={() => handleAssignClass(Number(cls.class_id ?? cls.id))}
                           disabled={assigningId === Number(cls.class_id ?? cls.id)}
-                          className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           {assigningId === Number(cls.class_id ?? cls.id) ? "Assigning..." : "Assign to Me"}
                         </Button>
@@ -210,38 +212,39 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                     </motion.div>
                   ))
                 ) : (
-                  <p className="text-center text-slate-400">Không có lớp nào có thể gán.</p>
+                  <p className="text-center text-gray-500">Không có lớp nào có thể gán.</p>
                 )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Evaluations tab (giữ nguyên) */}
+        {/* Evaluations tab */}
         <TabsContent value="evaluations" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Evaluations</CardTitle>
+              <CardTitle className="text-black">Evaluations</CardTitle>
+              <CardDescription className="text-gray-600">Danh sách các đánh giá bạn đã tạo</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">ID</TableHead>
-                    <TableHead className="text-white">Student</TableHead>
-                    <TableHead className="text-white">Type</TableHead>
-                    <TableHead className="text-white">Content</TableHead>
-                    <TableHead className="text-white">Date</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">ID</TableHead>
+                    <TableHead className="text-black">Student</TableHead>
+                    <TableHead className="text-black">Type</TableHead>
+                    <TableHead className="text-black">Content</TableHead>
+                    <TableHead className="text-black">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherEvaluations.map((ev) => (
-                    <TableRow key={ev.id} className="border-slate-600">
-                      <TableCell className="text-white">{ev.id}</TableCell>
-                      <TableCell className="text-white">{ev.student}</TableCell>
-                      <TableCell className="text-white">{ev.type}</TableCell>
-                      <TableCell className="text-white">{ev.content}</TableCell>
-                      <TableCell className="text-white">{formatDate(ev.date)}</TableCell>
+                    <TableRow key={ev.id} className="border-b">
+                      <TableCell className="text-black">{ev.id}</TableCell>
+                      <TableCell className="text-black">{ev.student}</TableCell>
+                      <TableCell className="text-black">{ev.type}</TableCell>
+                      <TableCell className="text-black">{ev.content}</TableCell>
+                      <TableCell className="text-black">{formatDate(ev.date)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -250,26 +253,27 @@ export function TeacherRole({ user }: TeacherRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* Reviews tab (giữ nguyên) */}
+        {/* Reviews tab */}
         <TabsContent value="reviews" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Student Reviews</CardTitle>
+              <CardTitle className="text-black">Student Reviews</CardTitle>
+              <CardDescription className="text-gray-600">Nhận xét từ sinh viên</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">Student</TableHead>
-                    <TableHead className="text-white">Rating</TableHead>
-                    <TableHead className="text-white">Date</TableHead>
-                    <TableHead className="text-white">Content</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">Student</TableHead>
+                    <TableHead className="text-black">Rating</TableHead>
+                    <TableHead className="text-black">Date</TableHead>
+                    <TableHead className="text-black">Content</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherReviews.map((r) => (
-                    <TableRow key={r.id} className="border-slate-600">
-                      <TableCell className="text-white">{r.student_name}</TableCell>
+                    <TableRow key={r.id} className="border-b">
+                      <TableCell className="text-black">{r.student_name}</TableCell>
                       <TableCell>
                         <div className="flex">
                           {Array.from({ length: r.rating }).map((_, i) => (
@@ -277,8 +281,8 @@ export function TeacherRole({ user }: TeacherRoleProps) {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-white">{formatDate(r.review_date)}</TableCell>
-                      <TableCell className="text-white">{r.review_content}</TableCell>
+                      <TableCell className="text-black">{formatDate(r.review_date)}</TableCell>
+                      <TableCell className="text-black">{r.review_content}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -287,42 +291,43 @@ export function TeacherRole({ user }: TeacherRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* Payroll tab (giữ nguyên) */}
+        {/* Payroll tab */}
         <TabsContent value="payroll" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Payroll Information</CardTitle>
+              <CardTitle className="text-black">Payroll Information</CardTitle>
+              <CardDescription className="text-gray-600">Thông tin lương hàng tháng</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">ID</TableHead>
-                    <TableHead className="text-white">Month</TableHead>
-                    <TableHead className="text-white">Base Salary</TableHead>
-                    <TableHead className="text-white">Reward Bonus</TableHead>
-                    <TableHead className="text-white">Total</TableHead>
-                    <TableHead className="text-white">Status</TableHead>
-                    <TableHead className="text-white">Sent At</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">ID</TableHead>
+                    <TableHead className="text-black">Month</TableHead>
+                    <TableHead className="text-black">Base Salary</TableHead>
+                    <TableHead className="text-black">Reward Bonus</TableHead>
+                    <TableHead className="text-black">Total</TableHead>
+                    <TableHead className="text-black">Status</TableHead>
+                    <TableHead className="text-black">Sent At</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {teacherPayrolls.map((p) => (
-                    <TableRow key={p.id} className="border-slate-600">
-                      <TableCell className="text-white">{p.id}</TableCell>
-                      <TableCell className="text-white">{p.month}</TableCell>
-                      <TableCell className="text-white">{formatVND(p.base_salary)}</TableCell>
-                      <TableCell className="text-white">{formatVND(p.bonus)}</TableCell>
-                      <TableCell className="font-semibold text-green-400">{formatVND(p.total)}</TableCell>
+                    <TableRow key={p.id} className="border-b">
+                      <TableCell className="text-black">{p.id}</TableCell>
+                      <TableCell className="text-black">{p.month}</TableCell>
+                      <TableCell className="text-black">{formatVND(p.base_salary)}</TableCell>
+                      <TableCell className="text-black">{formatVND(p.bonus)}</TableCell>
+                      <TableCell className="font-semibold text-green-700">{formatVND(p.total)}</TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={p.status === "paid" ? "default" : "secondary"}
                           className={p.status === "pending" ? "bg-yellow-500 text-white hover:bg-yellow-400" : ""}
                         >
                           {p.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-white">{formatDate(p.sent_at)}</TableCell>
+                      <TableCell className="text-black">{p.sent_at}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

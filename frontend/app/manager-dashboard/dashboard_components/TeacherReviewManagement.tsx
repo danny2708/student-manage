@@ -7,60 +7,27 @@ import { useAuth } from "../../../src/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../../../components/ui/input";
 
+interface PopoverPosition { left: number; top: number; show: boolean }
+
 interface TeacherReviewManagementProps {
   searchTerm: string;
   updateSearchTerm: (section: string, value: string) => void;
 }
 
-// format date ra dd/mm/yyyy
-const formatDate = (dateString: string) => {
-  if (!dateString) return "";
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("vi-VN"); // dd/mm/yyyy
-};
-
-// chuẩn hóa về YYYY-MM-DD để so sánh filter
-const normalizeDate = (dateString: string) => {
-  if (!dateString) return "";
-  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return "";
-  return d.toISOString().split("T")[0];
-};
-
-export default function TeacherReviewManagement({
-  searchTerm,
-  updateSearchTerm,
-}: TeacherReviewManagementProps) {
+export default function TeacherReviewManagement({ searchTerm, updateSearchTerm }: TeacherReviewManagementProps) {
   const { reviews, loading, error, fetchAllReviews } = useTeacherReviews();
   const { user } = useAuth?.() ?? { user: null };
 
-  React.useEffect(() => {
-    fetchAllReviews();
-  }, [fetchAllReviews]);
+  React.useEffect(() => { fetchAllReviews(); }, [fetchAllReviews]);
 
-  // === LOCAL search state to ensure immediate typing feedback ===
-  const [localSearch, setLocalSearch] = React.useState<string>(searchTerm ?? "");
-  React.useEffect(() => {
-    setLocalSearch(searchTerm ?? "");
-  }, [searchTerm]);
+  const [localSearch, setLocalSearch] = React.useState(searchTerm ?? "");
+  React.useEffect(() => setLocalSearch(searchTerm ?? ""), [searchTerm]);
 
-  // normalize roles
   const getRoleNames = React.useCallback((roles: any): string[] => {
     if (!roles) return [];
-    if (Array.isArray(roles)) {
-      return roles
-        .map((r) => (typeof r === "string" ? r : r?.name ?? r?.role ?? ""))
-        .filter(Boolean)
-        .map(String);
-    }
+    if (Array.isArray(roles)) return roles.map(r => typeof r === "string" ? r : r?.name ?? r?.role ?? "").filter(Boolean).map(String);
     if (typeof roles === "string") return [roles];
-    if (typeof roles === "object" && roles !== null) {
-      const derived = roles.name ?? roles.role ?? "";
-      return derived ? [String(derived)] : [];
-    }
+    if (typeof roles === "object" && roles !== null) return roles.name ? [String(roles.name)] : [];
     return [];
   }, []);
 
@@ -68,348 +35,195 @@ export default function TeacherReviewManagement({
   const isTeacherRole = roleNames.includes("teacher");
   const isStudentRole = roleNames.includes("student");
 
-  // ---- filter states ----
   const [filterTeacher, setFilterTeacher] = React.useState("");
   const [filterStudent, setFilterStudent] = React.useState("");
   const [filterRating, setFilterRating] = React.useState("");
   const [filterDate, setFilterDate] = React.useState("");
-
-  // ---- popover open ----
   const [openPopover, setOpenPopover] = React.useState<null | "teacher" | "student" | "rating" | "date">(null);
 
-  // Refs for filter buttons to calculate popover position
   const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
-
-  // Ref cho toàn bộ khu vực quản lý để đóng popover khi click ra ngoài
   const rootRef = React.useRef<HTMLDivElement | null>(null);
 
-  // ---- options ----
-  const teacherOptions = React.useMemo(
-    () => Array.from(new Set(reviews.map((r) => r.teacher_name).filter(Boolean))),
-    [reviews]
-  );
-  const studentOptions = React.useMemo(
-    () => Array.from(new Set(reviews.map((r) => r.student_name).filter(Boolean))),
-    [reviews]
-  );
+  const teacherOptions = React.useMemo(() => Array.from(new Set(reviews.map(r => r.teacher_name).filter(Boolean))), [reviews]);
+  const studentOptions = React.useMemo(() => Array.from(new Set(reviews.map(r => r.student_name).filter(Boolean))), [reviews]);
 
-  // click outside to close popovers
   React.useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) {
-        setOpenPopover(null);
-      }
+      if (!rootRef.current.contains(e.target as Node)) setOpenPopover(null);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  // ---- filter logic ----
-  const filteredReviews = React.useMemo(() => {
-    return reviews.filter((review) => {
-      const matchesSearch =
-        !localSearch ||
-        (review.review_content ?? "").toLowerCase().includes(localSearch.toLowerCase()) ||
-        (review.teacher_name ?? "").toLowerCase().includes(localSearch.toLowerCase()) ||
-        (review.student_name ?? "").toLowerCase().includes(localSearch.toLowerCase());
-
-      const matchesTeacher = filterTeacher ? review.teacher_name === filterTeacher : true;
-      const matchesStudent = filterStudent ? review.student_name === filterStudent : true;
-      const matchesRating = filterRating ? Math.round(review.rating) === Number(filterRating) : true;
-      const matchesDate = filterDate ? normalizeDate(review.review_date) === filterDate : true;
-
-      return matchesSearch && matchesTeacher && matchesStudent && matchesRating && matchesDate;
-    });
-  }, [reviews, localSearch, filterTeacher, filterStudent, filterRating, filterDate]);
+  const filteredReviews = React.useMemo(() => reviews.filter(review => {
+    const matchesSearch = !localSearch ||
+      (review.review_content ?? "").toLowerCase().includes(localSearch.toLowerCase()) ||
+      (review.teacher_name ?? "").toLowerCase().includes(localSearch.toLowerCase()) ||
+      (review.student_name ?? "").toLowerCase().includes(localSearch.toLowerCase());
+    const matchesTeacher = filterTeacher ? review.teacher_name === filterTeacher : true;
+    const matchesStudent = filterStudent ? review.student_name === filterStudent : true;
+    const matchesRating = filterRating ? Math.round(review.rating) === Number(filterRating) : true;
+    const matchesDate = filterDate ? review.review_date?.split("T")[0] === filterDate : true;
+    return matchesSearch && matchesTeacher && matchesStudent && matchesRating && matchesDate;
+  }), [reviews, localSearch, filterTeacher, filterStudent, filterRating, filterDate]);
 
   const resetFilters = React.useCallback(() => {
-    setFilterTeacher("");
-    setFilterStudent("");
-    setFilterRating("");
-    setFilterDate("");
-    setLocalSearch("");
-    updateSearchTerm("teacherReview", "");
-    setOpenPopover(null);
+    setFilterTeacher(""); setFilterStudent(""); setFilterRating(""); setFilterDate(""); setLocalSearch("");
+    updateSearchTerm("teacherReview", ""); setOpenPopover(null);
   }, [updateSearchTerm]);
 
-  // When user types in input: update local immediately and notify parent
-  const handleSearchChange = (value: string) => {
-    setLocalSearch(value);
-    updateSearchTerm("teacherReview", value);
-  };
+  const handleSearchChange = (value: string) => { setLocalSearch(value); updateSearchTerm("teacherReview", value); };
 
-  // ---- table column control ----
   const showStudentCol = !isStudentRole;
   const showTeacherCol = !isTeacherRole;
-  const visibleCols =
-    1 /* ID */ +
-    (showTeacherCol ? 1 : 0) +
-    (showStudentCol ? 1 : 0) +
-    1 /* rating */ +
-    1 /* review */ +
-    1 /* date */;
+  const visibleCols = 1 + (showTeacherCol ? 1 : 0) + (showStudentCol ? 1 : 0) + 1 + 1 + 1;
 
-  if (loading) return <div className="text-gray-300">Loading reviews...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-
-
-  // Function to calculate popover position relative to the root div
-  const getPopoverPosition = (filterName: "teacher" | "student" | "rating" | "date") => {
+  const getPopoverPosition = (filterName: "teacher" | "student" | "rating" | "date"): PopoverPosition => {
     const button = filterButtonRefs.current[filterName];
     if (!button || !rootRef.current) return { left: 0, top: 0, show: false };
-
     const buttonRect = button.getBoundingClientRect();
     const rootRect = rootRef.current.getBoundingClientRect();
-
-    // The popover should appear right below the button
-    const top = buttonRect.bottom - rootRect.top + 5; // +5px margin
-
-    // Position it to align its right edge with the button, accounting for padding/margin
-    const left = buttonRect.left - rootRect.left;
-
-    return { left, top, show: openPopover === filterName };
+    return { left: buttonRect.left - rootRect.left, top: buttonRect.bottom - rootRect.top + 5, show: openPopover === filterName };
   };
 
+  const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("vi-VN") : "";
+
+  if (loading) return <div className="text-gray-500">Loading reviews...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+
   return (
-    // Make the root div relative for absolute positioning of popovers
-    <div className="space-y-4 relative" ref={rootRef}>
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Teacher Review Management</h2>
+    <div className="space-y-6 relative p-4 bg-white rounded-lg shadow-lg" ref={rootRef}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-black">Teacher Review Management</h2>
       </div>
 
-      <div className="text-gray-900 flex items-center gap-4">
+      {/* Search + Reset */}
+      <div className="flex items-center gap-2 mb-4">
         <div className="relative flex-1">
-          <input
+          <Input
             type="text"
             placeholder="Search reviews..."
             value={localSearch}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+            onChange={e => handleSearchChange(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
           />
           <Star className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
-        <button
-          onClick={resetFilters}
-          className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors cursor-pointer"
-        >
-          Reset filter
-        </button>
+        <button onClick={resetFilters} className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors">Reset Filters</button>
       </div>
 
-      {/* results table */}
-      <div className="bg-gray-800 rounded-lg overflow-x-auto">
+      {/* Table */}
+      <div className="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
         <table className="w-full table-auto">
-          {/* Ref containerRef cũ đã được thay bằng rootRef ở div cha */}
-          <thead className="bg-gray-700">
+          <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
-
-              {showTeacherCol && (
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  <div className="flex items-center gap-1">
-                    <span>TEACHER</span>
-                    <button
-                      ref={(el) => { filterButtonRefs.current.teacher = el; }}
-                      aria-label="Filter by teacher"
-                      onClick={() => setOpenPopover(openPopover === "teacher" ? null : "teacher")}
-                      className="cursor-pointer"
-                    >
-                      <Filter className="h-4 w-4 text-gray-400" />
-                    </button>
-                  </div>
-                </th>
-              )}
-
-              {showStudentCol && (
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                  <div className="flex items-center gap-1">
-                    <span>STUDENT</span>
-                    <button
-                      ref={(el) => { filterButtonRefs.current.student = el; }}
-                      aria-label="Filter by student"
-                      onClick={() => setOpenPopover(openPopover === "student" ? null : "student")}
-                      className="cursor-pointer"
-                    >
-                      <Filter className="h-4 w-4 text-gray-400" />
-                    </button>
-                  </div>
-                </th>
-              )}
-
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                <div className="flex items-center gap-1">
-                  <span>RATING</span>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase border-r border-gray-200">ID</th>
+              {showTeacherCol && <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase border-r border-gray-200">
+                <div className="flex items-center gap-2">
+                  TEACHER
                   <button
-                    ref={(el) => { filterButtonRefs.current.rating = el; }}
-                    aria-label="Filter by rating"
-                    onClick={() => setOpenPopover(openPopover === "rating" ? null : "rating")}
-                    className="cursor-pointer"
+                    ref={el => { filterButtonRefs.current.teacher = el; }}
+                    onClick={() => setOpenPopover(openPopover==="teacher"?null:"teacher")}
+                    aria-label="Filter by teacher"
                   >
-                    <Filter className="h-4 w-4 text-gray-400" />
+                    <Filter className="h-4 w-4 text-black ml-1 cursor-pointer"/>
+                  </button>
+                </div>
+              </th>}
+              {showStudentCol && <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase border-r border-gray-200">
+                <div className="flex items-center gap-2">
+                  STUDENT
+                  <button
+                    ref={el => { filterButtonRefs.current.student = el; }}
+                    onClick={() => setOpenPopover(openPopover==="student"?null:"student")}
+                    aria-label="Filter by student"
+                  >
+                    <Filter className="h-4 w-4 text-black ml-1 cursor-pointer"/>
+                  </button>
+                </div>
+              </th>}
+              <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase border-r border-gray-200">
+                <div className="flex items-center gap-2">
+                  RATING
+                  <button
+                    ref={el => { filterButtonRefs.current.rating = el; }}
+                    onClick={() => setOpenPopover(openPopover==="rating"?null:"rating")}
+                    aria-label="Filter by rating"
+                  >
+                    <Filter className="h-4 w-4 text-black ml-1 cursor-pointer"/>
                   </button>
                 </div>
               </th>
-
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">REVIEW</th>
-
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">
-                <div className="flex items-center gap-1">
-                  <span>DATE</span>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase border-r border-gray-200">REVIEW</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-black uppercase">
+                <div className="flex items-center gap-2">
+                  DATE
                   <button
-                    ref={(el) => { filterButtonRefs.current.date = el; }}
+                    ref={el => { filterButtonRefs.current.date = el; }}
+                    onClick={() => setOpenPopover(openPopover==="date"?null:"date")}
                     aria-label="Filter by date"
-                    onClick={() => setOpenPopover(openPopover === "date" ? null : "date")}
-                    className="cursor-pointer"
                   >
-                    <CalendarIcon className="h-4 w-4 text-gray-400" />
+                    <CalendarIcon className="h-4 w-4 text-black ml-1 cursor-pointer"/>
                   </button>
                 </div>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-600">
-            {filteredReviews.length > 0 ? (
-              filteredReviews.map((review) => (
-                <tr key={review.id} className="hover:bg-gray-700 transition-colors">
-                  <td className="px-3 py-3 text-sm text-gray-300">{review.id}</td>
-                  {showTeacherCol && <td className="px-3 py-3 text-sm text-gray-300">{review.teacher_name}</td>}
-                  {showStudentCol && <td className="px-3 py-3 text-sm text-gray-300">{review.student_name}</td>}
-                  <td className="px-3 py-3 text-sm text-yellow-400">
-                    {"★".repeat(Math.round(review.rating))}
-                    {"☆".repeat(5 - Math.round(review.rating))}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-gray-300 break-words">{review.review_content}</td>
-                  <td className="px-3 py-3 text-sm text-gray-300">{formatDate(normalizeDate(review.review_date))}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={visibleCols} className="py-8 text-center text-gray-400">
-                  No reviews found matching your criteria.
+          <tbody className="divide-y divide-gray-200">
+            {filteredReviews.length > 0 ? filteredReviews.map(r => (
+              <tr key={r.id} className="hover:bg-gray-100 cursor-pointer transition-colors">
+                <td className="px-3 py-3 text-sm text-black border-r border-gray-200">{r.id}</td>
+                {showTeacherCol && <td className="px-3 py-3 text-sm text-black border-r border-gray-200">{r.teacher_name}</td>}
+                {showStudentCol && <td className="px-3 py-3 text-sm text-black border-r border-gray-200">{r.student_name}</td>}
+                <td className="px-3 py-3 text-sm text-yellow-600 border-r border-gray-200">
+                  {"★".repeat(Math.round(r.rating))}{"☆".repeat(5-Math.round(r.rating))}
                 </td>
+                <td className="px-3 py-3 text-sm text-black border-r border-gray-200 break-words">{r.review_content}</td>
+                <td className="px-3 py-3 text-sm text-black">{formatDate(r.review_date)}</td>
               </tr>
-            )}
+            )) : <tr><td colSpan={visibleCols} className="py-8 text-center text-gray-400">No reviews found matching your criteria.</td></tr>}
           </tbody>
         </table>
       </div>
+
+      {/* Popovers */}
       <AnimatePresence>
-        {/* Teacher Filter Popover */}
-        {getPopoverPosition("teacher").show && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            style={{
-              position: 'absolute',
-              top: getPopoverPosition("teacher").top,
-              left: getPopoverPosition("teacher").left,
-              transform: 'translateX(calc(-100% + 40px))' 
-            }}
-            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
-          >
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Teacher</label>
-            <select
-              aria-label="Select teacher to filter"
-              value={filterTeacher}
-              onChange={(e) => setFilterTeacher(e.target.value)}
-              className="w-full border p-2 rounded text-gray-900"
-            >
-              <option value="">All</option>
-              {teacherOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </motion.div>
-        )}
-
-        {/* Student Filter Popover */}
-        {getPopoverPosition("student").show && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            style={{
-              position: 'absolute',
-              top: getPopoverPosition("student").top,
-              left: getPopoverPosition("student").left,
-              transform: 'translateX(calc(-100% + 40px))'
-            }}
-            className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3"
-          >
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Student</label>
-            <select
-              aria-label="Select student to filter"
-              value={filterStudent}
-              onChange={(e) => setFilterStudent(e.target.value)}
-              className="w-full border p-2 rounded text-gray-900"
-            >
-              <option value="">All</option>
-              {studentOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </motion.div>
-        )}
-
-        {/* Rating Filter Popover */}
-        {getPopoverPosition("rating").show && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            style={{
-              position: 'absolute',
-              top: getPopoverPosition("rating").top,
-              left: getPopoverPosition("rating").left,
-              transform: 'translateX(calc(-100% + 40px))'
-            }}
-            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
-          >
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Rating</label>
-            <select
-              aria-label="Select rating to filter"
-              value={filterRating}
-              onChange={(e) => setFilterRating(e.target.value)}
-              className="w-full border p-2 rounded text-gray-900"
-            >
-              <option value="">All</option>
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <option key={rating} value={rating}>
-                  {"★".repeat(rating)} ({rating})
-                </option>
-              ))}
-            </select>
-          </motion.div>
-        )}
-
-        {/* Date Filter Popover */}
-        {getPopoverPosition("date").show && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            style={{
-              position: 'absolute',
-              top: getPopoverPosition("date").top,
-              left: getPopoverPosition("date").left,
-              transform: 'translateX(calc(-100% + 40px))'
-            }}
-            className="z-50 mt-2 w-44 bg-white border rounded shadow-lg p-3"
-          >
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
-            <Input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="w-full border p-2 rounded text-gray-900"
-            />
-          </motion.div>
-        )}
+        {["teacher","student","rating","date"].map(filterName => {
+          const pos = getPopoverPosition(filterName as any);
+          if(!pos.show) return null;
+          let options: string[] = [];
+          let value = "";
+          let label = "";
+          switch(filterName){
+            case "teacher": options = teacherOptions; value = filterTeacher; label="Teacher"; break;
+            case "student": options = studentOptions; value = filterStudent; label="Student"; break;
+            case "rating": options = ["5","4","3","2","1"]; value = filterRating; label="Rating"; break;
+            case "date": options = []; value = filterDate; label="Date"; break;
+          }
+          return (
+            <motion.div key={filterName} initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}}
+              style={{position:'absolute',top:pos.top,left:pos.left,minWidth:'200px'}} className="z-50 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+              <label className="text-sm font-semibold mb-1 block">{label}</label>
+              {filterName==="date"?(
+                <Input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="w-full border p-2 rounded text-black"/>
+              ):(
+                <select className="w-full border p-2 rounded text-black" value={value} aria-label={label}
+                  onChange={e=>{
+                    if(filterName==="teacher") setFilterTeacher(e.target.value);
+                    if(filterName==="student") setFilterStudent(e.target.value);
+                    if(filterName==="rating") setFilterRating(e.target.value);
+                  }}>
+                  <option value="">All</option>
+                  {options.map(opt=> filterName==="rating"?
+                    <option key={opt} value={opt}>{"★".repeat(Number(opt))} ({opt})</option>:
+                    <option key={opt} value={opt}>{opt}</option>
+                  )}
+                </select>
+              )}
+            </motion.div>
+          )
+        })}
       </AnimatePresence>
     </div>
   );

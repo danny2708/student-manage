@@ -24,17 +24,17 @@ class Evaluation(Base):
 
     student_user_id = Column(Integer, ForeignKey('students.user_id', ondelete="CASCADE"), nullable=False)
     teacher_user_id = Column(Integer, ForeignKey('teachers.user_id', ondelete="CASCADE"), nullable=False)
-
+    class_id = Column(Integer, ForeignKey('classes.class_id', ondelete="CASCADE"), nullable=False)
     evaluation_type = Column(SqlEnum(EvaluationType), nullable=False)
     evaluation_date = Column(Date, nullable=False)
     study_point = Column(Integer, nullable=False)
     discipline_point = Column(Integer, nullable=False)
     evaluation_content = Column(Text, nullable=False)
 
-    # Mối quan hệ với học sinh và giáo viên (many-to-one)
+    # Mối quan hệ với học sinh và giáo viên và lớp (many-to-one)
     student = relationship("Student", back_populates="evaluations")
     teacher = relationship("Teacher", back_populates="evaluations")
-
+    class_ = relationship("Class", back_populates="evaluations")
     def __repr__(self):
         return (
             f"<Evaluation(student_user_id={self.student_user_id}, "

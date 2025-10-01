@@ -31,14 +31,14 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -6 }}
     style={{ position: "absolute", top: position.top, left: position.left }}
-    className="z-50 mt-2 w-48 bg-white border rounded shadow-lg p-3 text-gray-900"
+    className="z-50 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-black"
   >
-    <label className="text-sm font-medium text-gray-700 mb-1 block capitalize">{name}</label>
+    <label className="text-sm font-semibold mb-2 block capitalize">{name}</label>
     <select
       aria-label={`Select ${name} to filter`}
       value={value}
       onChange={onChange}
-      className="w-full border p-2 text-sm rounded"
+      className="w-full border p-2 text-sm rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
     >
       <option value="">All</option>
       {options.map((option) => (
@@ -66,18 +66,18 @@ const RangeFilterPopover: React.FC<RangeFilterPopoverProps> = ({
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -6 }}
     style={{ position: "absolute", top: position.top, left: position.left }}
-    className="z-50 mt-2 w-52 bg-white border rounded shadow-lg p-3 text-gray-900 space-y-2"
+    className="z-50 mt-2 w-52 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-black space-y-2"
   >
-    <label className="text-sm font-medium text-gray-700 block capitalize">{name}</label>
+    <label className="text-sm font-semibold block capitalize">{name}</label>
     <Input
       type="number" placeholder="Min"
       value={min} onChange={(e) => setMin(e.target.value)}
-      className="w-full border p-2 text-sm rounded text-gray-900"
+      className="w-full border p-2 text-sm rounded"
     />
     <Input
       type="number" placeholder="Max"
       value={max} onChange={(e) => setMax(e.target.value)}
-      className="w-full border p-2 text-sm rounded text-gray-900"
+      className="w-full border p-2 text-sm rounded"
     />
     <button
       onClick={onApply}
@@ -88,20 +88,17 @@ const RangeFilterPopover: React.FC<RangeFilterPopoverProps> = ({
   </motion.div>
 );
 
-// ========== Main Component ==========
 export default function TuitionManagement() {
   const { user } = useAuth();
   const { tuitions, fetchTuitions, removeTuition } = useTuitions();
-  const { isOpen, message, onConfirm, openConfirm, closeConfirm } =
-      useConfirmDialog();
+  const { isOpen, message, onConfirm, openConfirm, closeConfirm } = useConfirmDialog();
+
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
   const [showAction, setShowAction] = React.useState(false);
   const [showInfo, setShowInfo] = React.useState(false);
   const [showCreateModal, setShowCreateModal] = React.useState(false);
-  const [showConfirm, setShowConfirm] = React.useState(false);
 
-  // Filters
   const [filterStudent, setFilterStudent] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState("");
   const [amountMin, setAmountMin] = React.useState("");
@@ -144,24 +141,14 @@ export default function TuitionManagement() {
   };
 
   const handleDelete = async () => {
+    if (!selectedRow) return;
     try {
-      if (selectedRow) {
-        await removeTuition(selectedRow.id);
-        setShowConfirm(false);
-        setShowAction(false);
-        await fetchTuitions();
-      }
-    } catch (err) {
-      console.error(err);
+      await removeTuition(selectedRow.id);
+      setShowAction(false);
+      await fetchTuitions();
+    } catch {
       alert("Xoá thất bại!");
     }
-  };
-
-  const handleBackdropClick = (
-    e: React.MouseEvent<HTMLDivElement>,
-    close: () => void
-  ) => {
-    if (e.target === e.currentTarget) close();
   };
 
   const resetFilters = React.useCallback(() => {
@@ -174,9 +161,7 @@ export default function TuitionManagement() {
   React.useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) {
-        setOpenPopover(null);
-      }
+      if (!rootRef.current.contains(e.target as Node)) setOpenPopover(null);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -189,14 +174,13 @@ export default function TuitionManagement() {
     const buttonRect = button.getBoundingClientRect();
     const rootRect = rootRef.current.getBoundingClientRect();
     const top = buttonRect.bottom - rootRect.top + 5;
-    const left = buttonRect.left - rootRect.left;
+    let left = buttonRect.left - rootRect.left;
 
     const popoverWidth = 208;
-    let finalLeft = left;
-    if (left + popoverWidth > rootRect.width) finalLeft = rootRect.width - popoverWidth;
-    if (finalLeft < 0) finalLeft = 0;
+    if (left + popoverWidth > rootRect.width) left = rootRect.width - popoverWidth;
+    if (left < 0) left = 0;
 
-    return { left: finalLeft, top, show: openPopover === filterName };
+    return { left, top, show: openPopover === filterName };
   };
 
   const headerItems: { label: string, key: FilterKey | "ID" | "DUE DATE" }[] = [
@@ -208,58 +192,66 @@ export default function TuitionManagement() {
     { label: "DUE DATE", key: "DUE DATE" },
   ];
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>, close: () => void) => {
+    if (e.target === e.currentTarget) close();
+  };
+
   return (
-    <div className="space-y-4 relative" ref={rootRef}>
+    <div className="space-y-6 relative p-4 bg-white rounded-lg shadow-lg" ref={rootRef}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Tuition Management</h2>
+        <h2 className="text-2xl font-bold text-black">Tuition Management</h2>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors cursor-pointer"
+          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
         >
           Create New Tuition
         </button>
       </div>
 
       {/* Search + Reset */}
-      <div className="text-gray-900 flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Input
             type="text"
-            placeholder="Search tuitions by student name..."
+            placeholder="Search tuitions by student..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-900"
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
           />
           <FileText className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
         <button
           onClick={resetFilters}
-          className="px-3 py-2 bg-red-500 rounded-lg hover:bg-red-600 text-white transition-colors cursor-pointer whitespace-nowrap text-sm"
+          className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm"
         >
           Reset Filters
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-gray-800 rounded-lg overflow-x-auto">
-        <table className="w-full min-w-[650px] table-auto">
-          <thead className="bg-gray-700">
+      <div className="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200 shadow-sm mt-4">
+        <table className="w-full min-w-[650px] table-auto border-collapse">
+          <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
-              {headerItems.map((item) => (
-                <th key={item.key} className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative">
-                  <div className="flex items-center gap-1">
+              {headerItems.map((item, index) => (
+                <th
+                  key={item.key}
+                  className={`px-3 py-3 text-sm font-semibold text-black uppercase tracking-wider text-center ${
+                    index !== headerItems.length - 1 ? "border-r border-gray-200" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
                     <span>{item.label}</span>
-                    {(item.key === "student" || item.key === "status" || item.key === "amount" || item.key === "term") && (
+                    {["student","status","amount","term"].includes(item.key as string) && (
                       <button
-                        ref={(el) => { filterButtonRefs.current[item.key] = el; }}
-                        aria-label={`Filter by ${item.label}`}
-                        onClick={() => {
-                          setOpenPopover(openPopover === item.key ? null : item.key as FilterKey);
-                        }}
+                        ref={(el) => { filterButtonRefs.current[item.key as FilterKey] = el; }}
+                        onClick={() => setOpenPopover(openPopover === item.key ? null : item.key as FilterKey)}
                         className="cursor-pointer"
+                        aria-label={`Filter by ${item.label}`}
+                        title={`Filter by ${item.label}`}
                       >
-                        <Filter className={`h-4 w-4 ${openPopover === item.key ? "text-cyan-400" : "text-gray-400"}`} />
+                        <Filter className={`h-4 w-4 ${openPopover === item.key ? "text-cyan-500" : "text-gray-900"}`} />
                       </button>
                     )}
                   </div>
@@ -267,33 +259,27 @@ export default function TuitionManagement() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-600">
-            {filteredTuitions.length > 0 ? (
-              filteredTuitions.map((t: any) => (
-                <tr
-                  key={t.id}
-                  className="hover:bg-gray-700 transition-colors cursor-pointer"
-                  onClick={() => handleRowClick(t)}
-                >
-                  <td className="px-3 py-3 text-sm text-gray-300">{t.id}</td>
-                  <td className="px-3 py-3 text-sm text-gray-300">{t.student}</td>
-                  <td className="px-3 py-3 text-sm text-gray-300">{formatCurrency(t.amount)}</td>
-                  <td className="px-3 py-3 text-sm text-gray-300">{t.term}</td>
-                  <td className="px-3 py-3">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      t.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-gray-300">{t.due_date}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-400">
-                  No tuitions found matching your criteria.
+          <tbody>
+            {filteredTuitions.length > 0 ? filteredTuitions.map((t: any) => (
+              <tr
+                key={t.id}
+                className="hover:bg-gray-100 transition-colors cursor-pointer"
+                onClick={() => handleRowClick(t)}
+              >
+                <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{t.id}</td>
+                <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{t.student}</td>
+                <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{formatCurrency(t.amount)}</td>
+                <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{t.term}</td>
+                <td className="px-3 py-3 text-center border-r border-gray-200">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    t.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                  }`}>{t.status}</span>
                 </td>
+                <td className="px-3 py-3 text-sm text-center">{t.due_date}</td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-gray-400">No tuitions found matching your criteria.</td>
               </tr>
             )}
           </tbody>
@@ -340,53 +326,35 @@ export default function TuitionManagement() {
         )}
       </AnimatePresence>
 
-      {/* Action Modal */}
+      {/* Modals */}
       <AnimatePresence>
         {showAction && selectedRow && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             <ActionModal
               onClose={() => setShowAction(false)}
               onShowInfo={() => { setShowAction(false); setShowInfo(true); }}
-              onDelete={
-                user?.roles.includes("manager")
-                  ? () => {
-                      setShowAction(false);
-                      openConfirm(
-                        `Bạn có chắc chắn muốn xoá tution ${selectedRow.id}?`,
-                        handleDelete
-                      );
-                    }
-                  : undefined
-              }
+              onDelete={user?.roles.includes("manager") ? () => openConfirm(
+                `Bạn có chắc chắn muốn xoá tuition ${selectedRow.id}?`, handleDelete
+              ) : undefined}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Confirm Delete Modal */}
-      <AnimatePresence>
-        {showConfirm && selectedRow && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
-            onClick={(e) => handleBackdropClick(e, () => setShowConfirm(false))}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Show Info Modal */}
       <AnimatePresence>
         {showInfo && selectedRow && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowInfo(false))}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             <ShowInfoModal
               type="tuition"
@@ -399,13 +367,14 @@ export default function TuitionManagement() {
         )}
       </AnimatePresence>
 
-      {/* Create Tuition Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
             className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             <CreateTuitionForm
               onClose={() => setShowCreateModal(false)}
@@ -414,6 +383,8 @@ export default function TuitionManagement() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal isOpen={isOpen} message={message} onConfirm={onConfirm} onCancel={closeConfirm} />
     </div>
   );
 }

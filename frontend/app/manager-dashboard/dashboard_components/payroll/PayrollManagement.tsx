@@ -5,14 +5,13 @@ import { FileText, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ActionModal } from "../../showInfo/action_modal";
 import { ShowInfoModal } from "../../showInfo/ShowInfoModal";
-import { ConfirmModal } from "../../../../components/common/ConfirmModal"; // Import ConfirmModal
-import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog"; // Import useConfirmDialog
+import { ConfirmModal } from "../../../../components/common/ConfirmModal";
+import { useConfirmDialog } from "../../../../src/hooks/useConfirmDialog";
 import { usePayrolls } from "../../../../src/hooks/usePayroll";
 import { CreatePayrollForm } from "./CreatePayrollForm";
 import { Input } from "../../../../components/ui/input";
-import { useAuth } from "../../../../src/contexts/AuthContext"; // Giả định import useAuth
+import { useAuth } from "../../../../src/contexts/AuthContext";
 
-// Tên các filter/cột cho popover
 type FilterKey = "teacher" | "status" | "base" | "bonus" | "total";
 interface PopoverPosition { left: number; top: number; show: boolean }
 
@@ -37,7 +36,7 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({ name, position, value, on
             aria-label={`Select ${name} to filter`}
             value={value}
             onChange={onChange}
-            className="w-full border p-2 text-sm rounded"
+            className="w-full border p-2 text-sm rounded text-gray-900"
         >
             <option value="">All</option>
             {options.map((option) => (
@@ -69,12 +68,12 @@ const RangeFilterPopover: React.FC<RangeFilterPopoverProps> = ({ name, position,
         <Input
             type="number" placeholder="Min"
             value={min} onChange={(e) => setMin(e.target.value)}
-            className="w-full border p-2 text-sm rounded text-gray-900" // Đảm bảo text-gray-900 cho input bên trong popover
+            className="w-full border p-2 text-sm rounded text-gray-900"
         />
         <Input
             type="number" placeholder="Max"
             value={max} onChange={(e) => setMax(e.target.value)}
-            className="w-full border p-2 text-sm rounded text-gray-900" // Đảm bảo text-gray-900 cho input bên trong popover
+            className="w-full border p-2 text-sm rounded text-gray-900"
         />
         <button
             onClick={onApply}
@@ -85,11 +84,10 @@ const RangeFilterPopover: React.FC<RangeFilterPopoverProps> = ({ name, position,
     </motion.div>
 );
 
-// --- MAIN COMPONENT ---
 export default function PayrollManagement() {
-    const { user } = useAuth(); // Sử dụng useAuth hook
+    const { user } = useAuth();
     const { payrolls, fetchPayrolls, removePayroll } = usePayrolls();
-    const { isOpen, message, onConfirm, openConfirm, closeConfirm } = useConfirmDialog(); // Dùng hook Confirm
+    const { isOpen, message, onConfirm, openConfirm, closeConfirm } = useConfirmDialog();
 
     React.useEffect(() => {
         fetchPayrolls();
@@ -101,7 +99,6 @@ export default function PayrollManagement() {
     const [showInfo, setShowInfo] = React.useState(false);
     const [showCreateModal, setShowCreateModal] = React.useState(false);
 
-    // === FILTER STATES ===
     const [openPopover, setOpenPopover] = React.useState<FilterKey | null>(null);
     const [filterTeacher, setFilterTeacher] = React.useState("");
     const [filterStatus, setFilterStatus] = React.useState("");
@@ -112,80 +109,46 @@ export default function PayrollManagement() {
     const [totalMin, setTotalMin] = React.useState("");
     const [totalMax, setTotalMax] = React.useState("");
 
-    // Refs
     const filterButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
     const rootRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Lấy danh sách giáo viên duy nhất
     const teacherOptions = React.useMemo(() => Array.from(new Set(payrolls.map((p) => p.teacher).filter(Boolean))), [payrolls]);
     const statusOptions = ["paid", "pending"];
 
-    // Lọc payrolls theo toàn bộ tiêu chí
     const filteredPayrolls = payrolls.filter((p) => {
-        const matchesSearch = (p.teacher ?? "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
+        const matchesSearch = (p.teacher ?? "").toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTeacher = filterTeacher ? p.teacher === filterTeacher : true;
         const matchesStatus = filterStatus ? p.status === filterStatus : true;
-
-        const matchesBase =
-            (!baseMin || p.base_salary >= Number(baseMin)) &&
-            (!baseMax || p.base_salary <= Number(baseMax));
-
-        const matchesBonus =
-            (!bonusMin || p.bonus >= Number(bonusMin)) &&
-            (!bonusMax || p.bonus <= Number(bonusMax));
-
-        const matchesTotal =
-            (!totalMin || p.total >= Number(totalMin)) &&
-            (!totalMax || p.total <= Number(totalMax));
-
-        return (
-            matchesSearch &&
-            matchesTeacher &&
-            matchesStatus &&
-            matchesBase &&
-            matchesBonus &&
-            matchesTotal
-        );
+        const matchesBase = (!baseMin || p.base_salary >= Number(baseMin)) && (!baseMax || p.base_salary <= Number(baseMax));
+        const matchesBonus = (!bonusMin || p.bonus >= Number(bonusMin)) && (!bonusMax || p.bonus <= Number(bonusMax));
+        const matchesTotal = (!totalMin || p.total >= Number(totalMin)) && (!totalMax || p.total <= Number(totalMax));
+        return matchesSearch && matchesTeacher && matchesStatus && matchesBase && matchesBonus && matchesTotal;
     });
 
-    const formatCurrency = (amount: number) =>
-        `${amount?.toLocaleString("en-US") || ""} vnđ`;
+    const formatCurrency = (amount: number) => `${amount?.toLocaleString("en-US") || ""} vnđ`;
 
-    // === HANDLERS ===
     const handleRowClick = (row: any) => {
         setSelectedRow(row);
-        // Logic hiển thị ActionModal/ShowInfoModal dựa trên quyền (giống tuition)
-        if (user?.roles.includes("manager") || user?.roles.includes("teacher")) {
-            setShowAction(true);
-        } else {
-            setShowInfo(true);
-        }
+        if (user?.roles.includes("manager") || user?.roles.includes("teacher")) setShowAction(true);
+        else setShowInfo(true);
     };
 
     const handleDelete = async () => {
+        if (!selectedRow) return;
         try {
-            if (selectedRow) {
-                await removePayroll(selectedRow.id);
-                closeConfirm(); // Đóng ConfirmModal
-                setShowAction(false); // Đóng ActionModal nếu nó mở
-                await fetchPayrolls(); // Tải lại danh sách
-            }
+            await removePayroll(selectedRow.id);
+            closeConfirm();
+            setShowAction(false);
+            await fetchPayrolls();
         } catch (err) {
             console.error(err);
             alert("Xoá thất bại!");
         }
     };
 
-    const handleCreated = async () => {
-        await fetchPayrolls();
-    };
+    const handleCreated = async (): Promise<void> => { await fetchPayrolls(); };
 
-    const handleBackdropClick = (
-        e: React.MouseEvent<HTMLDivElement>,
-        close: () => void
-    ) => {
+    const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>, close: () => void) => {
         if (e.target === e.currentTarget) close();
     };
 
@@ -202,42 +165,29 @@ export default function PayrollManagement() {
         setOpenPopover(null);
     }, []);
 
-    // Click outside to close popovers
     React.useEffect(() => {
         function onDocClick(e: MouseEvent) {
             if (!rootRef.current) return;
-            if (!rootRef.current.contains(e.target as Node)) {
-                setOpenPopover(null);
-            }
+            if (!rootRef.current.contains(e.target as Node)) setOpenPopover(null);
         }
         document.addEventListener("mousedown", onDocClick);
         return () => document.removeEventListener("mousedown", onDocClick);
     }, []);
 
-    // Function to calculate popover position relative to the root div (Đã chỉnh sửa để dùng PopoverPosition)
     const getPopoverPosition = (filterName: FilterKey): PopoverPosition => {
         const button = filterButtonRefs.current[filterName];
         if (!button || !rootRef.current) return { left: 0, top: 0, show: false };
-
         const buttonRect = button.getBoundingClientRect();
         const rootRect = rootRef.current.getBoundingClientRect();
-
         const top = buttonRect.bottom - rootRect.top + 5;
         const left = buttonRect.left - rootRect.left;
-
-        const popoverWidth = 208; // w-52
+        const popoverWidth = 208;
         let finalLeft = left;
-
-        // Điều chỉnh vị trí để popover không bị tràn bên phải
-        if (left + popoverWidth > rootRect.width) {
-            finalLeft = rootRect.width - popoverWidth;
-        }
-        if (finalLeft < 0) finalLeft = 0; // Tránh tràn bên trái
-
+        if (left + popoverWidth > rootRect.width) finalLeft = rootRect.width - popoverWidth;
+        if (finalLeft < 0) finalLeft = 0;
         return { left: finalLeft, top, show: openPopover === filterName };
     };
 
-    // Định nghĩa Header Items
     const headerItems: { label: string, key: FilterKey | "ID" | "SENT AT" }[] = [
         { label: "ID", key: "ID" },
         { label: "TEACHER", key: "teacher" },
@@ -249,11 +199,10 @@ export default function PayrollManagement() {
     ];
 
     return (
-        <div className="space-y-4 relative" ref={rootRef}>
+        <div className="space-y-4 relative bg-white p-4 rounded shadow" ref={rootRef}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Payroll Management</h2>
-                {/* Chỉ hiển thị nút tạo nếu user có quyền */}
                 {(user?.roles.includes("manager") || user?.roles.includes("teacher")) && (
                     <button
                         onClick={() => setShowCreateModal(true)}
@@ -265,7 +214,7 @@ export default function PayrollManagement() {
             </div>
 
             {/* Search + Reset */}
-            <div className="text-gray-900 flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-4 mb-2 text-gray-900">
                 <div className="relative flex-1">
                     <Input
                         type="text"
@@ -284,28 +233,28 @@ export default function PayrollManagement() {
                 </button>
             </div>
 
-            {/* Table */}
-            <div className="bg-gray-800 rounded-lg overflow-x-auto">
-                <table className="w-full min-w-[650px] table-auto">
-                    <thead className="bg-gray-700">
+            {/* Table with column dividers */}
+            <div className="bg-white rounded-lg overflow-x-auto border">
+                <table className="w-full min-w-[650px] table-auto border-collapse">
+                    <thead className="bg-gray-100">
                         <tr>
-                            {headerItems.map((item) => (
+                            {headerItems.map((item, index) => (
                                 <th
                                     key={item.key}
-                                    className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider relative"
+                                    className={`px-3 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider text-center ${
+                                    index !== headerItems.length - 1 ? "border-r border-gray-200" : ""
+                                }`}
                                 >
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-3 font-semibold">
                                         <span>{item.label}</span>
-                                        {(item.key === "teacher" || item.key === "status" || item.key === "base" || item.key === "bonus" || item.key === "total") && (
+                                        {["teacher","status","base","bonus","total"].includes(item.key as string) && (
                                             <button
                                                 ref={(el) => { filterButtonRefs.current[item.key] = el; }}
                                                 aria-label={`Filter by ${item.label}`}
-                                                onClick={() => {
-                                                    setOpenPopover(openPopover === item.key ? null : item.key as FilterKey);
-                                                }}
+                                                onClick={() => setOpenPopover(openPopover === item.key ? null : item.key as FilterKey)}
                                                 className="cursor-pointer"
                                             >
-                                                <Filter className={`h-4 w-4 ${openPopover === item.key ? 'text-cyan-400' : 'text-gray-400'}`} />
+                                                <Filter className={`h-4 w-4 ${openPopover === item.key ? 'text-cyan-500' : 'text-gray-900'}`} />
                                             </button>
                                         )}
                                     </div>
@@ -313,40 +262,20 @@ export default function PayrollManagement() {
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-600">
-                        {filteredPayrolls.length > 0 ? (
-                            filteredPayrolls.map((p) => (
-                                <tr
-                                    key={p.id}
-                                    className="hover:bg-gray-700 transition-colors cursor-pointer"
-                                    onClick={() => handleRowClick(p)}
-                                >
-                                    <td className="px-3 py-3 text-sm text-gray-300">{p.id}</td>
-                                    <td className="px-3 py-3 text-sm text-gray-300">{p.teacher}</td>
-                                    <td className="px-3 py-3 text-sm text-gray-300">
-                                        {formatCurrency(p.base_salary)}
-                                    </td>
-                                    <td className="px-3 py-3 text-sm text-gray-300">
-                                        {formatCurrency(p.bonus)}
-                                    </td>
-                                    <td className="px-3 py-3 text-sm text-gray-300">
-                                        {formatCurrency(p.total)}
-                                    </td>
-                                    <td className="px-3 py-3">
-                                        <span
-                                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                p.status === "paid"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-yellow-100 text-yellow-800"
-                                            }`}
-                                        >
-                                            {p.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-3 text-sm text-gray-300">{p.sent_at}</td>
-                                </tr>
-                            ))
-                        ) : (
+                    <tbody>
+                        {filteredPayrolls.length > 0 ? filteredPayrolls.map((p) => (
+                            <tr key={p.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleRowClick(p)}>
+                                <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">{p.id}</td>
+                                <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">{p.teacher}</td>
+                                <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">{formatCurrency(p.base_salary)}</td>
+                                <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">{formatCurrency(p.bonus)}</td>
+                                <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">{formatCurrency(p.total)}</td>
+                                <td className="px-3 py-3 border-r border-gray-200">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${p.status === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>{p.status}</span>
+                                </td>
+                                <td className="px-3 py-3 text-sm text-gray-900">{p.sent_at}</td>
+                            </tr>
+                        )) : (
                             <tr>
                                 <td colSpan={7} className="py-8 text-center text-gray-400">
                                     No payrolls found matching your criteria.
@@ -357,39 +286,26 @@ export default function PayrollManagement() {
                 </table>
             </div>
 
-            {/* ========================================================================= */}
-            {/* POPUP FILTERS RENDERED HERE */}
-            {/* ========================================================================= */}
+            {/* Popovers */}
             <AnimatePresence>
-                {/* Teacher Filter (Select Popover) */}
                 {getPopoverPosition("teacher").show && (
                     <FilterPopover
                         name="Teacher"
                         position={getPopoverPosition("teacher")}
                         value={filterTeacher}
-                        onChange={(e) => {
-                            setFilterTeacher(e.target.value);
-                            setOpenPopover(null);
-                        }}
+                        onChange={(e) => { setFilterTeacher(e.target.value); setOpenPopover(null); }}
                         options={teacherOptions}
                     />
                 )}
-
-                {/* Status Filter (Select Popover) */}
                 {getPopoverPosition("status").show && (
                     <FilterPopover
                         name="Status"
                         position={getPopoverPosition("status")}
                         value={filterStatus}
-                        onChange={(e) => {
-                            setFilterStatus(e.target.value);
-                            setOpenPopover(null);
-                        }}
+                        onChange={(e) => { setFilterStatus(e.target.value); setOpenPopover(null); }}
                         options={statusOptions}
                     />
                 )}
-
-                {/* Base Salary Filter (Range Popover) */}
                 {getPopoverPosition("base").show && (
                     <RangeFilterPopover
                         name="Base Salary"
@@ -401,8 +317,6 @@ export default function PayrollManagement() {
                         onApply={() => setOpenPopover(null)}
                     />
                 )}
-
-                {/* Bonus Filter (Range Popover) */}
                 {getPopoverPosition("bonus").show && (
                     <RangeFilterPopover
                         name="Bonus"
@@ -414,8 +328,6 @@ export default function PayrollManagement() {
                         onApply={() => setOpenPopover(null)}
                     />
                 )}
-
-                {/* Total Filter (Range Popover) */}
                 {getPopoverPosition("total").show && (
                     <RangeFilterPopover
                         name="Total Salary"
@@ -429,83 +341,58 @@ export default function PayrollManagement() {
                 )}
             </AnimatePresence>
 
-            {/* Action Modal */}
+            {/* Modals */}
             <AnimatePresence>
                 {showAction && selectedRow && (
                     <motion.div
                         className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
                         onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     >
                         <ActionModal
                             onClose={() => setShowAction(false)}
                             onShowInfo={() => { setShowAction(false); setShowInfo(true); }}
-                            onDelete={
-                                user?.roles.includes("manager")
-                                    ? () => {
-                                        setShowAction(false);
-                                        // Mở ConfirmModal thay vì xoá trực tiếp
-                                        openConfirm(
-                                            `Bạn có chắc chắn muốn xoá payroll ${selectedRow.id}?`,
-                                            handleDelete
-                                        );
-                                    }
-                                    : undefined // Chỉ cho phép manager xoá
-                            }
+                            onDelete={user?.roles.includes("manager") ? () => {
+                                setShowAction(false);
+                                openConfirm(`Bạn có chắc chắn muốn xoá payroll ${selectedRow.id}?`, handleDelete);
+                            } : undefined}
                         />
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Confirm Delete Modal (New - Logic từ TuitionManagement) */}
             <AnimatePresence>
                 {isOpen && (
-                    <ConfirmModal
-                      isOpen={isOpen}
-                      message={message}
-                      onConfirm={onConfirm}
-                      onCancel={closeConfirm}
-                      />
+                    <ConfirmModal isOpen={isOpen} message={message} onConfirm={onConfirm} onCancel={closeConfirm} />
                 )}
             </AnimatePresence>
 
-            {/* Show Info Modal (Giữ nguyên) */}
             <AnimatePresence>
                 {showInfo && selectedRow && (
                     <motion.div
                         className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
                         onClick={(e) => handleBackdropClick(e, () => setShowInfo(false))}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     >
                         <ShowInfoModal
                             type="payroll"
                             data={selectedRow}
                             onClose={() => setShowInfo(false)}
                             onUpdated={async () => { await fetchPayrolls(); }}
-                            userRoles={user?.roles} 
+                            userRoles={user?.roles}
                         />
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Create Payroll Modal (Giữ nguyên) */}
             <AnimatePresence>
                 {showCreateModal && (
                     <motion.div
                         className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
                         onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     >
-                        <CreatePayrollForm
-                            onClose={() => setShowCreateModal(false)}
-                            onCreated={handleCreated}
-                        />
+                        <CreatePayrollForm onClose={() => setShowCreateModal(false)} onCreated={handleCreated} />
                     </motion.div>
                 )}
             </AnimatePresence>

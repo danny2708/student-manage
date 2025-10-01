@@ -103,7 +103,7 @@ def delete_existing_class(
 
 # Lấy danh sách tất cả các lớp học
 @router.get(
-    "/",
+    "",
     response_model=List[class_schema.ClassView],
     summary="Lấy danh sách các lớp học theo quyền",
     dependencies=[Depends(MANAGER_OR_TEACHER_OR_STUDENT)]
@@ -156,40 +156,6 @@ def get_class(
             detail="Lớp học không tìm thấy."
         )
     return db_class
-
-@router.get(
-    "/{teacher_user_id}/classes",
-    response_model=List[teacher_schema.ClassTaught],
-    summary="Lấy danh sách các lớp học của một giáo viên",
-    dependencies=[Depends(MANAGER_OR_TEACHER)]
-)
-def get_teacher_classes(
-    teacher_user_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: AuthenticatedUser = Depends(get_current_active_user)
-):
-    """
-    Lấy danh sách các lớp học mà một giáo viên đang phụ trách.
-    - Manager: có thể xem lớp học của bất kỳ giáo viên nào.
-    - Teacher: chỉ có thể xem lớp học của chính mình.
-    
-    Quyền truy cập: **manager**, **teacher**
-    """
-    if "teacher" in current_user.roles and current_user.user_id != teacher_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bạn không có quyền xem lớp học của giáo viên khác."
-        )
-
-    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
-    if not db_teacher:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Giáo viên có ID {teacher_user_id} không tồn tại."
-        )
-
-    return teacher_crud.get_class_taught(db, teacher_user_id=teacher_user_id)
-
 
 # Xuất danh sách lớp học ra file Excel
 @router.get(

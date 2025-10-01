@@ -1,4 +1,3 @@
-// src/components/roles/StudentRole.tsx
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -20,9 +19,9 @@ import {
 } from "../../../../../components/ui/table";
 import { Badge } from "../../../../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
-import { BookOpen, Star, Users, Award } from "lucide-react";
+import { BookOpen, Star, Users, Award, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
 
 import { useClasses } from "../../../../../src/contexts/ClassContext";
 import { useEnrollment } from "../../../../../src/hooks/useEnrollment";
@@ -45,7 +44,7 @@ interface StudentRoleProps {
 export function StudentRole({ user }: StudentRoleProps) {
   const { classes, fetchClasses } = useClasses();
   const { addEnrollment, getEnrollmentsByStudentId } = useEnrollment();
-  const { fetchSummaryAndCounts, fetchEvaluationsOfStudent } = useEvaluations();
+  const { fetchTotalScore, fetchEvaluationsOfStudent } = useEvaluations();
   const { reviews: studentReviews, fetchReviewsByStudentId } = useTeacherReviews();
 
   const [studentEvaluations, setStudentEvaluations] = useState<any[]>([]);
@@ -64,18 +63,16 @@ export function StudentRole({ user }: StudentRoleProps) {
       const [enrolls, evals, total] = await Promise.all([
         getEnrollmentsByStudentId(userId),
         fetchEvaluationsOfStudent(userId),
-        fetchSummaryAndCounts(userId),
+        fetchTotalScore(userId),
         fetchReviewsByStudentId(userId),
       ]);
 
       if (enrolls) {
-        // Chuẩn hoá enrollment_status và format date ở đây
         setStudentEnrollments(
           enrolls.map((e: any) => ({
             ...e,
-            // giữ mọi trường, nhưng chuẩn hoá status
             enrollment_status: (e.enrollment_status ?? "").toString().trim().toLowerCase(),
-            enrollment_date: formatDate(e.enrollment_date),
+            enrollment_date: e.enrollment_date,
           }))
         );
       } else {
@@ -83,6 +80,7 @@ export function StudentRole({ user }: StudentRoleProps) {
       }
 
       if (evals) {
+        // evals: EvaluationView[] { id, class_name, student, teacher, type, content, date }
         setStudentEvaluations(
           evals.map((ev: any) => ({
             ...ev,
@@ -94,16 +92,17 @@ export function StudentRole({ user }: StudentRoleProps) {
       }
 
       if (total) {
+        // total: EvaluationSummary from backend: final_study_point, final_discipline_point ...
         setSummary({
-          study_points: total.final_study_point,
-          discipline_points: total.final_discipline_point,
+          study_points: (total.final_study_point ?? 0),
+          discipline_points: (total.final_discipline_point ?? 0),
         });
       }
     } catch (err) {
       console.error("Failed to load initial data:", err);
-      // Không rethrow — chỉ log, để UI vẫn tiếp tục flow
+      toast.error("Không thể tải dữ liệu sinh viên.");
     }
-  }, [user.user_id, getEnrollmentsByStudentId, fetchEvaluationsOfStudent, fetchReviewsByStudentId, fetchSummaryAndCounts]);
+  }, [user.user_id, getEnrollmentsByStudentId, fetchEvaluationsOfStudent, fetchReviewsByStudentId, fetchTotalScore]);
 
   useEffect(() => {
     fetchClasses();
@@ -112,23 +111,15 @@ export function StudentRole({ user }: StudentRoleProps) {
 
   const handleEnrollInClass = async (classId: number) => {
     try {
-      // Gọi API để đăng ký
       const created = await addEnrollment({
         student_user_id: user.user_id,
         class_id: classId,
         enrollment_date: new Date().toISOString().split("T")[0],
       });
 
-      // Hiển thị toast ngay khi API trả về thành công (tránh bị chặn nếu reload lỗi)
       toast.success("Đăng ký lớp học thành công!");
-
-      // Cập nhật lại dữ liệu (nếu có lỗi ở đây thì vẫn đã show toast)
-      try {
-        await loadInitialData();
-      } catch (err) {
-        console.warn("Reload after enroll failed (but enroll succeeded):", err);
-      }
-
+      // reload data
+      await loadInitialData();
       return created;
     } catch (error: any) {
       console.error("Enroll failed:", error);
@@ -137,121 +128,76 @@ export function StudentRole({ user }: StudentRoleProps) {
     }
   };
 
-  // Lọc các lớp học mà sinh viên chưa đăng ký
   const enrolledClassIds = useMemo(() => {
     return new Set(studentEnrollments.map(e => Number(e.class_id)));
   }, [studentEnrollments]);
 
   const availableClasses = useMemo(() => {
-    // lọc classes: chỉ giữ những class mà id không nằm trong set enrolledClassIds
     return classes.filter(cls => !enrolledClassIds.has(Number((cls as any).class_id)));
   }, [classes, enrolledClassIds]);
 
   return (
-    <div className="space-y-6 text-white">
-
+    <div className="space-y-6 bg-white text-black p-6 rounded-md">
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Study Points
-              </CardTitle>
-              <Award className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {summary.study_points}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Discipline Points
-              </CardTitle>
-              <Star className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {summary.discipline_points}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Enrolled Classes
-              </CardTitle>
-              <BookOpen className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {studentEnrollments.length}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-          <Card className="bg-slate-700 border-slate-600 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">
-                Teacher Reviews
-              </CardTitle>
-              <Users className="h-4 w-4 text-slate-300" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {studentReviews.length}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {[
+          { title: "Study Points", icon: Award, value: summary.study_points, border: "border-blue-200", iconColor: "text-blue-600" },
+          { title: "Discipline Points", icon: Star, value: summary.discipline_points, border: "border-yellow-200", iconColor: "text-yellow-600" },
+          { title: "Enrolled Classes", icon: BookOpen, value: studentEnrollments.length, border: "border-green-200", iconColor: "text-green-600" },
+          { title: "Teacher Reviews", icon: Users, value: studentReviews.length, border: "border-purple-200", iconColor: "text-purple-600" },
+        ].map((card) => (
+          <motion.div key={card.title} whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+            <Card className={`bg-white border-2 ${card.border} min-w-[200px] shadow-sm flex flex-col`}>
+              <CardHeader className="flex items-center justify-between pb-2">
+                <div className="flex items-center gap-2">
+                  <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+                  <CardTitle className="text-sm font-medium text-black">{card.title}</CardTitle>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-300" />
+              </CardHeader>
+              <CardContent className="flex justify-center items-center flex-1">
+                <div className="text-3xl font-bold text-black">{card.value}</div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
-      {/* --- Tabs --- */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-slate-700 border-slate-600">
+        <TabsList className="grid w-full grid-cols-4 bg-white border-b border-gray-200">
           <TabsTrigger
             value="add-class"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+            className="cursor-pointer data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-gray-600 hover:text-black border-r"
           >
-            Add to Class
+            <div className="flex items-center gap-2"><BookOpen className="w-4 h-4" /> Add to Class</div>
           </TabsTrigger>
           <TabsTrigger
             value="enrollments"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+            className="cursor-pointer data-[state=active]:bg-green-50 data-[state=active]:text-green-700 text-gray-600 hover:text-black border-r"
           >
-            Enrollments
+            <div className="flex items-center gap-2"><Award className="w-4 h-4" /> Enrollments</div>
           </TabsTrigger>
           <TabsTrigger
             value="evaluations"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+            className="cursor-pointer data-[state=active]:bg-yellow-50 data-[state=active]:text-yellow-700 text-gray-600 hover:text-black border-r"
           >
-            Evaluations
+            <div className="flex items-center gap-2"><Star className="w-4 h-4" /> Evaluations</div>
           </TabsTrigger>
           <TabsTrigger
             value="reviews"
-            className="cursor-pointer data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-300 hover:text-white"
+            className="cursor-pointer data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 text-gray-600 hover:text-black"
           >
-            Teacher Reviews
+            <div className="flex items-center gap-2"><Users className="w-4 h-4" /> Teacher Reviews</div>
           </TabsTrigger>
         </TabsList>
 
-        {/* --- Tab: Add class --- */}
+        {/* Add class */}
         <TabsContent value="add-class" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Available Classes</CardTitle>
-              <CardDescription className="text-slate-300">
+              <CardTitle className="text-black">Available Classes</CardTitle>
+              <CardDescription className="text-gray-600">
                 Select a class to enroll in
               </CardDescription>
             </CardHeader>
@@ -260,29 +206,26 @@ export function StudentRole({ user }: StudentRoleProps) {
                 {availableClasses.length > 0 ? (
                   availableClasses.map((cls) => (
                     <motion.div
-                      key={cls.class_id}
-                      className="flex items-center justify-between p-4 border border-slate-600 rounded-lg bg-slate-600"
+                      key={(cls as any).class_id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-white"
                       whileHover={{ scale: 1.01 }}
                       transition={{ duration: 0.2 }}
                     >
                       <div>
-                        <h3 className="font-semibold text-white">
-                          {cls.class_name}
+                        <h3 className="font-semibold text-black">
+                          {(cls as any).class_name}
                         </h3>
-                        <p className="text-sm text-slate-300">
-                          Teacher: {cls.teacher_name}
+                        <p className="text-sm text-gray-600">
+                          Teacher: {(cls as any).teacher_name}
                         </p>
-                        <p className="text-sm text-slate-300">
-                          Capacity: {cls.capacity}
+                        <p className="text-sm text-gray-600">
+                          Capacity: {(cls as any).capacity}
                         </p>
                       </div>
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
-                          onClick={() => handleEnrollInClass(cls.class_id)}
-                          className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => handleEnrollInClass((cls as any).class_id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           Enroll
                         </Button>
@@ -290,44 +233,36 @@ export function StudentRole({ user }: StudentRoleProps) {
                     </motion.div>
                   ))
                 ) : (
-                  <p className="text-center text-slate-400">Không có lớp học nào để đăng ký.</p>
+                  <p className="text-center text-gray-500">Không có lớp học nào để đăng ký.</p>
                 )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* --- Tab: Enrollments --- */}
+        {/* Enrollments */}
         <TabsContent value="enrollments" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">My Enrollments</CardTitle>
-              <CardDescription className="text-slate-300">
-                Your enrolled classes
-              </CardDescription>
+              <CardTitle className="text-black">My Enrollments</CardTitle>
+              <CardDescription className="text-gray-600">Your enrolled classes</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">Class Name</TableHead>
-                    <TableHead className="text-white">Enrollment Date</TableHead>
-                    <TableHead className="text-white">Status</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">Class Name</TableHead>
+                    <TableHead className="text-black">Enrollment Date</TableHead>
+                    <TableHead className="text-black">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {studentEnrollments.map((enr) => (
-                    <TableRow key={enr.enrollment_id} className="border-slate-600">
-                      <TableCell className="text-white">{enr.class_name}</TableCell>
-                      <TableCell className="text-white">{enr.enrollment_date}</TableCell>
+                    <TableRow key={enr.enrollment_id} className="border-b">
+                      <TableCell className="text-black">{enr.class_name}</TableCell>
+                      <TableCell className="text-black">{enr.enrollment_date}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            enr.enrollment_status === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
+                        <Badge variant={enr.enrollment_status === "active" ? "default" : "secondary"}>
                           {enr.enrollment_status}
                         </Badge>
                       </TableCell>
@@ -339,62 +274,58 @@ export function StudentRole({ user }: StudentRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* --- Tab: Evaluations --- */}
+        {/* Evaluations */}
         <TabsContent value="evaluations" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-              <Card className="bg-slate-700 border-slate-600">
+              <Card className="bg-white border-2 border-blue-100">
                 <CardHeader>
-                  <CardTitle className="text-white">Total Study Points</CardTitle>
+                  <CardTitle className="text-center text-black">Total Study Points</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold text-blue-400">
-                    {summary.study_points}
-                  </div>
+                  <div className="text-center text-4xl font-bold text-blue-600">{summary.study_points}</div>
                 </CardContent>
               </Card>
             </motion.div>
 
             <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-              <Card className="bg-slate-700 border-slate-600">
+              <Card className="bg-white border-2 border-yellow-100">
                 <CardHeader>
-                  <CardTitle className="text-white">Total Discipline Points</CardTitle>
+                  <CardTitle className="text-center text-black">Total Discipline Points</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold text-blue-400">
-                    {summary.discipline_points}
-                  </div>
+                  <div className="text-center text-4xl font-bold text-yellow-600">{summary.discipline_points}</div>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
 
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Individual Evaluations</CardTitle>
-              <CardDescription className="text-slate-300">
-                Detailed evaluation history
-              </CardDescription>
+              <CardTitle className="text-black">Individual Evaluations</CardTitle>
+              <CardDescription className="text-gray-600">Detailed evaluation history</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">ID</TableHead>
-                    <TableHead className="text-white">Teacher</TableHead>
-                    <TableHead className="text-white">Type</TableHead>
-                    <TableHead className="text-white">Content</TableHead>
-                    <TableHead className="text-white">Evaluation Date</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">ID</TableHead>
+                    <TableHead className="text-black">Class</TableHead>
+                    <TableHead className="text-black">Teacher</TableHead>
+                    <TableHead className="text-black">Type</TableHead>
+                    <TableHead className="text-black">Content</TableHead>
+                    <TableHead className="text-black">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {studentEvaluations.map((ev) => (
-                    <TableRow key={ev.id} className="border-slate-600">
-                      <TableCell className="text-white">{ev.id}</TableCell>
-                      <TableCell className="text-white">{ev.teacher}</TableCell>
-                      <TableCell className="text-white">{ev.type}</TableCell>
-                      <TableCell className="text-white">{ev.content}</TableCell>
-                      <TableCell className="text-white">{ev.date}</TableCell>
+                    <TableRow key={ev.id} className="border-b">
+                      <TableCell className="text-black">{ev.id}</TableCell>
+                      <TableCell className="text-black">{ev.class_name}</TableCell>
+                      <TableCell className="text-black">{ev.teacher}</TableCell>
+                      <TableCell className="text-black">{ev.type}</TableCell>
+                      <TableCell className="text-black">{ev.content}</TableCell>
+                      <TableCell className="text-black">{ev.date}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -403,41 +334,36 @@ export function StudentRole({ user }: StudentRoleProps) {
           </Card>
         </TabsContent>
 
-        {/* --- Tab: Reviews --- */}
+        {/* Reviews */}
         <TabsContent value="reviews" className="space-y-4">
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-white border border-gray-100 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Teacher Reviews</CardTitle>
-              <CardDescription className="text-slate-300">
-                Reviews from your teachers
-              </CardDescription>
+              <CardTitle className="text-black">Teacher Reviews</CardTitle>
+              <CardDescription className="text-gray-600">Reviews from your teachers</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-600">
-                    <TableHead className="text-white">Teacher Name</TableHead>
-                    <TableHead className="text-white">Rating</TableHead>
-                    <TableHead className="text-white">Review Date</TableHead>
-                    <TableHead className="text-white">Review Content</TableHead>
+                  <TableRow className="border-b">
+                    <TableHead className="text-black">Teacher Name</TableHead>
+                    <TableHead className="text-black">Rating</TableHead>
+                    <TableHead className="text-black">Review Date</TableHead>
+                    <TableHead className="text-black">Review Content</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {studentReviews.map((r) => (
-                    <TableRow key={r.id} className="border-slate-600">
-                      <TableCell className="text-white">{r.teacher_name}</TableCell>
+                    <TableRow key={r.id} className="border-b">
+                      <TableCell className="text-black">{r.teacher_name}</TableCell>
                       <TableCell>
                         <div className="flex">
                           {Array.from({ length: r.rating }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                            />
+                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-white">{formatDate(r.review_date)}</TableCell>
-                      <TableCell className="text-white">{r.review_content}</TableCell>
+                      <TableCell className="text-black">{formatDate(r.review_date)}</TableCell>
+                      <TableCell className="text-black">{r.review_content}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
