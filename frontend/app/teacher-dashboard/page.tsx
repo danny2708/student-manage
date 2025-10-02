@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { LoginResponse } from "../../src/services/api/auth";
 import { toast } from "react-hot-toast";
-
 import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
 import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
@@ -129,7 +128,7 @@ export default function TeacherDashboard() {
 
         {/* Dashboard view */}
         <div className={activeSection === "dashboard" ? "block" : "hidden"}>
-          <TeacherDashboardContent stats={stats} />
+          <TeacherDashboardContent stats={stats} onOpenSchedule={() => setShowPersonalSchedule(true)} setSection={setSection} />
         </div>
 
         {/* Attendance */}

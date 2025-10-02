@@ -10,34 +10,27 @@ import {
   deleteTuition,
 } from "../services/api/tuition";
 
+// Giả định các kiểu dữ liệu cho create/update giống như trong payroll hook
+// Nếu bạn có các kiểu TuitionCreate, TuitionUpdate, hãy thay thế 'any'
+type TuitionCreate = any; 
+type TuitionUpdate = any;
+
 export function useTuitions() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ common fetch wrapper with safe error stringify
-  const handleFetch = useCallback(async <T,>(
-    apiFn: () => Promise<T>,
-    successMsg?: string
-  ) => {
+  // --- HÀM FETCH DỮ LIỆU (CHỈ TOAST LỖI) ---
+
+  const fetchTuitions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFn();
-      if (successMsg) toast.success(successMsg);
+      const data = await getTuitions();
+      setTuitions(data);
       return data;
     } catch (err: any) {
-      let raw = err?.response?.data?.detail || err?.message || "Lỗi tải dữ liệu học phí.";
-      let msg: string;
-
-      if (Array.isArray(raw)) {
-        msg = raw.map((e: any) => e?.msg || JSON.stringify(e)).join(", ");
-      } else if (typeof raw === "object") {
-        msg = raw?.msg || JSON.stringify(raw);
-      } else {
-        msg = String(raw);
-      }
-
+      const msg = err.response?.data?.detail || "Lỗi tải tất cả học phí.";
       toast.error(msg);
       setError(msg);
       return null;
@@ -46,50 +39,95 @@ export function useTuitions() {
     }
   }, []);
 
-  const fetchTuitions = useCallback(async () => {
-    const data = await handleFetch(() => getTuitions());
-    if (data) setTuitions(data);
-  }, [handleFetch]);
-
   const fetchTuitionsByStudentId = useCallback(async (student_user_id: number) => {
-    const data = await handleFetch(() => getTuitionsByStudentId(student_user_id));
-    if (data) setTuitions(data);
-  }, [handleFetch]);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getTuitionsByStudentId(student_user_id);
+      setTuitions(data);
+      return data;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Lỗi tải học phí theo ID học sinh.";
+      toast.error(msg);
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchTuitionsByParentId = useCallback(async (parent_id: number) => {
-    const data = await handleFetch(() => getTuitionsByParentId(parent_id));
-    if (data) setTuitions(data);
-  }, [handleFetch]);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getTuitionsByParentId(parent_id);
+      setTuitions(data);
+      return data;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Lỗi tải học phí theo ID phụ huynh.";
+      toast.error(msg);
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const addTuition = useCallback(
-    async (newData: any) => {
-      const created = await handleFetch(
-        () => createTuition(newData),
-        "Thêm học phí thành công!"
-      );
-      if (created) setTuitions((prev) => [...prev, created]);
-    },
-    [handleFetch]
-  );
+  // --- HÀM THAO TÁC DỮ LIỆU (TOAST THÀNH CÔNG VÀ LỖI) ---
 
-  const editTuition = useCallback(
-    async (id: number, updatedData: any) => {
-      const updated = await handleFetch(
-        () => updateTuition(id, updatedData),
-        "Cập nhật học phí thành công!"
-      );
-      if (updated) setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)));
-    },
-    [handleFetch]
-  );
+  const addTuition = useCallback(async (newData: TuitionCreate) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const created = await createTuition(newData);
+      setTuitions((prev) => [...prev, created]);
+      toast.success("Thêm học phí thành công!");
+      return created;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Lỗi khi thêm học phí.";
+      toast.error(msg);
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const removeTuition = useCallback(
-    async (id: number) => {
-      const ok = await handleFetch(() => deleteTuition(id), "Xóa học phí thành công!");
-      if (ok !== null) setTuitions((prev) => prev.filter((t) => t.id !== id));
-    },
-    [handleFetch]
-  );
+  const editTuition = useCallback(async (id: number, updatedData: TuitionUpdate) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await updateTuition(id, updatedData);
+      setTuitions((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      toast.success("Cập nhật học phí thành công!");
+      return updated;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Lỗi khi cập nhật học phí.";
+      toast.error(msg);
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const removeTuition = useCallback(async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await deleteTuition(id);
+      setTuitions((prev) => prev.filter((t) => t.id !== id));
+      toast.success("Xóa học phí thành công!");
+      return true;
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || "Lỗi khi xóa học phí.";
+      toast.error(msg);
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     tuitions,

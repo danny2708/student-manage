@@ -6,17 +6,16 @@ interface ActionModalProps {
   onClose: () => void;
   onShowInfo: () => void;
   onDelete?: () => void;
-  userRoles?: string[]; // Đổi prop thành userRoles: string[]
+  userRoles?: string[];
 }
 
-export function ActionModal({ onClose, onShowInfo, onDelete}: ActionModalProps) {
-
+export function ActionModal({ onClose, onShowInfo, onDelete }: ActionModalProps) {
   return (
-    <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-xl w-48 p-4">
+    <div className="relative bg-white text-black rounded-lg shadow-xl w-52 p-4 border border-gray-200">
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-2 right-2 text-red-500 hover:text-red-700 transition-colors"
+        className="absolute top-2 right-2 text-gray-500 hover:text-red-600 transition-colors"
         aria-label="Close action modal"
       >
         <X className="h-4 w-4" />
@@ -25,17 +24,17 @@ export function ActionModal({ onClose, onShowInfo, onDelete}: ActionModalProps) 
       <div className="space-y-2 mt-4">
         <button
           onClick={onShowInfo}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm font-medium"
+          className="w-full flex items-center gap-3 px-4 py-2 border border-blue-400 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium"
         >
           <Eye className="h-4 w-4" />
           Show Info
         </button>
 
-        {/* Chỉ hiển thị nút Delete nếu userRoles bao gồm 'manager' */}
-        { onDelete && (
+        {/* Delete button hiển thị nếu có onDelete */}
+        {onDelete && (
           <button
             onClick={onDelete}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center gap-3 px-4 py-2 border border-red-400 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
           >
             <Trash2 className="h-4 w-4" />
             Delete

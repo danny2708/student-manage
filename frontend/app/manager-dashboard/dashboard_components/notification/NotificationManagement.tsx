@@ -13,11 +13,20 @@ export default function NotificationManagement() {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
+  const unreadCount = (notifications?.filter((n) => !n.is_read).length) ?? 0;
+
+  useEffect(() => {
+    // fetch notifications ngay khi component mount
+    if (fetchNotifications) {
+      fetchNotifications().catch(() => {});
+    }
+  }, [fetchNotifications]);
+
+  // vẫn giữ effect khi mở dropdown để refresh
   useEffect(() => {
     if (open && fetchNotifications) fetchNotifications().catch(() => {});
   }, [open, fetchNotifications]);
 
-  const unreadCount = (notifications?.filter((n) => !n.is_read).length) ?? 0;
 
   const filteredNotifications =
     notifications?.filter((n) => {
@@ -192,7 +201,7 @@ export default function NotificationManagement() {
                             animate={{ opacity: 1, x: 0 }}
                             className={cn(
                               "p-4 cursor-pointer transition-all duration-200 group",
-                              !notification.is_read ? "bg-slate-50 dark:bg-slate-700" : "",
+                              !notification.is_read ? "bg-blue-100 dark:bg-slate-700" : "",
                             )}
                             onClick={() => markAsRead && markAsRead(notification.notification_id)}
                           >
@@ -216,9 +225,9 @@ export default function NotificationManagement() {
                                 <div className="flex items-center gap-2 mt-2">
                                   <Clock className="h-3 w-3 text-muted-foreground" />
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(notification.sent_at).toLocaleString()}
+                                    {notification.sent_at.toLocaleString()}
                                   </span>
-                                  {!notification.is_read && <div className="w-2 h-2 bg-blue-400 rounded-full" />}
+                                  {!notification.is_read && <div className="w-3 h-3 bg-blue-400 rounded-full" />}
                                 </div>
                               </div>
                             </div>

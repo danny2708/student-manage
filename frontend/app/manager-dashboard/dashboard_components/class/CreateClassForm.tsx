@@ -2,9 +2,9 @@
 
 import React, { useState, ChangeEvent } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, User, BookOpen, Users, DollarSign, ClipboardList } from "lucide-react";
 import { Input } from "../../../../components/ui/input";
-import { useUsers, User } from "../../../../src/contexts/UsersContext";
+import { useUsers, User as UserType } from "../../../../src/contexts/UsersContext";
 import { useClasses } from "../../../../src/contexts/ClassContext";
 import { useSubjects } from "../../../../src/contexts/SubjectContext";
 import { ClassCreate } from "../../../../src/services/api/class";
@@ -30,7 +30,7 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
   const [errorMessage, setErrorMessage] = useState("");
 
   // lọc giáo viên từ context users
-  const teachers: User[] = users.filter((user) =>
+  const teachers: UserType[] = users.filter((user) =>
     user.roles?.includes("teacher")
   );
 
@@ -85,7 +85,7 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
       await onCreated();
     } catch (error) {
       console.error("Failed to create class:", error);
-      setErrorMessage("Có lỗi xảy ra khi tạo lớp học.");
+      setErrorMessage("Failed to create class.");
     }
   };
 
@@ -95,62 +95,68 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
 
   return (
     <motion.div
-      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer"
+      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer bg-black/30"
       onClick={handleBackdropClick}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="bg-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative cursor-default"
+        className="bg-white rounded-lg shadow-xl w-96 p-6 text-gray-900 relative cursor-default"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.2 }}
       >
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-red-500 hover:text-red-700 cursor-pointer"
+          className="absolute top-4 right-4 text-gray-500 hover:text-red-600"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Tạo lớp học mới</h2>
+        {/* Title */}
+        <h2 className="text-xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+          <ClipboardList className="h-6 w-6 text-blue-600" />
+          Create New Class
+        </h2>
 
         <div className="space-y-4">
           {/* Class name */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Tên lớp</label>
+            <label className="font-medium mb-1 flex items-center gap-2 text-gray-700">
+              <BookOpen className="h-4 w-4 text-blue-500" />
+              Class Name
+            </label>
             <Input
               value={className}
               onChange={(e) => setClassName(e.target.value)}
-              className="w-full"
+              className="w-full border border-blue-300 focus:border-blue-500"
+              placeholder="Enter class name..."
             />
           </div>
 
           {/* Teacher select */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Giáo viên</label>
+            <label className="font-medium mb-1 flex items-center gap-2 text-gray-700">
+              <User className="h-4 w-4 text-green-500" />
+              Teacher
+            </label>
             {usersLoading ? (
-              <p className="text-gray-400">Đang tải danh sách giáo viên...</p>
+              <p className="text-gray-500 text-sm">Loading teacher list...</p>
             ) : (
               <select
                 aria-label="Chọn giáo viên"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+                className="border border-green-300 focus:border-green-500 rounded-md p-2"
               >
-                <option value="" className="text-black">
-                  -- Chọn giáo viên --
-                </option>
+                <option value="">-- Select Teacher --</option>
                 {teachers.map((teacher) => (
-                  <option
-                    key={teacher.user_id}
-                    value={teacher.user_id}
-                    className="text-black"
-                  >
-                    {`ID: ${teacher.user_id} - ${teacher.full_name} (${teacher.email})`}
+                  <option key={teacher.user_id} value={teacher.user_id}>
+                    {`ID: ${teacher.user_id} - ${teacher.full_name}`}
                   </option>
                 ))}
               </select>
@@ -159,9 +165,12 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
 
           {/* Subject select */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Môn học</label>
+            <label className="font-medium mb-1 flex items-center gap-2 text-gray-700">
+              <BookOpen className="h-4 w-4 text-purple-500" />
+              Subject
+            </label>
             {subjectsLoading ? (
-              <p className="text-gray-400">Đang tải danh sách môn học...</p>
+              <p className="text-gray-500 text-sm">Loading subject list...</p>
             ) : (
               <select
                 aria-label="Chọn môn học"
@@ -172,17 +181,11 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
                   const found = subjects.find((s) => s.subject_id === id);
                   setSubjectName(found?.name || "");
                 }}
-                className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+                className="border border-purple-300 focus:border-purple-500 rounded-md p-2"
               >
-                <option value="" className="text-black">
-                  -- Chọn môn học --
-                </option>
+                <option value="">-- Select Subject --</option>
                 {subjects.map((s) => (
-                  <option
-                    key={s.subject_id}
-                    value={s.subject_id}
-                    className="text-black"
-                  >
+                  <option key={s.subject_id} value={s.subject_id}>
                     {s.name}
                   </option>
                 ))}
@@ -192,45 +195,49 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
 
           {/* Capacity input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">
-              Số lượng học viên
+            <label className="font-medium mb-1 flex items-center gap-2 text-gray-700">
+              <Users className="h-4 w-4 text-orange-500" />
+              Number of Students
             </label>
             <Input
               type="text"
               value={capacityDisplay}
-              onChange={(e) =>
-                handleNumberInput(e, setCapacityDisplay, setCapacityValue)
-              }
-              onBlur={() =>
-                handleFormatOnBlur(capacityDisplay, setCapacityDisplay)
-              }
-              className="w-full"
+              onChange={(e) => handleNumberInput(e, setCapacityDisplay, setCapacityValue)}
+              onBlur={() => handleFormatOnBlur(capacityDisplay, setCapacityDisplay)}
+              className="w-full border border-orange-300 focus:border-orange-500"
+              placeholder="Example: 30"
             />
           </div>
 
           {/* Fee input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Học phí</label>
+            <label className="font-medium mb-1 flex items-center gap-2 text-gray-700">
+              <DollarSign className="h-4 w-4 text-red-500" />
+              Fee
+            </label>
             <Input
               type="text"
               value={feeDisplay}
               onChange={(e) => handleNumberInput(e, setFeeDisplay, setFeeValue)}
               onBlur={() => handleFormatOnBlur(feeDisplay, setFeeDisplay)}
-              className="w-full"
+              className="w-full border border-red-300 focus:border-red-500"
+              placeholder="Example: 1,500,000"
             />
           </div>
         </div>
 
+        {/* Error */}
         {errorMessage && (
-          <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
+          <p className="text-red-600 text-sm mt-4 text-center">{errorMessage}</p>
         )}
 
+        {/* Submit */}
         <div className="flex justify-center mt-6">
           <button
             onClick={handleCreate}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg cursor-pointer"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
           >
-            Tạo mới
+            Create New Class
           </button>
         </div>
       </motion.div>

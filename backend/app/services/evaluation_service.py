@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, case, join, select, func
 from app.models.evaluation_model import Evaluation, EvaluationType
@@ -8,7 +8,15 @@ from app.models.subject_model import Subject
 from app.models.user_model import User
 from app.schemas.evaluation_schema import EvaluationSummary, EvaluationView
 
-
+# --- Helper: permission check for student ---
+def _enforce_student_access_or_raise(requesting_user_id: Optional[int], requesting_user_roles: Optional[List[str]], target_student_user_id: int):
+    """
+    Nếu requester có role student but is trying to access another student's data => raise PermissionError
+    """
+    if requesting_user_roles and ("student" in requesting_user_roles):
+        if requesting_user_id is None or requesting_user_id != target_student_user_id:
+            raise PermissionError("Students can only access their own records.")
+        
 def get_evaluations_by_student_user_id_forCal(
     db: Session, student_user_id: int, skip: int = 0, limit: int = 100
 ):
@@ -25,11 +33,11 @@ def get_evaluations_by_student_user_id_forCal(
 
 
 def get_evaluations_by_student_user_id(
-    db: Session, student_user_id: int, skip: int = 0, limit: int = 100
+    db: Session, student_user_id: int, skip: int = 0, limit: int = 100,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
 ) -> List[EvaluationView]:
-    """
-    Lấy danh sách evaluations của 1 học sinh, join với giáo viên, lớp và môn học.
-    """
+    _enforce_student_access_or_raise(requesting_user_id, requesting_user_roles, student_user_id)
+
     teacher_user = User.__table__.alias("teacher_user")
     student_user = User.__table__.alias("student_user")
     classes = Class.__table__.alias("classes")
@@ -73,11 +81,16 @@ def get_evaluations_by_student_user_id(
 
 
 def get_all_evaluations_with_names(
-    db: Session, skip: int = 0, limit: int = 100
+    db: Session, skip: int = 0, limit: int = 100,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
 ) -> List[EvaluationView]:
     """
-    Lấy tất cả evaluations, bao gồm teacher, student, class và subject.
+    Manager gọi hàm này; nếu một student cố gắng gọi -> enforce sẽ raise
     """
+    if requesting_user_roles and ("student" in requesting_user_roles):
+        # students should not be able to call this to fetch all evaluations
+        raise PermissionError("Students cannot list all evaluations.")
+
     teacher_user = User.__table__.alias("teacher_user")
     student_user = User.__table__.alias("student_user")
     classes = Class.__table__.alias("classes")
@@ -120,11 +133,16 @@ def get_all_evaluations_with_names(
 
 
 def get_evaluations_by_teacher_user_id(
-    db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100
+    db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
 ) -> List[EvaluationView]:
     """
     Lấy các evaluations do một giáo viên tạo.
+    If a student calls this, they are not permitted.
     """
+    if requesting_user_roles and ("student" in requesting_user_roles):
+        raise PermissionError("Students cannot list teacher evaluations.")
+
     student_user = User.__table__.alias("student_user")
     classes = Class.__table__.alias("classes")
     subjects = Subject.__table__.alias("subjects")
@@ -164,10 +182,12 @@ def get_evaluations_by_teacher_user_id(
     ]
 
 
-def calculate_total_points_for_student(db: Session, student_user_id: int) -> Dict[str, Any]:
-    """
-    Tính tổng điểm học tập và kỷ luật của một học sinh (tất cả các lớp).
-    """
+def calculate_total_points_for_student(
+    db: Session, student_user_id: int,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    _enforce_student_access_or_raise(requesting_user_id, requesting_user_roles, student_user_id)
+
     stmt = (
         select(
             func.sum(Evaluation.study_point).label("total_study_point"),
@@ -178,10 +198,9 @@ def calculate_total_points_for_student(db: Session, student_user_id: int) -> Dic
     row = db.execute(stmt).first()
     return {
         "student_user_id": student_user_id,
-        "final_study_point": 100 + row.total_study_point or 0,
-        "final_discipline_point": 100 + row.total_discipline_point or 0,
+        "final_study_point": row.total_study_point or 0,
+        "final_discipline_point": row.total_discipline_point or 0,
     }
-
 
 def summarize_end_of_semester(db: Session, student_user_id: int) -> Dict[str, Any]:
     """
@@ -190,18 +209,19 @@ def summarize_end_of_semester(db: Session, student_user_id: int) -> Dict[str, An
     total_points = calculate_total_points_for_student(db, student_user_id)
     return {
         "student_user_id": student_user_id,
-        "final_study_point": min(total_points["total_study_point"], 100),
-        "final_discipline_point": min(total_points["total_discipline_point"], 100),
+        "final_study_point": min(total_points["final_study_point"], 100),
+        "final_discipline_point": min(total_points["final_discipline_point"], 100),
     }
+
 
 def get_evaluations_summary_by_student_in_class(
     db: Session,
     student_user_id: int,
-    class_id: int
+    class_id: int,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
 ):
-    """
-    Trả về tổng kết điểm (study, discipline) của 1 học sinh trong 1 lớp.
-    """
+    _enforce_student_access_or_raise(requesting_user_id, requesting_user_roles, student_user_id)
+
     stmt = (
         select(
             func.sum(Evaluation.study_point).label("final_study_point"),
@@ -237,17 +257,17 @@ def get_evaluations_summary_by_student_in_class(
         "discipline_minus_count": row.discipline_minus_count or 0,
     }
 
-
 def get_evaluations_by_student_in_class(
     db: Session,
     student_user_id: int,
     class_id: int,
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    requesting_user_id: Optional[int] = None,
+    requesting_user_roles: Optional[List[str]] = None
 ) -> List[EvaluationView]:
-    """
-    Lấy danh sách evaluations của một học sinh trong một lớp cụ thể.
-    """
+    _enforce_student_access_or_raise(requesting_user_id, requesting_user_roles, student_user_id)
+
     teacher_user = User.__table__.alias("teacher_user")
     student_user = User.__table__.alias("student_user")
     classes = Class.__table__.alias("classes")
@@ -294,11 +314,16 @@ def get_evaluations_by_student_in_class(
         for row in rows
     ]
 
+
 def get_evaluations_summary_of_student_in_class(
     db: Session,
     student_user_id: int,
-    class_id: int
+    class_id: int,
+    requesting_user_id: Optional[int] = None,
+    requesting_user_roles: Optional[List[str]] = None
 ) -> EvaluationSummary:
+    _enforce_student_access_or_raise(requesting_user_id, requesting_user_roles, student_user_id)
+
     """
     Lấy tổng kết điểm và số lần cộng/trừ điểm của một học sinh trong một lớp cụ thể.
     """

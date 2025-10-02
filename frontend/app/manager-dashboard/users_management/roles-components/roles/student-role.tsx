@@ -141,8 +141,8 @@ export function StudentRole({ user }: StudentRoleProps) {
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: "Study Points", icon: Award, value: summary.study_points, border: "border-blue-200", iconColor: "text-blue-600" },
-          { title: "Discipline Points", icon: Star, value: summary.discipline_points, border: "border-yellow-200", iconColor: "text-yellow-600" },
+          { title: "Study Points", icon: Award, value: 100 + summary.study_points, border: "border-blue-200", iconColor: "text-blue-600" },
+          { title: "Discipline Points", icon: Star, value: 100 + summary.discipline_points, border: "border-yellow-200", iconColor: "text-yellow-600" },
           { title: "Enrolled Classes", icon: BookOpen, value: studentEnrollments.length, border: "border-green-200", iconColor: "text-green-600" },
           { title: "Teacher Reviews", icon: Users, value: studentReviews.length, border: "border-purple-200", iconColor: "text-purple-600" },
         ].map((card) => (
@@ -283,7 +283,7 @@ export function StudentRole({ user }: StudentRoleProps) {
                   <CardTitle className="text-center text-black">Total Study Points</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center text-4xl font-bold text-blue-600">{summary.study_points}</div>
+                  <div className="text-center text-4xl font-bold text-blue-600">{100 + summary.study_points}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -294,7 +294,7 @@ export function StudentRole({ user }: StudentRoleProps) {
                   <CardTitle className="text-center text-black">Total Discipline Points</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center text-4xl font-bold text-yellow-600">{summary.discipline_points}</div>
+                  <div className="text-center text-4xl font-bold text-yellow-600">{100 + summary.discipline_points}</div>
                 </CardContent>
               </Card>
             </motion.div>

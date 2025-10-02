@@ -24,7 +24,7 @@ MANAGER_OR_TEACHER_OR_STUDENT = has_roles(["manager","teacher", "student"])
 
 # Tạo lớp học mới
 @router.post(
-    "/",
+    "",
     response_model=class_schema.Class,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một lớp học mới"

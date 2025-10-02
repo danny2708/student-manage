@@ -177,6 +177,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
       if (toCreate.length > 0) {
         const payload: AttendanceBatchCreate = {
           schedule_id: scheduleIdForFetch,
+          class_id: schedule.class_id ?? schedule.classId, 
           attendance_date: date,
           records: toCreate.map((c) => ({
             student_user_id: c.student_user_id,
@@ -322,7 +323,7 @@ const StudentsAttendanceModalInner: React.FC<StudentsAttendanceModalProps> = ({
                               {modalData.mode === "edit" ? (
                                 rec.status === "present" ? (
                                   // Present badge (edit mode) with tick AFTER text. Text is white for contrast on green.
-                                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-green-600 text-white cursor-pointer whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-green-600 text-white whitespace-nowrap">
                                     <span className="font-medium">Present</span>
                                     <span className="text-sm opacity-95">✓</span>
                                   </span>

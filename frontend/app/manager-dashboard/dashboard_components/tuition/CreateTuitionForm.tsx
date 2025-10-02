@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
-import { X } from "lucide-react";
+import { X, User as UserIcon, Calendar, DollarSign, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "../../../../components/ui/input";
 import { useUsers, User } from "../../../../src/contexts/UsersContext";
-import { createTuition } from "../../../../src/services/api/tuition";
+import { useTuitions } from "../../../../src/hooks/useTuition"; 
 
 interface CreateTuitionFormProps {
   onClose: () => void;
@@ -17,6 +17,8 @@ export function CreateTuitionForm({
   onCreated,
 }: CreateTuitionFormProps) {
   const { users, loading } = useUsers();
+  const { addTuition } = useTuitions(); 
+
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
 
   const [term, setTerm] = useState("");
@@ -27,7 +29,9 @@ export function CreateTuitionForm({
   const [errorMessage, setErrorMessage] = useState("");
 
   // Filter only students
-  const students: User[] = users.filter((user) => user.roles?.includes("student"));
+  const students: User[] = users.filter((user) =>
+    user.roles?.includes("student")
+  );
 
   const handleNumberInput = (
     e: ChangeEvent<HTMLInputElement>,
@@ -59,6 +63,9 @@ export function CreateTuitionForm({
       setErrorMessage("Vui lòng điền đầy đủ các trường.");
       return;
     }
+    
+    // Xóa thông báo lỗi cũ
+    setErrorMessage("");
 
     try {
       const tuitionPayload = {
@@ -68,13 +75,20 @@ export function CreateTuitionForm({
         due_date: dueDate,
       };
 
-      await createTuition(tuitionPayload);
-      onClose();
-      await onCreated();
-      alert("Tạo học phí thành công!");
+      // ✅ Gọi hàm addTuition từ hook (có tích hợp toast)
+      const createdTuition = await addTuition(tuitionPayload);
+
+      // addTuition trả về đối tượng nếu thành công, hoặc null nếu thất bại
+      if (createdTuition) {
+        onClose(); // Đóng form
+        await onCreated(); // Cập nhật danh sách bên ngoài
+      }
+      // KHÔNG cần xử lý lỗi ở đây, vì addTuition đã hiển thị toast.error và set state error.
+      
     } catch (error) {
-      console.error("Failed to create tuition:", error);
-      setErrorMessage("Có lỗi xảy ra khi tạo học phí.");
+      // Bắt lỗi ngoài tầm kiểm soát của hook (nếu có)
+      console.error("An unexpected error occurred:", error);
+      // setErrorMessage("Đã xảy ra lỗi không mong muốn."); // Có thể bật lại nếu cần thông báo cục bộ
     }
   };
 
@@ -84,51 +98,52 @@ export function CreateTuitionForm({
 
   return (
     <motion.div
-      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer"
+      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer bg-black/30"
       onClick={handleBackdropClick}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="bg-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative cursor-default"
+        className="bg-white rounded-lg shadow-xl w-96 p-6 text-black relative cursor-default"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.2 }}
       >
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-red-500 hover:text-red-700 cursor-pointer"
+          className="absolute top-4 right-4 text-gray-500 hover:text-red-600 cursor-pointer"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Tạo Học Phí Mới</h2>
+        {/* Title */}
+        <h2 className="text-xl font-bold mb-4 text-center text-gray-800">
+          Create New Tuition
+        </h2>
 
         <div className="space-y-4">
           {/* Student Select */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Học sinh</label>
+            <label className="flex items-center gap-2 text-gray-700 font-medium mb-1">
+              <UserIcon className="w-4 h-4 text-blue-500" />
+              Student
+            </label>
             {loading ? (
-              <p className="text-gray-400">Đang tải danh sách học sinh...</p>
+              <p className="text-gray-500">Loading student list...</p>
             ) : (
               <select
-                aria-label="Chọn học sinh"
+                aria-label="Select student"
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+                className="border border-blue-400 rounded-md p-2 cursor-pointer focus:ring-2 focus:ring-blue-500"
               >
-                <option value="" className="text-white">
-                  -- Chọn học sinh --
-                </option>
+                <option value="">-- Select student --</option>
                 {students.map((student: User) => (
-                  <option
-                    key={student.user_id}
-                    value={student.user_id}
-                    className="text-white"
-                  >
+                  <option key={student.user_id} value={student.user_id}>
                     {`ID: ${student.user_id} - ${student.full_name} (${student.email})`}
                   </option>
                 ))}
@@ -138,18 +153,24 @@ export function CreateTuitionForm({
 
           {/* Term Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Kỳ học</label>
+            <label className="flex items-center gap-2 text-gray-700 font-medium mb-1">
+              <Calendar className="w-4 h-4 text-green-500" />
+              Term
+            </label>
             <Input
               type="text"
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              className="w-full"
+              className="w-full border border-green-400"
             />
           </div>
 
           {/* Amount Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Số tiền</label>
+            <label className="flex items-center gap-2 text-gray-700 font-medium mb-1">
+              <DollarSign className="w-4 h-4 text-yellow-500" />
+              Amount
+            </label>
             <Input
               type="text"
               value={amountDisplay}
@@ -157,32 +178,39 @@ export function CreateTuitionForm({
                 handleNumberInput(e, setAmountDisplay, setAmountValue)
               }
               onBlur={() => handleFormatOnBlur(amountDisplay, setAmountDisplay)}
-              className="w-full"
+              className="w-full border border-yellow-400"
             />
           </div>
 
           {/* Due Date Input */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Ngày đến hạn</label>
+            <label className="flex items-center gap-2 text-gray-700 font-medium mb-1">
+              <Clock className="w-4 h-4 text-red-500" />
+              Due Date
+            </label>
             <Input
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full"
+              className="w-full border border-red-400"
             />
           </div>
         </div>
 
+        {/* Error Message */}
         {errorMessage && (
-          <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
+          <p className="text-red-600 text-sm mt-4 text-center">
+            {errorMessage}
+          </p>
         )}
 
+        {/* Submit Button */}
         <div className="flex justify-center mt-6">
           <button
             onClick={handleCreateTuition}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg cursor-pointer"
+            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg cursor-pointer"
           >
-            Tạo Mới
+            Create
           </button>
         </div>
       </motion.div>

@@ -15,7 +15,7 @@ import {
 import type { StudentStats } from "../../src/services/api/student";
 
 /* ---------------- StudentDashboardContent ---------------- */
-export function StudentDashboardContent({ stats }: { stats: StudentStats }) {
+export function StudentDashboardContent({ stats, onOpenSchedule }: { stats: StudentStats, onOpenSchedule: () => void }) {
   return (
     <div className="space-y-8">
       {/* Hero / quick summary */}
@@ -46,7 +46,7 @@ export function StudentDashboardContent({ stats }: { stats: StudentStats }) {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200">
+            <button onClick={onOpenSchedule} className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 <div>
@@ -55,7 +55,7 @@ export function StudentDashboardContent({ stats }: { stats: StudentStats }) {
                 </div>
               </div>
             </button>
-            <button className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200">
+            <button className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200 cursor-pointer">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-5 w-5 text-green-600" />
                 <div>

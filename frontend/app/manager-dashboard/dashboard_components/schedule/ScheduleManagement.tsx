@@ -15,18 +15,6 @@ import { useAuth } from "../../../../src/contexts/AuthContext";
 // Tên các filter/cột cho popover
 type FilterKey = "class" | "day" | "room" | "date" | "type" | "start" | "end";
 
-// Hàm định dạng ngày
-const formatDate = (dateString: string) => {
-  if (!dateString) return "-";
-  try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return "-";
-    return d.toLocaleDateString("vi-VN");
-  } catch {
-    return "-";
-  }
-};
-
 // === Filter Popover Component ===
 interface FilterPopoverProps {
   name: string;
@@ -252,7 +240,7 @@ export default function ScheduleManagement() {
                   <td className="px-3 py-2 text-sm text-black text-center border-r border-gray-200">{s.class_name}</td>
                   <td className="px-3 py-2 text-sm text-center border-r border-gray-200">{s.day_of_week || "-"}</td>
                   <td className="px-3 py-2 text-sm text-center border-r border-gray-200">{s.room || "-"}</td>
-                  <td className="px-3 py-2 text-sm text-center border-r border-gray-200">{formatDate(s.date || "")}</td>
+                  <td className="px-3 py-2 text-sm text-center border-r border-gray-200">{s.date || "-"}</td>
                   <td className="px-3 py-2 text-center border-r border-gray-200">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

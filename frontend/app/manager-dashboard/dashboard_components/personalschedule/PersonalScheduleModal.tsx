@@ -1,7 +1,7 @@
 "use client"; 
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, List, Clock, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { Calendar, List, Clock, ChevronLeft, ChevronRight, MapPin, GraduationCap, BookOpen, CalendarDays, Users, Layers } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BaseModal } from "../../../../components/ui/base-modal";
 import { BaseButton } from "../../../../components/ui/base-button";
@@ -457,40 +457,65 @@ export default function PersonalScheduleModal({ open, onClose, fetchSchedule }: 
       <BaseModal open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Class Details" size="md">
         {selectedEvent && (
           <div className="space-y-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-gray-900 dark:text-gray-100">
+            {/* Header */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Class Name</label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  Class Name
+                </label>
                 <h3 className="text-xl font-semibold">{selectedEvent.title}</h3>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Subject </label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-indigo-500" />
+                  Subject
+                </label>
                 {selectedEvent.subject && <p className="text-xl">{selectedEvent.subject}</p>}
               </div>
             </div>
 
             <hr className="border-t border-gray-200 dark:border-gray-700 my-4" />
 
+            {/* Details */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Time</label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-green-500" />
+                  Time
+                </label>
                 <p className="text-lg">
                   {selectedEvent.start} - {selectedEvent.end}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-blue-500" />
+                  Date
+                </label>
                 <p className="text-lg">{formatDateDMY(selectedEvent.date)}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Room</label>
-                <p className="text-lg flex items-center gap-1">{selectedEvent.room} {selectedEvent.room && <MapPin className="h-4 w-4 text-primary" />}</p>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-red-500" />
+                  Room
+                </label>
+                <p className="text-lg flex items-center gap-1">
+                  {selectedEvent.room}
+                </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Students</label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4 text-purple-500" />
+                  Students
+                </label>
                 <p className="text-lg">{selectedEvent.students ?? "N/A"}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Type</label>
+                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-teal-500" />
+                  Type
+                </label>
                 <p className="text-lg">{selectedEvent.scheduleType}</p>
               </div>
             </div>

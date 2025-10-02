@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, BookOpen, Calendar, Clock, Home } from "lucide-react";
 import { Input } from "../../../../components/ui/input";
 import { useClasses } from "../../../../src/contexts/ClassContext";
 import { useSchedules } from "../../../../src/contexts/ScheduleContext";
@@ -76,15 +76,11 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
       await addSchedule(payload);
       onClose();
       await onCreated();
-    } catch (error: any) { // Thêm 'any' để TypeScript hiểu lỗi có thuộc tính 'response'
+    } catch (error: any) {
       console.error("Failed to create schedule:", error);
-
-      // Cập nhật để xử lý lỗi từ backend
-      if (error.response && error.response.data && error.response.data.detail) {
-        // Lấy thông điệp lỗi chi tiết từ backend
+      if (error.response?.data?.detail) {
         setErrorMessage(error.response.data.detail);
       } else {
-        // Lỗi chung chung nếu không có thông điệp cụ thể
         setErrorMessage("Có lỗi xảy ra khi tạo lịch học.");
       }
     }
@@ -96,14 +92,14 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
 
   return (
     <motion.div
-      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer"
+      className="fixed inset-0 flex justify-center items-center z-50 cursor-pointer bg-black/40"
       onClick={handleBackdropClick}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="bg-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative cursor-default"
+        className="bg-white rounded-lg shadow-xl w-96 p-6 text-gray-900 relative cursor-default"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
@@ -112,29 +108,31 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
         <button
           aria-label="Close modal"
           onClick={onClose}
-          className="absolute top-4 right-4 text-red-500 hover:text-red-700 cursor-pointer"
+          className="absolute top-4 right-4 text-gray-500 hover:text-red-500 cursor-pointer"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Tạo lịch học mới</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">📅 Create new schedule </h2>
 
         <div className="space-y-4">
-          {/* ✅ Select lớp học */}
+          {/* Select lớp học */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Lớp học</label>
+            <label className="font-medium mb-1 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-cyan-500" /> Class
+            </label>
             {classesLoading ? (
-              <p className="text-gray-400">Đang tải danh sách lớp...</p>
+              <p className="text-gray-500">Loading class list...</p>
             ) : (
               <select
-                aria-label="Choose class"
+                aria-label="Select class"
                 value={classId ?? ""}
                 onChange={(e) => setClassId(Number(e.target.value))}
-                className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+                className="border border-gray-300 rounded-md p-2 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               >
-                <option value="" className="text-black">-- Chọn lớp --</option>
+                <option value="">-- Select class --</option>
                 {classes.map((c) => (
-                  <option key={c.class_id} value={c.class_id} className="text-black">
+                  <option key={c.class_id} value={c.class_id}>
                     {c.class_name}
                   </option>
                 ))}
@@ -142,39 +140,48 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
             )}
           </div>
 
-          {/* Các field còn lại */}
+          {/* Phòng học */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Phòng học</label>
-            <Input value={room} onChange={(e) => setRoom(e.target.value)} />
+            <label className="font-medium mb-1 flex items-center gap-2">
+              <Home className="h-4 w-4 text-green-500" /> Room
+            </label>
+            <Input
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              className="border border-gray-300 rounded-md focus:border-cyan-500"
+            />
           </div>
 
+          {/* Loại lịch */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Loại lịch</label>
+            <label className="font-medium mb-1 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-purple-500" /> Schedule Type
+            </label>
             <select
-              aria-label="Choose schedule type"
+              aria-label="Select schedule type"
               value={type}
               onChange={(e) => setType(e.target.value as "WEEKLY" | "ONCE")}
-              className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+              className="border border-gray-300 rounded-md p-2 focus:border-cyan-500"
             >
-              <option value="" className="text-black">-- Chọn loại --</option>
+              <option value="">-- Select type --</option>
               {typeOptions.map((t) => (
-                <option key={t} value={t} className="text-black">{t}</option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
 
           {type === "WEEKLY" && (
             <div className="flex flex-col">
-              <label className="text-cyan-400 font-medium mb-1">Thứ</label>
+              <label className="font-medium mb-1">Day of week</label>
               <select
-                aria-label="Choose day of week"
+                aria-label="Select day of week"
                 value={day}
                 onChange={(e) => setDay(e.target.value)}
-                className="bg-gray-700 text-white rounded-md p-2 cursor-pointer"
+                className="border border-gray-300 rounded-md p-2 focus:border-cyan-500"
               >
-                <option value="" className="text-black">-- Chọn thứ --</option>
+                <option value="">-- Select day of week --</option>
                 {dayOptions.map((d) => (
-                  <option key={d} value={d} className="text-black">{d}</option>
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
@@ -182,24 +189,41 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
 
           {type === "ONCE" && (
             <div className="flex flex-col">
-              <label className="text-cyan-400 font-medium mb-1">Ngày (dd/mm/yyyy)</label>
+              <label className="font-medium mb-1">Date (dd/mm/yyyy)</label>
               <Input
                 type="text"
                 placeholder="dd/mm/yyyy"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                className="border border-gray-300 rounded-md focus:border-cyan-500"
               />
             </div>
           )}
 
+          {/* Giờ bắt đầu */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Giờ bắt đầu</label>
-            <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <label className="font-medium mb-1 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-500" /> Start Time
+            </label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="border border-gray-300 rounded-md focus:border-cyan-500"
+            />
           </div>
 
+          {/* Giờ kết thúc */}
           <div className="flex flex-col">
-            <label className="text-cyan-400 font-medium mb-1">Giờ kết thúc</label>
-            <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <label className="font-medium mb-1 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-red-500" /> End Time
+            </label>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="border border-gray-300 rounded-md focus:border-cyan-500"
+            />
           </div>
         </div>
 
@@ -210,7 +234,7 @@ export function CreateScheduleForm({ onClose, onCreated }: CreateScheduleFormPro
         <div className="flex justify-center mt-6">
           <button
             onClick={handleCreate}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg cursor-pointer"
+            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg text-white font-medium"
           >
             Tạo mới
           </button>

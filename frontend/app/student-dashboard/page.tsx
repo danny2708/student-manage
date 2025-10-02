@@ -16,7 +16,7 @@ import { Sidebar, StudentDashboardContent } from "./DashboardComponents";
 import { AnimatePresence, motion } from "framer-motion";
 
 // dynamic subpages
-const EvaluationModal = dynamic(() => import("./EvaluationModal"), { ssr: false });
+const EvaluationModal = dynamic(() => import("./StudentEvaluationModal"), { ssr: false });
 const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
 const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
 const TeacherReviewManagement = dynamic(() => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"), { ssr: false });
@@ -113,7 +113,7 @@ export default function StudentDashboardPage() {
 
         {/* Dashboard / Sections */}
         <div className={activeSection === "overview" ? "block" : "hidden"}>
-          <StudentDashboardContent stats={statsForContent} />
+          <StudentDashboardContent stats={statsForContent} onOpenSchedule={() => setShowPersonalSchedule(true)} />
         </div>
 
         {/* Evaluation */}

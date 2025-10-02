@@ -60,7 +60,7 @@ export function StatCard({
   );
 }
 
-export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
+export function TeacherDashboardContent({ stats, onOpenSchedule, setSection }: { stats: TeacherStats, onOpenSchedule: () => void, setSection: (id: string) => void }) {
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500 rounded-xl p-6 text-white shadow-lg">
@@ -86,7 +86,7 @@ export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
           value={
             <div className="flex items-center gap-2">
               <span className="font-medium">{stats.rate}</span>
-              <Star className="h-5 w-5 text-yellow-400" />
+              <Star className="h-5 w-5 text-yellow-400 " />
             </div>
           }
           variant="purple"
@@ -100,7 +100,7 @@ export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
             Quick Actions
           </h3>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200">
+            <button onClick={onOpenSchedule} className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 <div>
@@ -109,7 +109,7 @@ export function TeacherDashboardContent({ stats }: { stats: TeacherStats }) {
                 </div>
               </div>
             </button>
-            <button className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200">
+            <button onClick={() => setSection("attendance")} className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200 cursor-pointer">
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-green-600" />
                 <div>

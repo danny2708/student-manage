@@ -90,6 +90,11 @@ export default function AttendanceManagement() {
     await fetchAttendancesBySchedule(schedule.id);
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString("vi-VN");
+  };  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -111,7 +116,7 @@ export default function AttendanceManagement() {
         {/* Available classes */}
         <div className="bg-white/5 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-lg">Classes available</h3>
+            <h3 className="font-semibold text-lg">Classes available on {formatDate(selectedDate)}</h3>
             <div className="text-sm text-gray-400">
               {availableClasses.length} found
             </div>
@@ -153,7 +158,7 @@ export default function AttendanceManagement() {
         <div className="bg-white/5 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-lg">
-              Submitted ({selectedDate})
+              Submitted on {formatDate(selectedDate)}
             </h3>
             <div className="text-sm text-gray-400">
               {submittedBySchedule.size} batches

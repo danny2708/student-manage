@@ -1,4 +1,3 @@
-# app/api/endpoints/evaluation_route.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -52,7 +51,7 @@ def create_new_evaluation_record(
     "/",
     response_model=List[evaluation_schema.EvaluationView],
     summary="Danh sách tất cả đánh giá",
-    dependencies=[Depends(MANAGER_OR_TEACHER)]
+    dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
 )
 def get_evaluations_by_role(
     db: Session = Depends(deps.get_db),
@@ -60,10 +59,25 @@ def get_evaluations_by_role(
     skip: int = 0,
     limit: int = 100
 ):
+    # Manager: all
     if "manager" in current_user.roles:
         return evaluation_service.get_all_evaluations_with_names(db, skip=skip, limit=limit)
-    elif "teacher" in current_user.roles:
-        return evaluation_service.get_evaluations_by_teacher_user_id(db, current_user.user_id, skip, limit)
+
+    # Teacher: only their evaluations
+    if "teacher" in current_user.roles:
+        return evaluation_service.get_evaluations_by_teacher_user_id(
+            db, current_user.user_id, skip, limit, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+        )
+
+    # Student: only own evaluations
+    if "student" in current_user.roles:
+        try:
+            return evaluation_service.get_evaluations_by_student_user_id(
+                db, current_user.user_id, skip, limit, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Permission denied.")
+
     raise HTTPException(status_code=403, detail="Permission denied.")
 
 # ----------------- STUDENT TOTAL SCORE -----------------
@@ -76,8 +90,15 @@ def get_total_score_by_student(
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    # check quyền ...
-    return evaluation_service.calculate_total_points_for_student(db, student_user_id)
+    # If requester is student, they can only request their own score
+    if "student" in current_user.roles and student_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Students can only view their own score.")
+    try:
+        return evaluation_service.calculate_total_points_for_student(
+            db, student_user_id, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+        )
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied.")
 
 # ----------------- SINGLE EVALUATION -----------------
 @router.get(
@@ -90,7 +111,15 @@ def get_evaluation_record(
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    return evaluation_crud.get_evaluation(db, evaluation_id)
+    ev = evaluation_crud.get_evaluation(db, evaluation_id)
+    if not ev:
+        raise HTTPException(status_code=404, detail="Evaluation not found.")
+
+    # If student, they may only access their own evaluation
+    if "student" in current_user.roles and ev.student_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Students can only view their own evaluations.")
+
+    return ev
 
 # ----------------- STUDENT EVALUATIONS -----------------
 @router.get(
@@ -103,7 +132,15 @@ def get_evaluations_of_student(
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    return evaluation_service.get_evaluations_by_student_user_id(db, student_user_id)
+    # If requester is student, only allow their own data
+    if "student" in current_user.roles and student_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Students can only view their own evaluations.")
+    try:
+        return evaluation_service.get_evaluations_by_student_user_id(
+            db, student_user_id, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+        )
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied.")
 
 # ----------------- DELETE -----------------
 @router.delete(
@@ -132,8 +169,11 @@ def get_evaluations_of_teacher(
     limit: int = 100,
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
+    # If a student somehow tries to call this endpoint, block them
+    if "student" in current_user.roles:
+        raise HTTPException(status_code=403, detail="Permission denied.")
     return evaluation_service.get_evaluations_by_teacher_user_id(
-        db, teacher_user_id, skip, limit
+        db, teacher_user_id, skip, limit, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
     )
 
 
@@ -154,14 +194,20 @@ def get_evaluations_of_student_in_class(
     """
     Endpoint lấy danh sách evaluations của học sinh trong lớp, có phân trang.
     """
-    # Nếu muốn dùng current_user để check quyền, làm ở đây
-    return evaluation_service.get_evaluations_by_student_in_class(
-        db=db,
-        student_user_id=student_user_id,
-        class_id=class_id,
-        skip=skip,
-        limit=limit
-    )
+    if "student" in current_user.roles and student_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Students can only view their own evaluations.")
+    try:
+        return evaluation_service.get_evaluations_by_student_in_class(
+            db=db,
+            student_user_id=student_user_id,
+            class_id=class_id,
+            skip=skip,
+            limit=limit,
+            requesting_user_id=current_user.user_id,
+            requesting_user_roles=current_user.roles
+        )
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied.")
 
 
 @router.get(
@@ -173,7 +219,13 @@ def get_evaluations_summary_of_student_in_class(
     student_user_id: int,
     class_id: int,
     db: Session = Depends(deps.get_db),
-    current_user: AuthenticatedUser = Depends(get_current_active_user),
+    current_user=Depends(get_current_active_user),
 ):
-    return evaluation_service.get_evaluations_summary_of_student_in_class(
-        db, student_user_id, class_id)
+    if "student" in current_user.roles and student_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Students can only view their own summary.")
+    try:
+        return evaluation_service.get_evaluations_summary_of_student_in_class(
+            db, student_user_id, class_id, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+        )
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied.")

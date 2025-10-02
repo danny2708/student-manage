@@ -144,6 +144,7 @@ export default function TuitionManagement() {
     if (!selectedRow) return;
     try {
       await removeTuition(selectedRow.id);
+      closeConfirm();
       setShowAction(false);
       await fetchTuitions();
     } catch {
@@ -360,7 +361,7 @@ export default function TuitionManagement() {
               type="tuition"
               data={selectedRow}
               onClose={() => setShowInfo(false)}
-              onUpdated={fetchTuitions}
+              onUpdated={async () => { await fetchTuitions(); }}
               userRoles={user?.roles}
             />
           </motion.div>
@@ -378,7 +379,7 @@ export default function TuitionManagement() {
           >
             <CreateTuitionForm
               onClose={() => setShowCreateModal(false)}
-              onCreated={fetchTuitions}
+              onCreated={async () => { await fetchTuitions(); }}
             />
           </motion.div>
         )}
