@@ -29,7 +29,6 @@ export function useEvaluations() {
     try {
       const data = await getEvaluations(skip, limit);
       setEvaluations(data);
-      toast.success("Fetched evaluations successfully");
     } catch (err: any) {
       const msg = err.message || "Failed to fetch evaluations";
       setError(msg);
@@ -152,26 +151,6 @@ export function useEvaluations() {
     []
   );
 
-  // ---------------- FETCH SUMMARY ----------------
-  // const fetchSummaryAndCounts = useCallback(
-  //   async (studentUserId: number): Promise<EvaluationSummary | undefined> => {
-  //     setLoading(true);
-  //     setError(null);
-  //     try {
-  //       const data = await getSummaryAndCounts(studentUserId);
-  //       return data;
-  //     } catch (err: any) {
-  //       const msg = err.message || `Failed to fetch summary for student ${studentUserId}`;
-  //       setError(msg);
-  //       toast.error(msg);
-  //       console.error(msg, err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   },
-  //   []
-  // );
-
   const fetchTotalScore = useCallback(async (studentUserId: number): Promise<EvaluationSummary | undefined> => {
     setLoading(true);
     setError(null);
@@ -238,7 +217,6 @@ export function useEvaluations() {
     fetchEvaluationRecord,
     fetchEvaluationsOfStudent,
     fetchEvaluationsOfTeacher,
-    //fetchSummaryAndCounts,
     fetchTotalScore,
     fetchEvaluationsOfStudentInClass,
     fetchEvaluationsSummaryOfStudentInClass,

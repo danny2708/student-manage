@@ -166,7 +166,7 @@ def search_schedules_by_user_role(
         childrens = parent_crud.get_childrens(db, parent_user_id=current_user.user_id)
         class_ids = []
         for child in childrens:
-            class_ids.extend(schedule_crud.get_class_ids_for_student(db, student_id=child.user_id))
+            class_ids.extend(schedule_crud.get_class_ids_for_student(db, student_user_id=child.user_id))
         return schedule_crud.search_schedules(
             db=db,
             class_ids=class_ids,

@@ -1,6 +1,7 @@
 # app/schemas/student_schema.py
 
-from pydantic import BaseModel
+from datetime import date
+from pydantic import BaseModel, field_serializer
 from typing import Optional
 
 class StudentBase(BaseModel):
@@ -24,3 +25,16 @@ class Student(StudentBase):
 
     class Config:
         from_attributes = True
+
+class StudentView(BaseModel):
+    student_user_id: int
+    class_name: Optional[str]
+    full_name: Optional[str]
+    email: Optional[str]
+    date_of_birth: Optional[date]
+    phone_number: Optional[str]
+    gender: Optional[str]
+
+    @field_serializer("date_of_birth")
+    def format_date_of_birth(self, date_of_birth: date, _info):
+        return date_of_birth.strftime("%d/%m/%Y")

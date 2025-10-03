@@ -1,5 +1,6 @@
 import api from "./api"
 import { EvaluationView } from "./evaluation"
+import { Class } from "./class"
 
 // ===== Types =====
 export interface StudentBase {
@@ -91,3 +92,8 @@ export const getStudentStats = async (studentUserId: number): Promise<StudentSta
     const res = await api.get(`/students/${studentUserId}/stats`)
     return res.data
 }
+
+export const getClassesByStudent = async (studentUserId: number): Promise<Class[]> => {
+    const res = await api.get(`/students/${studentUserId}/classes`)
+    return res.data
+} 

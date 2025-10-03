@@ -7,6 +7,7 @@ from app.models.class_model import Class
 from app.models.subject_model import Subject
 from app.models.user_model import User
 from app.schemas.evaluation_schema import EvaluationSummary, EvaluationView
+from app.models.student_model import Student
 
 # --- Helper: permission check for student ---
 def _enforce_student_access_or_raise(requesting_user_id: Optional[int], requesting_user_roles: Optional[List[str]], target_student_user_id: int):
@@ -47,6 +48,7 @@ def get_evaluations_by_student_user_id(
         select(
             Evaluation.evaluation_id,
             teacher_user.c.full_name.label("teacher_name"),
+            student_user.c.user_id.label("student_user_id"),
             student_user.c.full_name.label("student_name"),
             classes.c.class_name,
             subjects.c.name,
@@ -70,6 +72,7 @@ def get_evaluations_by_student_user_id(
         EvaluationView(
             id=row.evaluation_id,
             teacher=row.teacher_name,
+            student_user_id=row.student_user_id,
             student=row.student_name,
             class_name=row.class_name,  # gộp lớp + môn
             type=row.evaluation_type,
@@ -100,6 +103,7 @@ def get_all_evaluations_with_names(
         select(
             Evaluation.evaluation_id,
             teacher_user.c.full_name.label("teacher_name"),
+            student_user.c.user_id.label("student_user_id"),
             student_user.c.full_name.label("student_name"),
             classes.c.class_name,
             subjects.c.name,
@@ -122,6 +126,7 @@ def get_all_evaluations_with_names(
         EvaluationView(
             id=row.evaluation_id,
             teacher=row.teacher_name,
+            student_user_id=row.student_user_id,
             student=row.student_name,
             class_name=f"{row.class_name} ({row.name})",
             type=row.evaluation_type,
@@ -150,6 +155,7 @@ def get_evaluations_by_teacher_user_id(
     stmt = (
         select(
             Evaluation.evaluation_id,
+            student_user.c.user_id.label("student_user_id"),
             student_user.c.full_name.label("student_name"),
             classes.c.class_name,
             subjects.c.name,
@@ -172,6 +178,7 @@ def get_evaluations_by_teacher_user_id(
         EvaluationView(
             id=row.evaluation_id,
             teacher="",  # chính là teacher_user_id hiện tại
+            student_user_id=row.student_user_id,
             student=row.student_name,
             class_name=f"{row.class_name} ({row.name})",
             type=row.evaluation_type,
@@ -277,6 +284,7 @@ def get_evaluations_by_student_in_class(
         select(
             Evaluation.evaluation_id.label("id"),
             classes.c.class_name.label("class_name"),
+            student_user.c.user_id.label("student_user_id"),
             student_user.c.full_name.label("student"),
             teacher_user.c.full_name.label("teacher"),
             Evaluation.evaluation_type.label("type"),
@@ -305,6 +313,7 @@ def get_evaluations_by_student_in_class(
         EvaluationView(
             id=row.id,
             class_name=f"{row.class_name} ({row.subject})",
+            student_user_id=row.student_user_id,
             student=row.student,
             teacher=row.teacher,
             type=row.type,
@@ -440,3 +449,57 @@ def update_late_evaluation(
     db.commit()
     db.refresh(evaluation_record)
     return evaluation_record
+
+def get_parent_children_evaluation(
+    db: Session, parent_user_id: int, skip: int = 0, limit: int = 100,
+    requesting_user_id: Optional[int] = None, requesting_user_roles: Optional[List[str]] = None
+) -> List[EvaluationView]:
+    """
+    Lấy danh sách các bản ghi đánh giá chi tiết (EvaluationView) của TẤT CẢ học sinh 
+    có parent_id khớp với parent_user_id.
+    """
+    teacher_user = User.__table__.alias("teacher_user")
+    student_user = User.__table__.alias("student_user")
+    student_table = Student.__table__.alias("student_table") # Alias cho bảng Student
+    classes = Class.__table__.alias("classes")
+    subjects = Subject.__table__.alias("subjects")
+
+    stmt = (
+        select(
+            Evaluation.evaluation_id,
+            teacher_user.c.full_name.label("teacher_name"),
+            student_user.c.user_id.label("student_user_id"),
+            student_user.c.full_name.label("student_name"),
+            classes.c.class_name,
+            subjects.c.name.label("subject_name"),
+            Evaluation.evaluation_type,
+            Evaluation.evaluation_date,
+            Evaluation.evaluation_content,
+        )
+        .select_from(
+            # Bắt đầu từ Evaluation, join với Student để lọc parent_id
+            join(Evaluation, student_table, Evaluation.student_user_id == student_table.c.user_id)
+        )
+        .join(student_user, student_table.c.user_id == student_user.c.user_id) # Join Student -> User (cho tên HS)
+        .join(teacher_user, Evaluation.teacher_user_id == teacher_user.c.user_id) # Join Evaluation -> User (cho tên GV)
+        .join(classes, Evaluation.class_id == classes.c.class_id)
+        .join(subjects, classes.c.subject_id == subjects.c.subject_id)
+        .where(student_table.c.parent_id == parent_user_id) # Lọc theo parent_id
+        .offset(skip)
+        .limit(limit)
+    )
+
+    result = db.execute(stmt).all()
+    return [
+        EvaluationView(
+            id=row.evaluation_id,
+            teacher=row.teacher_name,
+            student_user_id=row.student_user_id,
+            student=row.student_name,
+            class_name=f"{row.class_name} ({row.subject_name})", # Định dạng lớp + môn
+            type=row.evaluation_type,
+            date=row.evaluation_date,
+            content=row.evaluation_content,
+        )
+        for row in result
+    ]

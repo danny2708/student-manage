@@ -3,6 +3,7 @@
 import { Schedule } from "../../../src/services/api/schedule";
 import { Input } from "../../../components/ui/input";
 import { useClasses } from "../../../src/contexts/ClassContext";
+import { BookOpen, MapPin, CalendarDays, Clock, ListChecks } from "lucide-react";
 
 interface ScheduleInfoFormProps {
   data: Schedule;
@@ -12,53 +13,53 @@ interface ScheduleInfoFormProps {
 
 export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfoFormProps) {
   const { classes, loading: classesLoading } = useClasses();
-  const selectedClass = classes.find((c) => c.class_id === data.class_id);
 
-  // helper để format time về HH:mm:ss
+  // helper format time về HH:mm:ss
   const formatTime = (t: string) => t.split("T")[1]?.split(".")[0] ?? t;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white text-black p-4 rounded-lg border border-gray-200">
       {/* Lớp */}
       <div className="flex flex-col">
-        <label className="text-cyan-400 font-medium mb-1">Class</label>
+        <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+          <BookOpen className="h-4 w-4 text-blue-500" /> Class
+        </label>
         {classesLoading ? (
-          <p className="text-gray-400">Loading class list...</p>
+          <p className="text-gray-500">Loading class list...</p>
         ) : (
-          <div className="flex gap-2 items-center">
-            <select
-              aria-label="Choose class"
-              className="bg-gray-700 text-white rounded-md p-2 cursor-pointer flex-1"
-              value={data.class_id}
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                const cls = classes.find((c) => c.class_id === id);
-                onInputChange("class_id", id);
-                onInputChange("class_name", cls?.class_name);
-              }}
-            >
-              {/* Chỉ hiển thị placeholder khi chưa có class_id */}
-              {data.class_id == null && (
-                <option value="" className="text-black">-- Choose class --</option>
-              )}
-              {classes.map((c) => (
-                <option key={c.class_id} value={c.class_id} className="text-black">
-                  {c.class_name}
-                </option>
-              ))}
-            </select>
-            {selectedClass && (
-              <span className="text-sm text-gray-300">({selectedClass.class_name})</span>
+          <select
+            aria-label="Choose class"
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+            value={data.class_id}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              const cls = classes.find((c) => c.class_id === id);
+              onInputChange("class_id", id);
+              onInputChange("class_name", cls?.class_name);
+            }}
+            disabled={disabled}
+          >
+            {data.class_id == null && (
+              <option value="" className="text-gray-500">
+                -- Choose class --
+              </option>
             )}
-          </div>
+            {classes.map((c) => (
+              <option key={c.class_id} value={c.class_id}>
+                {c.class_name}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
       {/* Phòng */}
       <div className="flex flex-col">
-        <label className="text-cyan-400 font-medium mb-1">Room</label>
+        <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+          <MapPin className="h-4 w-4 text-green-500" /> Room
+        </label>
         <Input
-          className="bg-gray-700 text-white rounded-md p-2"
+          className="border border-gray-300 rounded-md p-2"
           value={data.room ?? ""}
           onChange={(e) => onInputChange("room", e.target.value)}
           disabled={disabled}
@@ -67,31 +68,45 @@ export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfo
 
       {/* Schedule type */}
       <div className="flex flex-col">
-        <label className="text-cyan-400 font-medium mb-1">Schedule type</label>
+        <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+          <ListChecks className="h-4 w-4 text-purple-500" /> Schedule type
+        </label>
         <select
           aria-label="Choose schedule type"
-          className="bg-gray-700 text-white rounded-md p-2"
+          className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-purple-400 outline-none"
           value={data.schedule_type}
           onChange={(e) => onInputChange("schedule_type", e.target.value)}
           disabled={disabled}
         >
-          <option value="WEEKLY" className="text-black">WEEKLY</option>
-          <option value="ONCE" className="text-black">ONCE</option>
+          <option value="WEEKLY">WEEKLY</option>
+          <option value="ONCE">ONCE</option>
         </select>
       </div>
 
       {/* Thứ hoặc Ngày */}
       {data.schedule_type === "WEEKLY" && (
         <div className="flex flex-col">
-          <label className="text-cyan-400 font-medium mb-1">Day of week</label>
+          <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+            <CalendarDays className="h-4 w-4 text-orange-500" /> Day of week
+          </label>
           <select
             aria-label="Choose day of week"
-            className="bg-gray-700 text-white rounded-md p-2"
+            className="border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-orange-400 outline-none"
             value={data.day_of_week ?? ""}
             onChange={(e) => onInputChange("day_of_week", e.target.value)}
           >
-            {["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"].map((d) => (
-              <option key={d} value={d} className="text-black">{d}</option>
+            {[
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY",
+            ].map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
           </select>
         </div>
@@ -99,10 +114,12 @@ export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfo
 
       {data.schedule_type === "ONCE" && (
         <div className="flex flex-col">
-          <label className="text-cyan-400 font-medium mb-1">Date</label>
+          <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+            <CalendarDays className="h-4 w-4 text-red-500" /> Date
+          </label>
           <Input
             type="date"
-            className="bg-gray-700 text-white rounded-md p-2"
+            className="border border-gray-300 rounded-md p-2"
             value={data.date ?? ""}
             onChange={(e) => onInputChange("date", e.target.value)}
             disabled={disabled}
@@ -112,10 +129,12 @@ export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfo
 
       {/* Time */}
       <div className="flex flex-col">
-        <label className="text-cyan-400 font-medium mb-1">Start time</label>
+        <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+          <Clock className="h-4 w-4 text-indigo-500" /> Start time
+        </label>
         <Input
           type="time"
-          className="bg-gray-700 text-white rounded-md p-2"
+          className="border border-gray-300 rounded-md p-2"
           value={formatTime(data.start_time)}
           onChange={(e) => onInputChange("start_time", e.target.value)}
           disabled={disabled}
@@ -123,10 +142,12 @@ export function ScheduleInfoForm({ data, onInputChange, disabled }: ScheduleInfo
       </div>
 
       <div className="flex flex-col">
-        <label className="text-cyan-400 font-medium mb-1">End time</label>
+        <label className="flex items-center gap-2 font-medium mb-1 text-gray-700">
+          <Clock className="h-4 w-4 text-pink-500" /> End time
+        </label>
         <Input
           type="time"
-          className="bg-gray-700 text-white rounded-md p-2"
+          className="border border-gray-300 rounded-md p-2"
           value={formatTime(data.end_time)}
           onChange={(e) => onInputChange("end_time", e.target.value)}
           disabled={disabled}

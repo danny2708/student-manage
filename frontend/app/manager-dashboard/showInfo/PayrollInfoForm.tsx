@@ -3,6 +3,7 @@
 import { ChangeEvent, useState } from "react";
 import { Input } from "../../../components/ui/input";
 import { Payroll } from "../../../src/services/api/payroll";
+import { Hash, User, Calendar, DollarSign, Gift, Calculator, CheckCircle } from "lucide-react";
 
 interface PayrollInfoFormProps {
   data: Payroll;
@@ -10,7 +11,6 @@ interface PayrollInfoFormProps {
   disabled?: boolean;
 }
 
-// Hàm format chung cho tất cả các trường tiền tệ
 const formatNumber = (num: number | undefined | null): string => {
   if (num === undefined || num === null || num === 0) return "";
   return num.toLocaleString("en-US");
@@ -20,7 +20,6 @@ export function PayrollInfoForm({ data, onInputChange, disabled }: PayrollInfoFo
   const currentMonthValue = data.month ?? new Date(data.sent_at).getMonth() + 1;
   const calculatedTotal = (data.base_salary || 0) + (data.bonus || 0);
 
-  // --- STATE DÙNG ĐỂ HIỂN THỊ SỐ TIỀN CÓ DẤU PHẨY ---
   const [baseSalaryDisplay, setBaseSalaryDisplay] = useState<string>(
     formatNumber(data.base_salary)
   );
@@ -28,18 +27,14 @@ export function PayrollInfoForm({ data, onInputChange, disabled }: PayrollInfoFo
     formatNumber(data.bonus)
   );
 
-  // --- HÀM XỬ LÝ CHUNG CHO CẢ BASE SALARY VÀ BONUS ---
   const handleNumberChange = (
     e: ChangeEvent<HTMLInputElement>,
     field: "base_salary" | "bonus",
     setDisplay: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    const rawValue = e.target.value.replace(/,/g, ""); // Loại bỏ dấu phẩy
-    
-    // Chỉ cập nhật nếu là số hợp lệ hoặc chuỗi rỗng
+    const rawValue = e.target.value.replace(/,/g, "");
     if (/^\d*$/.test(rawValue) || rawValue === "") {
       setDisplay(rawValue);
-      // Gọi onInputChange để cập nhật giá trị số (Number)
       onInputChange(field, Number(rawValue || 0));
     }
   };
@@ -53,85 +48,113 @@ export function PayrollInfoForm({ data, onInputChange, disabled }: PayrollInfoFo
     const numValue = Number(rawValue);
 
     if (!isNaN(numValue) && numValue > 0) {
-      // Định dạng số có dấu phẩy
       setDisplay(numValue.toLocaleString("en-US"));
     } else {
-      // Nếu không phải số hợp lệ hoặc 0, reset về rỗng
       setDisplay("");
-      // Đảm bảo giá trị lưu trữ vẫn là 0
       onInputChange(field, 0);
     }
   };
 
+  const inputClasses = `w-48 text-center px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent
+    ${disabled ? "cursor-not-allowed bg-gray-100 text-gray-400" : "bg-white text-black"}`;
+
+  const labelClasses = "flex items-center w-32 shrink-0 text-gray-700 font-medium";
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 bg-white p-6 rounded-lg shadow-md">
+      {/* ID */}
       <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">ID</span>
-        <span className="text-white w-48 text-center">{data.id}</span>
+        <div className={labelClasses}>
+          <Hash className="h-5 w-5 text-cyan-600 mr-2" /> ID
+        </div>
+        <span className="w-48 text-center text-black">{data.id}</span>
       </div>
+
+      {/* Teacher */}
       <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Teacher</span>
-        <span className="text-white w-48 text-center">{data.teacher}</span>
+        <div className={labelClasses}>
+          <User className="h-5 w-5 text-orange-600 mr-2" /> Teacher
+        </div>
+        <span className="w-48 text-center text-black">{data.teacher}</span>
       </div>
+
+      {/* Month */}
       <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Month</span>
+        <div className={labelClasses}>
+          <Calendar className="h-5 w-5 text-green-600 mr-2" /> Month
+        </div>
         <select
           value={currentMonthValue}
           onChange={(e) => onInputChange("month", Number(e.target.value))}
-          className="w-48 text-white text-center bg-transparent border border-gray-600 rounded-md py-1"
+          disabled={disabled}
+          className={`${inputClasses}`}
           aria-label="Select month"
         >
           {[...Array(12)].map((_, i) => (
-            <option key={i + 1} value={i + 1} className="text-black">
+            <option key={i + 1} value={i + 1}>
               {i + 1}
             </option>
           ))}
         </select>
       </div>
-      {/* ------------------- BASE SALARY FIELD (Đã Sửa) ------------------- */}
+
+      {/* Base Salary */}
       <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Base Salary</span>
-        <Input
-          type="text" // Đổi sang type="text"
-          value={baseSalaryDisplay} // Dùng state hiển thị
-          onChange={(e) => handleNumberChange(e, "base_salary", setBaseSalaryDisplay)} // Xử lý nhập
-          onBlur={() => handleNumberBlur(baseSalaryDisplay, setBaseSalaryDisplay, "base_salary")} // Xử lý blur
-          disabled={disabled}
-          className="w-48 text-center"
-        />
-      </div>
-      {/* ------------------- BONUS FIELD (Đã Sửa) ------------------- */}
-      <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Bonus</span>
-        <Input
-          type="text" // Đổi sang type="text"
-          value={bonusDisplay} // Dùng state hiển thị
-          onChange={(e) => handleNumberChange(e, "bonus", setBonusDisplay)} // Xử lý nhập
-          onBlur={() => handleNumberBlur(bonusDisplay, setBonusDisplay, "bonus")} // Xử lý blur
-          disabled={disabled}
-          className="w-48 text-center"
-        />
-      </div>
-      {/* ------------------- TOTAL FIELD (Đã Format) ------------------- */}
-      <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Total</span>
+        <div className={labelClasses}>
+          <DollarSign className="h-5 w-5 text-blue-600 mr-2" /> Base Salary
+        </div>
         <Input
           type="text"
-          value={formatNumber(calculatedTotal)} // Format giá trị Total
-          readOnly
-          className="w-48 text-center"
+          value={baseSalaryDisplay}
+          onChange={(e) => handleNumberChange(e, "base_salary", setBaseSalaryDisplay)}
+          onBlur={() => handleNumberBlur(baseSalaryDisplay, setBaseSalaryDisplay, "base_salary")}
+          disabled={disabled}
+          className={inputClasses}
         />
       </div>
+
+      {/* Bonus */}
       <div className="flex items-center space-x-4">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Status</span>
+        <div className={labelClasses}>
+          <Gift className="h-5 w-5 text-pink-600 mr-2" /> Bonus
+        </div>
+        <Input
+          type="text"
+          value={bonusDisplay}
+          onChange={(e) => handleNumberChange(e, "bonus", setBonusDisplay)}
+          onBlur={() => handleNumberBlur(bonusDisplay, setBonusDisplay, "bonus")}
+          disabled={disabled}
+          className={inputClasses}
+        />
+      </div>
+
+      {/* Total */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <Calculator className="h-5 w-5 text-purple-600 mr-2" /> Total
+        </div>
+        <Input
+          type="text"
+          value={formatNumber(calculatedTotal)}
+          readOnly
+          className={`${inputClasses} font-semibold`}
+        />
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <CheckCircle className="h-5 w-5 text-teal-600 mr-2" /> Status
+        </div>
         <select
           value={data.status}
           onChange={(e) => onInputChange("status", e.target.value)}
-          className="w-48 text-white text-center bg-transparent border border-gray-600 rounded-md py-1"
+          disabled={disabled}
+          className={inputClasses}
           aria-label="Select status"
         >
-          <option value="pending" className="text-black">Pending</option>
-          <option value="paid" className="text-black">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
         </select>
       </div>
     </div>

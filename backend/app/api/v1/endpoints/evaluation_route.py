@@ -15,7 +15,7 @@ MANAGER_ONLY = has_roles(["manager"])
 TEACHER_ONLY = has_roles(["teacher"])
 MANAGER_TEACHER_AND_STUDENT = has_roles(["manager", "teacher", "student"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
-
+BASE_USERS=has_roles(["manager", "teacher", "student", "parent"])
 # ----------------- CREATE -----------------
 @router.post(
     "/",
@@ -48,10 +48,10 @@ def create_new_evaluation_record(
 
 # ----------------- READ LIST -----------------
 @router.get(
-    "/",
+    "",
     response_model=List[evaluation_schema.EvaluationView],
     summary="Danh sách tất cả đánh giá",
-    dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
+    dependencies=[Depends(BASE_USERS)]
 )
 def get_evaluations_by_role(
     db: Session = Depends(deps.get_db),
@@ -73,6 +73,15 @@ def get_evaluations_by_role(
     if "student" in current_user.roles:
         try:
             return evaluation_service.get_evaluations_by_student_user_id(
+                db, current_user.user_id, skip, limit, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Permission denied.")
+        
+    # Parent: children's evaluations
+    if "parent" in current_user.roles:
+        try:
+            return evaluation_service.get_parent_children_evaluation(
                 db, current_user.user_id, skip, limit, requesting_user_id=current_user.user_id, requesting_user_roles=current_user.roles
             )
         except PermissionError:
@@ -104,7 +113,7 @@ def get_total_score_by_student(
 @router.get(
     "/{evaluation_id}",
     response_model=evaluation_schema.Evaluation,
-    dependencies=[Depends(MANAGER_TEACHER_AND_STUDENT)]
+    dependencies=[Depends(BASE_USERS)]
 )
 def get_evaluation_record(
     evaluation_id: int,

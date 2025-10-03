@@ -8,6 +8,7 @@ from app.api import deps
 from app.crud import student_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import student_schema
+from app.schemas import class_schema
 from app.schemas.stats_schema import StudentStats
 
 router = APIRouter()
@@ -141,3 +142,28 @@ def get_student_stats(user_id: int, db: Session = Depends(deps.get_db)):
     stats = student_crud.get_student_stats(db, student_user_id=user_id)
     
     return stats
+
+@router.get(
+    "/{user_id}/classes",
+    response_model=List[class_schema.ClassView], # SỬ DỤNG CLASSVIEW
+    summary="Lấy danh sách các lớp học đang 'active' mà học sinh đã đăng ký",
+    dependencies=[Depends(MANAGER_OR_TEACHER)] # Cả Manager và Teacher đều có thể xem
+)
+def get_student_active_classes_endpoint(
+    user_id: int, 
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Lấy danh sách các lớp học hiện tại (trạng thái enrollment là 'active') mà học sinh đang tham gia.
+    
+    Quyền truy cập: **manager**, **teacher**
+    """
+    # 1. Kiểm tra học sinh tồn tại
+    db_student = student_crud.get_student(db, user_id=user_id)
+    if not db_student:
+        raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
+
+    # 2. Gọi hàm CRUD
+    active_classes = student_crud.get_student_active_classes(db, student_user_id=user_id)
+    
+    return active_classes

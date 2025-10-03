@@ -2,6 +2,7 @@
 
 import { Input } from "../../../components/ui/input";
 import { Class } from "../../../src/services/api/class";
+import { BookOpen, User, Users, DollarSign } from "lucide-react";
 
 interface ClassInfoFormProps {
   data: Class;
@@ -10,12 +11,17 @@ interface ClassInfoFormProps {
 }
 
 export function ClassInfoForm({ data, onInputChange, disabled }: ClassInfoFormProps) {
-  const inputClasses = `w-48 ml-6 ${disabled ? 'cursor-not-allowed bg-gray-600 text-gray-400' : ''}`;
+  const inputClasses = `w-48 ml-4 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent 
+    ${disabled ? "cursor-not-allowed bg-gray-100 text-gray-400" : "bg-white text-black"}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 bg-white p-6 rounded-lg shadow-md">
+      {/* Class Name */}
       <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Class Name</span>
+        <div className="flex items-center w-40 shrink-0 text-gray-700 font-medium">
+          <BookOpen className="h-5 w-5 text-cyan-600 mr-2" />
+          Class Name
+        </div>
         <Input
           type="text"
           value={data.class_name}
@@ -24,12 +30,22 @@ export function ClassInfoForm({ data, onInputChange, disabled }: ClassInfoFormPr
           className={inputClasses}
         />
       </div>
+
+      {/* Teacher */}
       <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Teacher</span>
-        <span className="text-white ml-6">{data.teacher_name}</span>
+        <div className="flex items-center w-40 shrink-0 text-gray-700 font-medium">
+          <User className="h-5 w-5 text-orange-600 mr-2" />
+          Teacher
+        </div>
+        <span className="ml-4 text-black">{data.teacher_name}</span>
       </div>
+
+      {/* Capacity */}
       <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Capacity</span>
+        <div className="flex items-center w-40 shrink-0 text-gray-700 font-medium">
+          <Users className="h-5 w-5 text-green-600 mr-2" />
+          Capacity
+        </div>
         <Input
           type="number"
           value={data.capacity}
@@ -38,8 +54,13 @@ export function ClassInfoForm({ data, onInputChange, disabled }: ClassInfoFormPr
           className={inputClasses}
         />
       </div>
+
+      {/* Fee */}
       <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-32 shrink-0">Fee</span>
+        <div className="flex items-center w-40 shrink-0 text-gray-700 font-medium">
+          <DollarSign className="h-5 w-5 text-red-600 mr-2" />
+          Fee
+        </div>
         <Input
           type="number"
           value={data.fee}

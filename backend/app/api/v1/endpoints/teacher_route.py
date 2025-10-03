@@ -18,6 +18,7 @@ from app.api import deps
 # Import dependency factory
 from app.api.auth.auth import get_current_active_user, has_roles
 from app.schemas.auth_schema import AuthenticatedUser
+from app.schemas import student_schema, class_schema
 
 router = APIRouter()
 
@@ -234,3 +235,52 @@ def get_teacher_classes(
         )
 
     return teacher_crud.get_class_taught(db, teacher_user_id=teacher_user_id)
+
+@router.get(
+    "/{teacher_user_id}/students",
+    response_model=List[class_schema.Student], # Sử dụng schema Student để trả về
+    summary="Lấy danh sách các học sinh do một giáo viên phụ trách",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
+)
+def get_teacher_students_list(
+    teacher_user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
+):
+    """
+    Lấy danh sách tất cả các học sinh đang theo học các lớp do giáo viên này phụ trách. 
+    Danh sách học sinh được loại bỏ trùng lặp.
+
+    - **Manager**: có thể xem danh sách học sinh của bất kỳ giáo viên nào.
+    - **Teacher**: chỉ có thể xem danh sách học sinh của **chính mình**.
+    
+    Quyền truy cập: **manager**, **teacher**
+    """
+    
+    # 1. Kiểm tra quyền truy cập (Giáo viên chỉ được xem của chính mình)
+    if "teacher" in current_user.roles and current_user.user_id != teacher_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xem danh sách học sinh của giáo viên khác."
+        )
+
+    # 2. Kiểm tra giáo viên có tồn tại
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_user_id)
+    if not db_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Giáo viên có ID {teacher_user_id} không tồn tại."
+        )
+
+    # 3. Sử dụng hàm get_teacher_students (giả định đã được thêm vào teacher_crud)
+    try:
+        students = teacher_crud.get_teacher_students(db, teacher_user_id=teacher_user_id)
+    except Exception as e:
+        # Xử lý lỗi nếu có vấn đề xảy ra trong quá trình truy vấn
+        print(f"Error fetching students for teacher {teacher_user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Đã xảy ra lỗi khi lấy danh sách học sinh."
+        )
+        
+    return students

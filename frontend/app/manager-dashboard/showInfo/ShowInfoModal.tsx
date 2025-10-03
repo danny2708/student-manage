@@ -91,32 +91,32 @@ export function ShowInfoModal({
         });
       } else if (type === "payroll") {
         const p = editedData as Payroll;
-        
+
         const updatedMonth =
-            p.month !== undefined && p.month !== null
-                ? Number(p.month)
-                : new Date(p.sent_at).getMonth() + 1;
+          p.month !== undefined && p.month !== null
+            ? Number(p.month)
+            : new Date(p.sent_at).getMonth() + 1;
 
         let sentAtISO: string;
         try {
-            const dateObj = new Date(p.sent_at);
-            if (isNaN(dateObj.getTime())) {
-                throw new Error("Invalid Date"); 
-            }
-            sentAtISO = dateObj.toISOString();
+          const dateObj = new Date(p.sent_at);
+          if (isNaN(dateObj.getTime())) {
+            throw new Error("Invalid Date");
+          }
+          sentAtISO = dateObj.toISOString();
         } catch (error) {
-            console.warn("Invalid sent_at value. Using current date as fallback.");
-            sentAtISO = new Date().toISOString(); 
+          console.warn("Invalid sent_at value. Using current date as fallback.");
+          sentAtISO = new Date().toISOString();
         }
 
         await editPayroll(p.id, {
-            month: updatedMonth,
-            total_base_salary: Number(p.base_salary ?? 0), 
-            reward_bonus: Number(p.bonus ?? 0),
-            sent_at: sentAtISO, 
-            status: p.status,
+          month: updatedMonth,
+          total_base_salary: Number(p.base_salary ?? 0),
+          reward_bonus: Number(p.bonus ?? 0),
+          sent_at: sentAtISO,
+          status: p.status,
         });
-    } else if (type === "class") {
+      } else if (type === "class") {
         const c = editedData as Class;
         const classPayload: ClassUpdate = {
           class_name: c.class_name,
@@ -172,7 +172,6 @@ export function ShowInfoModal({
         <TuitionInfoForm
           data={editedData as Tuition}
           onInputChange={handleInputChange}
-          disabled={disabled}
         />
       );
     if (type === "payroll")
@@ -199,12 +198,12 @@ export function ShowInfoModal({
           disabled={disabled}
         />
       );
-    return <div className="text-white">No information to display.</div>;
+    return <div className="text-gray-600">No information to display.</div>;
   };
 
   return (
     <motion.div
-      className="bg-gray-900 rounded-lg shadow-xl w-96 p-6 text-white relative"
+      className="bg-white text-black rounded-xl shadow-xl w-96 p-6 relative border border-gray-200"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -212,13 +211,13 @@ export function ShowInfoModal({
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-red-500 hover:text-red-700 cursor-pointer"
+        className="absolute top-4 right-4 text-gray-400 hover:text-red-600 cursor-pointer"
         aria-label="Close modal"
       >
         <X className="h-5 w-5" />
       </button>
 
-      <h2 className="text-xl font-bold mb-4 text-center">
+      <h2 className="text-xl font-bold mb-4 text-center text-gray-800">
         {type === "tuition"
           ? "Tuition "
           : type === "payroll"
@@ -231,14 +230,14 @@ export function ShowInfoModal({
 
       {renderContent()}
 
-      {/* Save button cho tất cả loại, theo phân quyền */}
+      {/* Save button */}
       {["class", "schedule", "tuition", "payroll"].includes(type) && (
         <div className="flex justify-center mt-6 space-x-3">
           {isManager && (
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
@@ -248,7 +247,7 @@ export function ShowInfoModal({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isSaving ? "Saving..." : "Save"}
             </button>

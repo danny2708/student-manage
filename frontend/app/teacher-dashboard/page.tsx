@@ -25,8 +25,8 @@ const ClassManagement = dynamic(
   () => import("../manager-dashboard/dashboard_components/class/ClassManagement"),
   { ssr: false }
 );
-const EvaluationManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/EvaluationManagement"),
+const EvaluationModal = dynamic(
+  () => import("../student-dashboard/StudentEvaluationModal"),
   { ssr: false }
 );
 const PayrollManagement = dynamic(
@@ -155,7 +155,11 @@ export default function TeacherDashboard() {
         {/* Evaluation */}
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
-            <EvaluationManagement searchTerm={searchTerms.evaluation} updateSearchTerm={() => {}} />
+            <EvaluationModal
+              isOpen={activeSection === "evaluation"}
+              onClose={() => setSection("dashboard")}
+              userRole="teacher"
+            />
           </div>
         )}
 

@@ -45,6 +45,7 @@ export interface EvaluationSummary {
 export interface EvaluationView {
   id: number;
   class_name?: string;
+  student_user_id: number;
   student: string;
   teacher: string;
   type: EvaluationType;
@@ -72,12 +73,6 @@ export async function getTotalScoreByStudent(studentUserId: number): Promise<Eva
   const res = await api.get<EvaluationSummary>(`/evaluations/total_score/${studentUserId}`);
   return res.data;
 }
-
-// Lấy điểm tổng và số lần cộng/trừ điểm của một học sinh (tất cả lớp)
-// export async function getSummaryAndCounts(studentUserId: number): Promise<EvaluationSummary> {
-//   const res = await api.get<EvaluationSummary>(`/evaluations/summary_and_counts/${studentUserId}`);
-//   return res.data;
-// }
 
 // Lấy một bản ghi đánh giá cụ thể bằng ID
 export async function getEvaluationRecord(evaluationId: number): Promise<EvaluationRecord> {

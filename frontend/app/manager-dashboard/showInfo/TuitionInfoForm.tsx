@@ -3,124 +3,118 @@
 import { ChangeEvent, useState } from "react";
 import { Input } from "../../../components/ui/input";
 import { Tuition } from "../../../src/services/api/tuition";
+import { User, Calendar, DollarSign, CheckCircle, BookOpen } from "lucide-react";
 
 interface TuitionInfoFormProps {
   data: Tuition;
   onInputChange: (field: string, value: string | number) => void;
-  disabled?: boolean;
+  canEdit?: boolean; // ✅ đổi từ disabled -> canEdit
 }
 
-export function TuitionInfoForm({
-  data,
-  onInputChange,
-  disabled,
-}: TuitionInfoFormProps) {
-  // convert "dd/mm/yyyy" → "yyyy-mm-dd" để gán vào input type="date"
-  const toISODate = (dmy: string) => {
-    if (!dmy.includes("/")) return dmy;
-    const [d, m, y] = dmy.split("/");
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  };
+// helper chuyển ngày
+const toISODate = (dmy: string) => {
+  if (!dmy || !dmy.includes("/")) return dmy;
+  const [d, m, y] = dmy.split("/");
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+};
+const fromISODate = (iso: string) => iso;
 
-  // giữ luôn ISO để gửi API
-  const fromISODate = (iso: string) => iso;
-
-  // SỬA LỖI: Khởi tạo giá trị đã định dạng ngay trong useState.
-  // Loại bỏ initialAmount riêng biệt và không cần useEffect để lắng nghe data.amount.
+export function TuitionInfoForm({ data, onInputChange, canEdit = false }: TuitionInfoFormProps) {
   const [amountDisplay, setAmountDisplay] = useState<string>(
     data.amount?.toLocaleString("en-US") || ""
   );
 
-  // KHÔNG CẦN DÙNG useEffect VÌ NÓ GÂY RA LỖI NHẢY SỐ
-  // Dữ liệu sẽ được đồng bộ qua onInputChange và onBlur
-
-  // 1. Xử lý nhập liệu: Chỉ cho phép số và không có dấu phẩy
   const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, ""); // Loại bỏ dấu phẩy
-
-    // Chỉ cập nhật nếu là số hợp lệ hoặc chuỗi rỗng
+    const rawValue = e.target.value.replace(/,/g, "");
     if (/^\d*$/.test(rawValue) || rawValue === "") {
       setAmountDisplay(rawValue);
-      // Gọi onInputChange ngay lập tức để cập nhật giá trị số (Number)
       onInputChange("amount", Number(rawValue || 0));
     }
   };
 
-  // 2. Xử lý khi focus ra (blur): Thêm dấu phẩy vào giá trị hiển thị
   const handleAmountBlur = () => {
     const rawValue = amountDisplay.replace(/,/g, "");
     const numValue = Number(rawValue);
-
     if (!isNaN(numValue) && numValue > 0) {
-      // Định dạng số có dấu phẩy
       setAmountDisplay(numValue.toLocaleString("en-US"));
     } else {
-      // Nếu không phải số hợp lệ hoặc 0, reset về rỗng
       setAmountDisplay("");
-      // Đảm bảo giá trị lưu trữ vẫn là 0 nếu người dùng xóa hết
       onInputChange("amount", 0);
     }
   };
 
+  const inputClasses = `w-48 text-center px-3 py-2 border border-gray-300 rounded-lg
+    ${canEdit ? "bg-white text-black focus:ring-2 focus:ring-cyan-500" : "bg-gray-50 text-black cursor-default"}`;
+
+  const labelClasses = "flex items-center w-32 shrink-0 text-gray-700 font-medium";
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-24 shrink-0">Student</span>
-        <span className="text-white ml-6">{data.student}</span>
+    <div className="space-y-5 bg-white p-6 rounded-lg shadow-md">
+      {/* Student */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <User className="h-5 w-5 text-cyan-600 mr-2" /> Student
+        </div>
+        <span className="w-48 text-center text-black">{data.student}</span>
       </div>
 
-      <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-24 shrink-0">Term</span>
+      {/* Term */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <BookOpen className="h-5 w-5 text-orange-600 mr-2" /> Term
+        </div>
         <Input
           type="number"
           value={data.term}
           onChange={(e) => onInputChange("term", Number(e.target.value))}
-          disabled={disabled}
-          className="w-48 ml-6"
+          readOnly={!canEdit} // ✅ thay disabled
+          className={inputClasses}
         />
       </div>
 
-      <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-24 shrink-0">Amount</span>
+      {/* Amount */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <DollarSign className="h-5 w-5 text-green-600 mr-2" /> Amount
+        </div>
         <Input
-          type="text" // Dùng type="text" để quản lý định dạng số
-          value={amountDisplay} // Sử dụng state hiển thị (có/không có dấu phẩy)
-          onChange={handleAmountChange} // Xử lý khi người dùng nhập
-          onBlur={handleAmountBlur} // Xử lý khi focus ra
-          disabled={disabled}
-          className="w-48 ml-6"
+          type="text"
+          value={amountDisplay}
+          onChange={handleAmountChange}
+          onBlur={handleAmountBlur}
+          readOnly={!canEdit} // ✅ thay disabled
+          className={inputClasses}
         />
       </div>
 
-      <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-24 shrink-0">Status</span>
+      {/* Status */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <CheckCircle className="h-5 w-5 text-teal-600 mr-2" /> Status
+        </div>
         <select
           value={data.status}
           onChange={(e) => onInputChange("status", e.target.value)}
-          className="w-48 ml-6"
+          className={`${inputClasses} ${!canEdit ? "pointer-events-none" : ""}`}
           aria-label="Select status"
-          disabled={disabled}
         >
-          <option value="pending" className="text-black">
-            Pending
-          </option>
-          <option value="paid" className="text-black">
-            Paid
-          </option>
-          <option value="overdue" className="text-black">
-            Overdue
-          </option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="overdue">Overdue</option>
         </select>
       </div>
 
-      <div className="flex items-center">
-        <span className="text-cyan-400 font-medium w-24 shrink-0">Due date</span>
+      {/* Due date */}
+      <div className="flex items-center space-x-4">
+        <div className={labelClasses}>
+          <Calendar className="h-5 w-5 text-purple-600 mr-2" /> Due date
+        </div>
         <Input
           type="date"
           value={data.due_date ? toISODate(data.due_date) : ""}
           onChange={(e) => onInputChange("due_date", fromISODate(e.target.value))}
-          disabled={disabled}
-          className="w-48 ml-6"
+          readOnly={!canEdit} // ✅ thay disabled
+          className={inputClasses}
         />
       </div>
     </div>

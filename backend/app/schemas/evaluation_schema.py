@@ -60,6 +60,7 @@ class EvaluationSummary(BaseModel):
 class EvaluationView(BaseModel):
     id: int
     class_name: str
+    student_user_id: int
     student: str
     teacher: str
     type: EvaluationType

@@ -20,6 +20,7 @@ router = APIRouter()
 # Dependency cho quyền truy cập
 MANAGER_ONLY = has_roles(["manager"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+MANAGER_OR_PARENT = has_roles(["manager", "parent"])
 STUDENT_ONLY = has_roles(["student"])
 PARENT_ONLY = has_roles(["parent"])
 PARENT_OR_MANAGER = has_roles(["manager", "parent"])
@@ -67,28 +68,44 @@ def get_tuition_by_id(
 
 # Sửa endpoint GET /
 @router.get(
-    "/",
+    "",
     response_model=List[TuitionView],
     summary="Lấy danh sách tất cả học phí",
-    dependencies=[Depends(MANAGER_OR_TEACHER)]
+    dependencies=[Depends(MANAGER_OR_PARENT)]
 )
 def list_tuitions(
     skip: int = 0, 
     limit: int = 100, 
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user),
 ):
-    results = tuition_crud.get_all_tuitions_with_student_name(db, skip=skip, limit=limit)
-    tuition_views = []
-    for tuition, student_fullname in results:
-        tuition_views.append(TuitionView(
-            id=tuition.tuition_id,
-            student=student_fullname,
-            amount=tuition.amount,
-            term=tuition.term,
-            status=tuition.status,
-            due_date=tuition.due_date
-        ))
-    return tuition_views
+    if "manager" in current_user.roles:
+        results = tuition_crud.get_all_tuitions_with_student_name(db, skip=skip, limit=limit)
+        tuition_views = []
+        for tuition, student_fullname in results:
+            tuition_views.append(TuitionView(
+                id=tuition.tuition_id,
+                student=student_fullname,
+                amount=tuition.amount,
+                term=tuition.term,
+                status=tuition.status,
+                due_date=tuition.due_date
+            ))
+        return tuition_views
+    
+    elif "parent" in current_user.roles:
+        results = tuition_crud.get_tuitions_by_parent_user_id(db, parent_user_id=current_user.user_id, skip=skip, limit=limit)
+        tuition_views = []
+        for tuition, student_fullname in results:
+            tuition_views.append(TuitionView(
+                id=tuition.tuition_id,
+                student=student_fullname,
+                amount=tuition.amount,
+                term=tuition.term,
+                status=tuition.status,
+                due_date=tuition.due_date
+            ))
+        return tuition_views
 
 # Sửa endpoint GET /by_student/{student_user_id}
 @router.get(

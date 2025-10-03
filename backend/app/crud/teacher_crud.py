@@ -1,5 +1,5 @@
 # app/crud/teacher_crud.py
-from typing import Optional, List
+from typing import Dict, Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from app.models.role_model import Role 
@@ -12,7 +12,8 @@ from app.models.user_model import User
 from app.models.subject_model import Subject
 from app.models.teacher_review_model import TeacherReview
 from app.models.schedule_model import Schedule
-
+from app.schemas.class_schema import Student
+from app.crud.class_crud import get_students_list
 def get_teacher(db: Session, teacher_user_id: int) -> Optional[Teacher]:
     """
     Lấy thông tin giáo viên theo teacher_id.
@@ -195,3 +196,41 @@ def get_teacher_stats(db: Session, teacher_user_id: int) -> Optional[TeacherStat
         reviews=reviews_count,
         rate=rate_value
     )
+
+def get_teacher_students(db: Session, teacher_user_id: int) -> List[Student]:
+    """
+    Lấy danh sách tất cả các học sinh đang học các lớp mà giáo viên này phụ trách.
+    Danh sách trả về đã được loại bỏ trùng lặp.
+    """
+    
+    # 1. Lấy danh sách các lớp giáo viên dạy
+    taught_classes = get_class_taught(db, teacher_user_id)
+    
+    if not taught_classes:
+        return []
+    
+    # Dùng set để lưu student_user_id đã được thêm vào, tránh trùng lặp
+    seen_student_ids: set[int] = set()
+    # Dùng list để lưu các đối tượng Student cuối cùng
+    unique_students_list: List[Student] = []
+    
+    # Dùng dict để lưu Student objects theo ID, đảm bảo nếu gặp trùng thì vẫn có 1 object Student duy nhất
+    student_map: Dict[int, Student] = {}
+    
+    # 2. Lặp qua các lớp và lấy học sinh
+    for class_info in taught_classes:
+        class_id = class_info.class_id
+        
+        # Lấy danh sách học sinh cho lớp này
+        students_in_class = get_students_list(db, class_id)
+        
+        # 3. Thêm học sinh vào danh sách và xử lý trùng lặp
+        for student in students_in_class:
+            # Giả định Student schema có field 'student_user_id'
+            student_id = student.student_user_id 
+            
+            if student_id not in student_map:
+                student_map[student_id] = student
+                
+    # 4. Trả về danh sách các đối tượng Student duy nhất
+    return list(student_map.values())

@@ -11,6 +11,9 @@ from app.models.test_model import Test
 from app.schemas.stats_schema import StudentStats
 from app.services.evaluation_service import summarize_end_of_semester
 from app.models.enrollment_model import Enrollment
+from app.schemas.class_schema import ClassView
+from app.models.class_model import Class
+from app.models.subject_model import Subject
 
 def get_student(db: Session, user_id: int) -> Optional[Student]:
     return db.execute(
@@ -165,3 +168,50 @@ def get_student_stats(db: Session, student_user_id: int) -> StudentStats:
         study_point=study_point,
         discipline_point=discipline_point,
     )
+
+def get_student_active_classes(db: Session, student_user_id: int) -> List[ClassView]:
+    """
+    Lấy danh sách các lớp học mà học sinh đang tham gia với trạng thái 'active'.
+    Dữ liệu được trả về dưới dạng ClassView.
+    """
+    # Query để chọn các trường cần thiết cho ClassView
+    # Lấy thông tin lớp học (Class), tên giáo viên (User) và tên môn học (Subject)
+    stmt = (
+        select(
+            # Class fields
+            Class.teacher_user_id,
+            Class.class_id,
+            Class.class_name,
+            Class.capacity,
+            Class.fee,
+            # Joined fields
+            User.full_name.label("teacher_name"), # Giáo viên
+            Subject.name.label("subject_name")    # Môn học
+        )
+        .join(Enrollment, Enrollment.class_id == Class.class_id) # 1. Join Enrollment
+        .join(User, Class.teacher_user_id == User.user_id)       # 2. Join User (Giáo viên)
+        .join(Subject, Class.subject_id == Subject.subject_id)   # 3. Join Subject
+        .where(Enrollment.student_user_id == student_user_id)    # 4. Lọc theo ID học sinh
+        .where(Enrollment.enrollment_status == "active")         # 5. Lọc trạng thái active
+    )
+    
+    result = db.execute(stmt).all()
+    
+    classes_list = []
+    # Chuyển đổi kết quả truy vấn thành danh sách các đối tượng ClassView
+    for row in result:
+        # Sử dụng row._asdict() hoặc lấy từng trường và gán vào ClassView
+        # Giả định ClassView là Pydantic model có thể nhận kwargs
+        classes_list.append(
+            ClassView(
+                teacher_user_id=row.teacher_user_id,
+                class_id=row.class_id,
+                class_name=row.class_name,
+                teacher_name=row.teacher_name,
+                subject_name=row.subject_name,
+                capacity=row.capacity,
+                fee=row.fee
+            )
+        )
+        
+    return classes_list

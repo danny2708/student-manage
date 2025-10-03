@@ -10,6 +10,7 @@ import {
   Award,
   AlertTriangle,
   Download,
+  Trash2,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import {
@@ -28,18 +29,22 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 
-import { useEvaluations } from "../../src/hooks/useEvaluation"; 
+import { useEvaluations } from "../../src/hooks/useEvaluation";
 import { toast } from "react-hot-toast";
 
 interface StudentEvaluationModalProps {
   isOpen: boolean;
   onClose: () => void;
   userRole: "student" | "parent" | "teacher" | "manager";
-  /** optional: if provided, modal will fetch evaluations for this student */
   studentUserId?: number;
-  /** optional: if provided together with studentUserId will fetch evaluations of student in class */
   classId?: number;
 }
+
+const formatDateDMY = (ymd?: string) => {
+  if (!ymd) return "";
+  const [y, m, d] = ymd.split("-");
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+};
 
 const getGradeFromScore = (score?: number, max?: number) => {
   if (score == null || max == null) return null;
@@ -114,6 +119,7 @@ export default function StudentEvaluationModal({
   } = useEvaluations();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStudent, setFilterStudent] = useState<string>("all"); // NEW
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
@@ -163,6 +169,7 @@ export default function StudentEvaluationModal({
       active = false;
       setSelectedEvaluation(null);
       setLocalList([]);
+      setFilterStudent("all");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, studentUserId, classId]);
@@ -175,8 +182,27 @@ export default function StudentEvaluationModal({
   }, [evaluations, studentUserId, isOpen]);
 
   // derive subjects and types from localList
-  const subjects = useMemo(() => ["all", ...Array.from(new Set(localList.map((l) => l.class_name || l.subject || "Unknown")))], [localList]);
-  const types = useMemo(() => ["all", ...Array.from(new Set(localList.map((l) => l.type || "other")))], [localList]);
+  const subjects = useMemo(
+    () => ["all", ...Array.from(new Set(localList.map((l) => l.class_name || l.subject || "Unknown")))],
+    [localList]
+  );
+  const types = useMemo(
+    () => ["all", ...Array.from(new Set(localList.map((l) => l.type || "other")))],
+    [localList]
+  );
+
+  // NEW: derive students (only from localList). Value uses student_user_id if available.
+  const students = useMemo(() => {
+    const map = new Map<string, string>(); // value -> label
+    localList.forEach((l) => {
+      const id = l.student_user_id != null ? String(l.student_user_id) : null;
+      const label = l.student || (id ? `#${id}` : "Unknown");
+      const key = id || label;
+      if (!map.has(key)) map.set(key, label);
+    });
+    const arr = [{ value: "all", label: "All Students" }, ...Array.from(map.entries()).map(([value, label]) => ({ value, label }))];
+    return arr;
+  }, [localList]);
 
   const filteredEvaluations = useMemo(() => {
     const sTerm = searchTerm?.trim().toLowerCase();
@@ -188,9 +214,16 @@ export default function StudentEvaluationModal({
         (ev.class_name && ev.class_name.toLowerCase().includes(sTerm));
       const matchesSubject = filterSubject === "all" || (ev.class_name || ev.subject) === filterSubject;
       const matchesType = filterType === "all" || (ev.type || "other") === filterType;
-      return matchesSearch && matchesSubject && matchesType;
+
+      // NEW: student filter logic
+      const matchesStudent =
+        filterStudent === "all" ||
+        (ev.student_user_id != null && String(ev.student_user_id) === filterStudent) ||
+        (ev.student != null && ev.student === filterStudent);
+
+      return matchesSearch && matchesSubject && matchesType && matchesStudent;
     });
-  }, [localList, searchTerm, filterSubject, filterType]);
+  }, [localList, searchTerm, filterSubject, filterType, filterStudent]);
 
   const handleSelect = async (ev: any) => {
     if (!ev) {
@@ -286,6 +319,22 @@ export default function StudentEvaluationModal({
               </div>
             </div>
 
+            {/* NEW: Student filter - shown only when userRole is not 'student' */}
+            {userRole !== "student" && (
+              <Select value={filterStudent} onValueChange={(v) => setFilterStudent(v)}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by student" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filter by subject" />
@@ -351,7 +400,7 @@ export default function StudentEvaluationModal({
                         <p className="text-sm text-gray-700 mb-2 line-clamp-2">{evaluation.content}</p>
 
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{evaluation.date?.split("T")[0] || evaluation.date}</span>
+                          <span>{formatDateDMY(evaluation.date)}</span>
                           <div className="flex items-center space-x-3">
                             {evaluation.score != null && evaluation.maxScore != null && (
                               <span className="font-medium">
@@ -391,6 +440,17 @@ export default function StudentEvaluationModal({
                         <Download className="w-4 h-4 mr-2" />
                         Export
                       </Button>
+                      {userRole === "teacher" && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(selectedEvaluation.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -450,39 +510,39 @@ export default function StudentEvaluationModal({
                     <CardHeader>
                       <CardTitle className="text-lg">Evaluation Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-600">Teacher:</span>
-                          <p className="text-gray-900">{selectedEvaluation.teacher}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Date:</span>
-                          <p className="text-gray-900">{(selectedEvaluation.date || "").split("T")[0]}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Type:</span>
-                          <p className="text-gray-900 capitalize">{selectedEvaluation.type}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Student:</span>
-                          <p className="text-gray-900">{selectedEvaluation.student}</p>
-                        </div>
+                    <CardContent className="space-y-2">
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Teacher:</span>
+                        <span className="text-gray-900">{selectedEvaluation.teacher}</span>
                       </div>
-
-                      <div>
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Date:</span>
+                        <span className="text-gray-900">{formatDateDMY(selectedEvaluation.date)}</span>
+                      </div>
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Type:</span>
+                        <span className="text-gray-900 capitalize">{selectedEvaluation.type}</span>
+                      </div>
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Class:</span>
+                        <span className="text-gray-900">{selectedEvaluation.class_name}</span>
+                      </div>
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Student ID:</span>
+                        <span className="text-gray-900">
+                          {selectedEvaluation.student_user_id}
+                        </span>
+                      </div>
+                      <div className="text-sm flex justify-between">
+                        <span className="font-medium text-gray-600">Student:</span>
+                        <span className="text-gray-900">
+                          {selectedEvaluation.student}
+                        </span>
+                      </div>
+                      <div className="text-sm flex justify-between">
                         <span className="font-medium text-gray-600">Content:</span>
-                        <p className="text-gray-900 mt-1 p-3 bg-gray-50 rounded-lg">{selectedEvaluation.evaluation_content}</p>
+                        <span className="text-gray-900">{selectedEvaluation.content || "N/A"}</span>
                       </div>
-
-                      {/** action buttons for teachers/managers */}
-                      {(userRole === "teacher" || userRole === "manager") && (
-                        <div className="flex gap-2 mt-4">
-                          <Button variant="destructive" onClick={() => handleDelete(selectedEvaluation.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </div>

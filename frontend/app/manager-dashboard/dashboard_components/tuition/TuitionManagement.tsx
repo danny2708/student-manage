@@ -202,12 +202,14 @@ export default function TuitionManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-black">Tuition Management</h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
-        >
-          Create New Tuition
-        </button>
+      {user?.roles.includes("manager") && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
+          >
+            Create New Tuition
+          </button>
+        )}
       </div>
 
       {/* Search + Reset */}
@@ -264,7 +266,7 @@ export default function TuitionManagement() {
             {filteredTuitions.length > 0 ? filteredTuitions.map((t: any) => (
               <tr
                 key={t.id}
-                className="hover:bg-gray-100 transition-colors cursor-pointer"
+                className="hover:bg-gray-100 transition-colors"
                 onClick={() => handleRowClick(t)}
               >
                 <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{t.id}</td>
@@ -331,7 +333,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showAction && selectedRow && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
             onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -351,7 +353,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showInfo && selectedRow && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
             onClick={(e) => handleBackdropClick(e, () => setShowInfo(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -371,7 +373,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
             onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
