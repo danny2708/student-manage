@@ -45,7 +45,7 @@ export const createTeacherReview = async (payload: TeacherReviewCreate): Promise
 // Endpoint: GET /teacher-reviews/
 // Lấy tất cả các đánh giá
 export const getTeacherReviews = async (): Promise<TeacherReviewView[]> => {
-  const res = await api.get("/teacher_reviews/")
+  const res = await api.get("/teacher_reviews")
   return res.data
 }
 

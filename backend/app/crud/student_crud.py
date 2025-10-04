@@ -14,6 +14,8 @@ from app.models.enrollment_model import Enrollment
 from app.schemas.class_schema import ClassView
 from app.models.class_model import Class
 from app.models.subject_model import Subject
+from app.schemas.teacher_schema import TeacherView
+from app.crud import teacher_crud
 
 def get_student(db: Session, user_id: int) -> Optional[Student]:
     return db.execute(
@@ -215,3 +217,50 @@ def get_student_active_classes(db: Session, student_user_id: int) -> List[ClassV
         )
         
     return classes_list
+
+def get_student_teachers(db: Session, student_user_id: int) -> List[TeacherView]:
+    """
+    Trả về danh sách các giáo viên của một học sinh, bao gồm thông tin user 
+    và danh sách các lớp học mà giáo viên đó đang dạy.
+    """
+    # 1. Truy vấn để lấy thông tin giáo viên (User) liên quan đến học sinh qua Enrollment
+    stmt = (
+        select(
+            User.user_id.label("teacher_user_id"), 
+            User.full_name, 
+            User.email, 
+            User.date_of_birth
+        )
+        .join(Class, Class.teacher_user_id == User.user_id) 
+        .join(Enrollment, Enrollment.class_id == Class.class_id) 
+        
+        .where(Enrollment.student_user_id == student_user_id)
+        .distinct()
+    )
+
+    teacher_results = db.execute(stmt).all()
+    
+    teacher_views: List[TeacherView] = []
+    
+    # 2. Lặp qua từng giáo viên và lấy danh sách các lớp họ dạy
+    for row in teacher_results:
+        teacher_user_id = row.teacher_user_id
+        
+        # Gọi hàm service khác để lấy danh sách các lớp giáo viên đó dạy
+        classes_taught_models: List[Class] = teacher_crud.get_classes_taught_by_teacher(db, teacher_user_id)
+        
+        # Chuyển đổi danh sách Class model thành list[str] (chỉ lấy class_name)
+        class_names: List[str] = [class_model.class_name for class_model in classes_taught_models]
+        
+        # Tạo đối tượng TeacherView
+        teacher_views.append(
+            TeacherView(
+                teacher_user_id=teacher_user_id,
+                full_name=row.full_name,
+                email=row.email,
+                date_of_birth=row.date_of_birth,
+                class_taught=class_names
+            )
+        )
+        
+    return teacher_views

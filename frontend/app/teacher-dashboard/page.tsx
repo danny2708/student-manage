@@ -156,8 +156,6 @@ export default function TeacherDashboard() {
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
             <EvaluationModal
-              isOpen={activeSection === "evaluation"}
-              onClose={() => setSection("dashboard")}
               userRole="teacher"
             />
           </div>

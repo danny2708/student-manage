@@ -10,11 +10,15 @@ from app.schemas.user_role_schema import UserRoleCreate
 from app.schemas import student_schema
 from app.schemas import class_schema
 from app.schemas.stats_schema import StudentStats
+from app.crud import parent_crud
+from app.models.user_model import User
+from app.schemas.teacher_schema import TeacherView
 
 router = APIRouter()
 
 MANAGER_ONLY = has_roles(["manager"])
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+BASE_USERS=has_roles(["manager", "teacher", "student", "parent"])
 
 # --- ASSIGN student (gán user thành student) ---
 @router.post(
@@ -167,3 +171,60 @@ def get_student_active_classes_endpoint(
     active_classes = student_crud.get_student_active_classes(db, student_user_id=user_id)
     
     return active_classes
+
+async def authorize_student_view(
+    student_user_id: int, 
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(BASE_USERS) 
+):
+    # Manager có thể xem bất kỳ ai
+    if any(role in current_user.roles for role in ["manager"]):
+        return student_user_id
+
+    # Student chỉ có thể xem của chính mình
+    if "student" in current_user.roles:
+        if current_user.user_id != student_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Học sinh chỉ được phép xem thông tin của chính mình."
+            )
+        return student_user_id
+
+    # Parent chỉ có thể xem của con mình
+    if "parent" in current_user.roles:
+        # Kiểm tra xem student_user_id có phải là con của parent_id hiện tại không
+        is_child = parent_crud.is_child(db, student_id=student_user_id, parent_id=current_user.user_id)
+        
+        if not is_child:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Phụ huynh chỉ được phép xem thông tin của con cái họ."
+            )
+        return student_user_id
+
+    # Nếu không phải các vai trò trên hoặc không thỏa mãn điều kiện
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không có quyền truy cập.")
+
+@router.get(
+    "/{student_user_id}/teachers",
+    response_model=List[TeacherView],
+    summary="Lấy danh sách các giáo viên của một học sinh",
+)
+def get_student_teachers_endpoint(
+    student_user_id: int = Depends(authorize_student_view), 
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Lấy danh sách giáo viên của học sinh (những người đã từng dạy học sinh này qua các lớp học).
+    Quyền truy cập: **manager, teacher** (toàn bộ), **student** (của mình), **parent** (của con).
+    """
+    # 1. Kiểm tra học sinh tồn tại (Hàm authorize_student_view không kiểm tra sự tồn tại)
+    db_student = student_crud.get_student(db, user_id=student_user_id)
+    if not db_student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Học sinh không tìm thấy.")
+
+    # 2. Gọi hàm CRUD để lấy danh sách giáo viên
+    teachers_list = student_crud.get_student_teachers(db, student_user_id=student_user_id)
+    
+    # 3. Trả về kết quả
+    return teachers_list

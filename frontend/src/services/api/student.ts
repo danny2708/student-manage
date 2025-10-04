@@ -42,6 +42,14 @@ export interface StudentStats {
     discipline_point: number | null
 }
 
+export interface TeacherView {
+    teacher_user_id: number
+    full_name: string | null
+    email: string | null
+    date_of_birth: string | null // Sử dụng string để biểu diễn datet từ API
+    class_taught: string[] | null
+}
+
 // ===== CRUD Students =====
 export const getStudents = async (): Promise<Student[]> => {
   const res = await api.get("/students/")
@@ -97,3 +105,8 @@ export const getClassesByStudent = async (studentUserId: number): Promise<Class[
     const res = await api.get(`/students/${studentUserId}/classes`)
     return res.data
 } 
+
+export const getTeachersByStudentId = async (studentUserId: number): Promise<TeacherView[]> => {
+    const res = await api.get(`/students/${studentUserId}/teachers`)
+    return res.data
+}

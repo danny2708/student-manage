@@ -266,7 +266,7 @@ export default function TuitionManagement() {
             {filteredTuitions.length > 0 ? filteredTuitions.map((t: any) => (
               <tr
                 key={t.id}
-                className="hover:bg-gray-100 transition-colors"
+                className="hover:bg-gray-100 transition-colors cursor-pointer"
                 onClick={() => handleRowClick(t)}
               >
                 <td className="px-3 py-3 text-sm text-center border-r border-gray-200">{t.id}</td>
@@ -333,7 +333,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showAction && selectedRow && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowAction(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -353,7 +353,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showInfo && selectedRow && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowInfo(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -373,7 +373,7 @@ export default function TuitionManagement() {
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center cursor-pointer"
             onClick={(e) => handleBackdropClick(e, () => setShowCreateModal(false))}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

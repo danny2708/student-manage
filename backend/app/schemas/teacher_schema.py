@@ -1,6 +1,6 @@
-from datetime import datetime
-from pydantic import BaseModel
-from typing import Optional
+from datetime import date, datetime
+from pydantic import BaseModel, field_serializer
+from typing import Optional, List
 
 class TeacherBase(BaseModel):
     """
@@ -56,3 +56,14 @@ class TeacherStats(BaseModel):
     schedules: int
     reviews: int
     rate: float
+
+class TeacherView(BaseModel):
+    teacher_user_id: int
+    full_name: str
+    email: str
+    date_of_birth: date
+    class_taught: Optional[List[str]]
+
+    @field_serializer("date_of_birth")
+    def format_date_of_birth(self, date_of_birth: date, _info):
+        return date_of_birth.strftime("%d/%m/%Y") if date_of_birth else None

@@ -116,3 +116,16 @@ def get_children_view(db: Session, parent_user_id: int) -> List[Child]:
         
     return children_list
 
+def is_child(db: Session, student_user_id: int, parent_user_id: int) -> bool:
+    """
+    Kiểm tra xem một học sinh có phải là con của phụ huynh được chỉ định hay không.
+    (Kiểm tra Student.user_id == student_id VÀ Student.parent_id == parent_id)
+    """
+    result = db.execute(
+        select(Student.user_id)
+        .where(Student.user_id == student_user_id)
+        .where(Student.parent_id == parent_user_id)
+    ).scalar_one_or_none()
+    
+    # Nếu truy vấn trả về một user_id (không phải None), tức là có mối liên kết
+    return result is not None

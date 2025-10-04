@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import ReactDOM from "react-dom";
-import { User, BookOpen, Users, DollarSign, Presentation } from "lucide-react";
+import { User, BookOpen, Users, DollarSign, Presentation, Download, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClasses } from "../../../../src/contexts/ClassContext";
 import { useAuth } from "../../../../src/contexts/AuthContext";
@@ -382,6 +382,7 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
+        {/* overlay */}
         <motion.button
           aria-label="close"
           onClick={onClose}
@@ -389,68 +390,81 @@ const StudentsModalInner: React.FC<StudentsModalProps> = ({ open, onClose, class
           animate={{ opacity: 0.45 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.12 }}
-          className="absolute inset-0"
-          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          className="absolute inset-0 bg-black/55"
         />
+
+        {/* modal content */}
         <motion.div
           initial={{ y: 12, opacity: 0, scale: 0.995 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 12, opacity: 0, scale: 0.995 }}
           transition={{ duration: 0.18 }}
-          className="relative w-[95vw] max-w-4xl mx-4 rounded-lg shadow-xl p-4 overflow-auto"
+          className="relative w-[95vw] max-w-4xl mx-4 rounded-lg shadow-xl p-4 overflow-auto bg-white text-black"
           onClick={(e) => e.stopPropagation()}
-          style={{ backgroundColor: "#031220ff", color: "#fff" }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Students in {classNameLabel}</h3>
+          {/* header */}
+          <div className="flex items-center justify-between mb-4 border-b pb-2">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              Students in {classNameLabel}
+            </h3>
             <div className="flex items-center gap-2">
               {canExport && (
                 <button
                   onClick={handleExport}
-                  className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white"
+                  className="flex items-center gap-1 px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-sm"
                   disabled={exporting}
                 >
+                  <Download className="w-4 h-4" />
                   {exporting ? "Exporting..." : "Export"}
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="px-3 py-1 rounded border border-gray-700 text-white"
+                className="flex items-center gap-1 px-3 py-1 rounded border bg-red-600 hover:bg-red-700 text-white text-sm"
               >
+                <X className="w-4 h-4" />
                 Close
               </button>
             </div>
           </div>
+
+          {/* body */}
           {loading ? (
-            <div className="text-center py-8 text-white">Loading students...</div>
+            <div className="text-center py-8 text-gray-600">Loading students...</div>
           ) : students.length === 0 ? (
-            <div className="text-center py-8 text-white">No students enrolled in this class.</div>
+            <div className="text-center py-8 text-gray-600">
+              No students enrolled in this class.
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="mb-3 text-sm text-gray-200">Total: {students.length}</div>
-              <div className="rounded-lg overflow-hidden shadow-inner">
-                <table className="w-full table-auto">
-                  <thead>
-                    <tr className="text-left border-b border-grey-900">
-                      <th className="px-3 py-2 text-white">#</th>
-                      <th className="px-3 py-2 text-white">ID</th>
-                      <th className="px-3 py-2 text-white">Full name</th>
-                      <th className="px-3 py-2 text-white">Email</th>
-                      <th className="px-3 py-2 text-white">Date of birth</th>
-                      <th className="px-3 py-2 text-white">Phone</th>
-                      <th className="px-3 py-2 text-white">Gender</th>
+              <div className="mb-3 text-sm text-gray-600">Total: {students.length}</div>
+              <div className="rounded-lg overflow-hidden border border-gray-200 shadow-inner">
+                <table className="w-full table-auto text-sm">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left border-b border-gray-200">
+                      <th className="px-3 py-2">#</th>
+                      <th className="px-3 py-2">ID</th>
+                      <th className="px-3 py-2">Full name</th>
+                      <th className="px-3 py-2">Email</th>
+                      <th className="px-3 py-2">Date of birth</th>
+                      <th className="px-3 py-2">Phone</th>
+                      <th className="px-3 py-2">Gender</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.map((s, idx) => (
-                      <tr key={s.student_user_id} className="border-b last:border-b-0 border-grey-900">
-                        <td className="px-3 py-2 align-top text-white">{idx + 1}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.student_user_id}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.full_name ?? "—"}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.email ?? "—"}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.date_of_birth ?? "—"}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.phone_number ?? "—"}</td>
-                        <td className="px-3 py-2 align-top text-white">{s.gender ?? "—"}</td>
+                      <tr
+                        key={s.student_user_id}
+                        className="border-b last:border-b-0 border-gray-200 hover:bg-gray-50"
+                      >
+                        <td className="px-3 py-2 align-top">{idx + 1}</td>
+                        <td className="px-3 py-2 align-top">{s.student_user_id}</td>
+                        <td className="px-3 py-2 align-top">{s.full_name ?? "—"}</td>
+                        <td className="px-3 py-2 align-top">{s.email ?? "—"}</td>
+                        <td className="px-3 py-2 align-top">{s.date_of_birth ?? "—"}</td>
+                        <td className="px-3 py-2 align-top">{s.phone_number ?? "—"}</td>
+                        <td className="px-3 py-2 align-top">{s.gender ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>

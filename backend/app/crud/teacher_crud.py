@@ -59,7 +59,7 @@ def get_students(db: Session, teacher_user_id: int):
     )
     return [s for s in students]
 
-def get_classes_taught_by_teacher(db: Session, teacher_user_id: int, month: int, year: int):
+def get_classes_taught_by_teacher(db: Session, teacher_user_id: int) -> List[Class]:
     return db.query(Class).filter(
         Class.teacher_user_id == teacher_user_id,
     ).all()

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  X,
   Search,
   BookOpen,
   Star,
@@ -19,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import {
   Select,
@@ -32,9 +30,10 @@ import {
 import { useEvaluations } from "../../src/hooks/useEvaluation";
 import { toast } from "react-hot-toast";
 
-interface StudentEvaluationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+import { ConfirmModal } from "../../components/common/ConfirmModal";
+import { useConfirmDialog } from "../../src/hooks/useConfirmDialog";
+
+interface StudentEvaluationPageProps {
   userRole: "student" | "parent" | "teacher" | "manager";
   studentUserId?: number;
   classId?: number;
@@ -42,25 +41,10 @@ interface StudentEvaluationModalProps {
 
 const formatDateDMY = (ymd?: string) => {
   if (!ymd) return "";
-  const [y, m, d] = ymd.split("-");
+  const datePart = (ymd || "").split("T")[0];
+  const [y, m, d] = datePart.split("-");
+  if (!d || !m || !y) return ymd;
   return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
-};
-
-const getGradeFromScore = (score?: number, max?: number) => {
-  if (score == null || max == null) return null;
-  const pct = (score / max) * 100;
-  if (pct >= 90) return "A";
-  if (pct >= 80) return "B";
-  if (pct >= 70) return "C";
-  return "D";
-};
-
-const getGradeColor = (grade: string | null) => {
-  if (!grade) return "bg-gray-100 text-gray-800";
-  if (grade.startsWith("A")) return "bg-green-100 text-green-800";
-  if (grade.startsWith("B")) return "bg-blue-100 text-blue-800";
-  if (grade.startsWith("C")) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
 };
 
 const getTypeIcon = (type: string | undefined) => {
@@ -99,13 +83,18 @@ const getTypeColor = (type: string | undefined) => {
   }
 };
 
-export default function StudentEvaluationModal({
-  isOpen,
-  onClose,
+/**
+ * Full-page Evaluation view.
+ * - removed isOpen/onClose — component is page-like.
+ * - Teacher field hidden when userRole === "teacher".
+ * - Student fields hidden when userRole === "student".
+ * - Delete button placed at the bottom of the details card (teacher only).
+ */
+export default function StudentEvaluationPage({
   userRole,
   studentUserId,
   classId,
-}: StudentEvaluationModalProps) {
+}: StudentEvaluationPageProps) {
   const {
     evaluations,
     loading,
@@ -118,8 +107,17 @@ export default function StudentEvaluationModal({
     removeEvaluation,
   } = useEvaluations();
 
+  // confirm dialog hook
+  const {
+    isOpen: confirmIsOpen,
+    message: confirmMessage,
+    onConfirm: confirmOnConfirm,
+    openConfirm,
+    closeConfirm,
+  } = useConfirmDialog();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStudent, setFilterStudent] = useState<string>("all"); // NEW
+  const [filterStudent, setFilterStudent] = useState<string>("all");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
@@ -127,9 +125,8 @@ export default function StudentEvaluationModal({
   const [summary, setSummary] = useState<any | null>(null);
   const [fetching, setFetching] = useState(false);
 
-  // Fetch evaluations when modal opens (choose endpoint based on props)
+  // fetch on mount / when studentUserId or classId change
   useEffect(() => {
-    if (!isOpen) return;
     let active = true;
     (async () => {
       setFetching(true);
@@ -137,29 +134,23 @@ export default function StudentEvaluationModal({
         if (studentUserId && classId) {
           const list = await fetchEvaluationsOfStudentInClass(studentUserId, classId);
           if (active && list) setLocalList(list);
-          // try fetch summary for student in class if available
           try {
             const s = await fetchEvaluationsSummaryOfStudentInClass(studentUserId, classId);
             if (active) setSummary(s);
-          } catch (err) {
-            // ignore summary error — optional endpoint
-          }
+          } catch {}
         } else if (studentUserId) {
           const list = await fetchEvaluationsOfStudent(studentUserId);
           if (active && list) setLocalList(list);
-          // try total score
           try {
             const s = await fetchTotalScore(studentUserId);
             if (active) setSummary(s);
           } catch {}
         } else {
           await fetchAllEvaluations();
-          // use global hook evaluations array
-          // (useEvaluations sets evaluations in hook; copy below)
-          // small delay until evaluations populated
+          // copied to localList by the next effect
         }
       } catch (err) {
-        console.error("Failed to fetch evaluations for modal:", err);
+        console.error("Failed to fetch evaluations:", err);
       } finally {
         setFetching(false);
       }
@@ -170,18 +161,19 @@ export default function StudentEvaluationModal({
       setSelectedEvaluation(null);
       setLocalList([]);
       setFilterStudent("all");
+      setSummary(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, studentUserId, classId]);
+  }, [studentUserId, classId]);
 
-  // If hook `evaluations` is populated and localList empty & no studentUserId, use it
+  // copy global evaluations into localList when available and no student filter was used
   useEffect(() => {
-    if (!studentUserId && evaluations && evaluations.length && isOpen) {
+    if (!studentUserId && evaluations && evaluations.length) {
       setLocalList(evaluations);
     }
-  }, [evaluations, studentUserId, isOpen]);
+  }, [evaluations, studentUserId]);
 
-  // derive subjects and types from localList
+  // derive lists for filters
   const subjects = useMemo(
     () => ["all", ...Array.from(new Set(localList.map((l) => l.class_name || l.subject || "Unknown")))],
     [localList]
@@ -190,18 +182,15 @@ export default function StudentEvaluationModal({
     () => ["all", ...Array.from(new Set(localList.map((l) => l.type || "other")))],
     [localList]
   );
-
-  // NEW: derive students (only from localList). Value uses student_user_id if available.
   const students = useMemo(() => {
-    const map = new Map<string, string>(); // value -> label
+    const map = new Map<string, string>();
     localList.forEach((l) => {
       const id = l.student_user_id != null ? String(l.student_user_id) : null;
       const label = l.student || (id ? `#${id}` : "Unknown");
       const key = id || label;
       if (!map.has(key)) map.set(key, label);
     });
-    const arr = [{ value: "all", label: "All Students" }, ...Array.from(map.entries()).map(([value, label]) => ({ value, label }))];
-    return arr;
+    return [{ value: "all", label: "All Students" }, ...Array.from(map.entries()).map(([value, label]) => ({ value, label }))];
   }, [localList]);
 
   const filteredEvaluations = useMemo(() => {
@@ -209,13 +198,11 @@ export default function StudentEvaluationModal({
     return (localList || []).filter((ev: any) => {
       const matchesSearch =
         !sTerm ||
-        (ev.content && ev.content.toLowerCase().includes(sTerm)) ||
-        (ev.teacher && ev.teacher.toLowerCase().includes(sTerm)) ||
-        (ev.class_name && ev.class_name.toLowerCase().includes(sTerm));
+        (ev.content && String(ev.content).toLowerCase().includes(sTerm)) ||
+        (ev.teacher && String(ev.teacher).toLowerCase().includes(sTerm)) ||
+        (ev.class_name && String(ev.class_name).toLowerCase().includes(sTerm));
       const matchesSubject = filterSubject === "all" || (ev.class_name || ev.subject) === filterSubject;
       const matchesType = filterType === "all" || (ev.type || "other") === filterType;
-
-      // NEW: student filter logic
       const matchesStudent =
         filterStudent === "all" ||
         (ev.student_user_id != null && String(ev.student_user_id) === filterStudent) ||
@@ -230,14 +217,11 @@ export default function StudentEvaluationModal({
       setSelectedEvaluation(null);
       return;
     }
-    // attempt to fetch full record if API provides detailed record
     if (ev.id && fetchEvaluationRecord) {
       try {
         const rec = await fetchEvaluationRecord(ev.id);
-        // merge rec into ev (if fields differ)
         setSelectedEvaluation({ ...ev, ...rec });
-      } catch (err) {
-        // fallback to ev
+      } catch {
         setSelectedEvaluation(ev);
       }
     } else {
@@ -245,15 +229,15 @@ export default function StudentEvaluationModal({
     }
   };
 
-  const handleDelete = async (id?: number) => {
+  // delete confirmed handler
+  const handleDeleteConfirmed = async (id?: number) => {
     if (!id) return;
-    if (!confirm("Are you sure you want to delete this evaluation?")) return;
     try {
       await removeEvaluation(id);
       toast.success("Deleted evaluation");
-      // remove locally
       setLocalList((prev) => prev.filter((p) => p.id !== id));
       setSelectedEvaluation(null);
+      closeConfirm();
     } catch (err) {
       toast.error("Failed to delete");
       console.error(err);
@@ -263,7 +247,6 @@ export default function StudentEvaluationModal({
   const handleExport = async () => {
     if (!selectedEvaluation) return;
     let payload = selectedEvaluation;
-    // try to fetch full record for export if possible
     if (selectedEvaluation.id && fetchEvaluationRecord) {
       try {
         const rec = await fetchEvaluationRecord(selectedEvaluation.id);
@@ -281,34 +264,34 @@ export default function StudentEvaluationModal({
     URL.revokeObjectURL(url);
   };
 
-  if (!isOpen) return null;
-
+  // ---------- RENDER ----------
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-          <div className="flex items-center justify-between">
+    <>
+      <div className="w-full min-h-screen bg-white text-gray-900">
+        <div className="max-w-7xl mx-auto py-8 px-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold">Evaluation History</h2>
-              <p className="text-blue-100 mt-1">
+              <h1 className="text-2xl font-bold">Evaluation History</h1>
+              <p className="text-sm text-gray-600 mt-1">
                 {userRole === "student" && "View your academic evaluations and content"}
                 {userRole === "parent" && "Monitor your children's academic progress"}
                 {userRole === "teacher" && "Manage student evaluations and grades"}
                 {userRole === "manager" && "Overview of all evaluations and performance metrics"}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-white/20">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="p-6 border-b border-gray-200 bg-gray-50">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-gray-700">
+                Top
+              </Button>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 mb-6">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search evaluations..."
@@ -317,164 +300,122 @@ export default function StudentEvaluationModal({
                   className="pl-10"
                 />
               </div>
-            </div>
 
-            {/* NEW: Student filter - shown only when userRole is not 'student' */}
-            {userRole !== "student" && (
-              <Select value={filterStudent} onValueChange={(v) => setFilterStudent(v)}>
+              {userRole !== "student" && (
+                <Select value={filterStudent} onValueChange={(v) => setFilterStudent(v)}>
+                  <SelectTrigger className="w-full md:w-48">
+                    <SelectValue placeholder="Filter by student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v)}>
                 <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Filter by student" />
+                  <SelectValue placeholder="Filter by subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {students.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
+                  {subjects.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s === "all" ? "All Classes" : s}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
 
-            <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v)}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s === "all" ? "All Classes" : s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterType} onValueChange={(v) => setFilterType(v)}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t === "all" ? "All Types" : ("" + t).charAt(0).toUpperCase() + ("" + t).slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={filterType} onValueChange={(v) => setFilterType(v)}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t === "all" ? "All Types" : ("" + t).charAt(0).toUpperCase() + ("" + t).slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex">
-          {/* Evaluations List */}
-          <div className="w-1/2 border-r border-gray-200 overflow-auto">
-            <div className="p-4 space-y-3">
-              {loading || fetching ? (
-                <div className="text-gray-500 p-4">Loading evaluations...</div>
-              ) : filteredEvaluations.length === 0 ? (
-                <div className="text-center p-6 text-gray-500">No evaluations found.</div>
-              ) : (
-                filteredEvaluations.map((evaluation: any) => {
-                  const grade = getGradeFromScore(evaluation.score, evaluation.maxScore);
-                  return (
+          {/* Content: list + detail */}
+          <div className="flex gap-6">
+            {/* List (left) */}
+            <div className="w-1/2 max-h-[70vh] overflow-auto">
+              <div className="space-y-3">
+                {loading || fetching ? (
+                  <div className="text-gray-500 p-4">Loading evaluations...</div>
+                ) : filteredEvaluations.length === 0 ? (
+                  <div className="text-center p-6 text-gray-500">No evaluations found.</div>
+                ) : (
+                  filteredEvaluations.map((evaluation: any) => (
                     <Card
-                      key={evaluation.id}
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${selectedEvaluation?.id === evaluation.id ? "ring-2 ring-blue-500 shadow-md" : ""}`}
+                      key={evaluation.id || `${evaluation.student}-${evaluation.date}`}
+                      className={`cursor-pointer transition-all duration-150 ${selectedEvaluation?.id === evaluation.id ? "ring-2 ring-blue-500 shadow" : "hover:shadow"}`}
                       onClick={() => handleSelect(evaluation)}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <div className={`p-1 rounded ${getTypeColor(evaluation.type)}`}>
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded ${getTypeColor(evaluation.type)}`}>
                               {getTypeIcon(evaluation.type)}
                             </div>
                             <div>
                               <h3 className="font-semibold text-gray-900">{evaluation.class_name || evaluation.subject || "Class"}</h3>
-                              <p className="text-sm text-gray-600">{evaluation.teacher}</p>
+                              {/* hide teacher in list if user is teacher */}
+                              {userRole !== "teacher" && (
+                                <p className="text-sm text-gray-600">{evaluation.teacher}</p>
+                              )}
                             </div>
                           </div>
-                          {grade && (
-                            <Badge className={getGradeColor(grade)}>{grade}</Badge>
-                          )}
                         </div>
 
-                        <p className="text-sm text-gray-700 mb-2 line-clamp-2">{evaluation.content}</p>
+                        <p className="text-sm text-gray-700 mb-3 line-clamp-2">{evaluation.content}</p>
 
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>{formatDateDMY(evaluation.date)}</span>
                           <div className="flex items-center space-x-3">
-                            {evaluation.score != null && evaluation.maxScore != null && (
-                              <span className="font-medium">
-                                {evaluation.score}/{evaluation.maxScore}
-                              </span>
-                            )}
                             {evaluation.study_point > 0 && <span className="text-green-600">{evaluation.study_point} SP</span>}
                             {evaluation.discipline_point > 0 && <span className="text-red-600">{evaluation.discipline_point} DP</span>}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                  );
-                })
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Evaluation Details */}
-          <div className="w-1/2 overflow-auto">
-            {selectedEvaluation ? (
-              <div className="p-6">
-                <div className="mb-6">
+            {/* Detail (right) */}
+            <div className="w-1/2 max-h-[70vh] overflow-auto">
+              {selectedEvaluation ? (
+                <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${getTypeColor(selectedEvaluation.type)}`}>
+                      <div className={`p-2 rounded ${getTypeColor(selectedEvaluation.type)}`}>
                         {getTypeIcon(selectedEvaluation.type)}
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-gray-900">{selectedEvaluation.class_name || selectedEvaluation.subject || "Class"}</h2>
-                        <p className="text-gray-600">{selectedEvaluation.content}</p>
+                        <h2 className="text-lg font-bold">{selectedEvaluation.class_name || selectedEvaluation.subject || "Class"}</h2>
+                        <p className="text-sm text-gray-600">{selectedEvaluation.content}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={handleExport}>
                         <Download className="w-4 h-4 mr-2" />
                         Export
                       </Button>
-                      {userRole === "teacher" && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(selectedEvaluation.id)}
-                          className="flex items-center gap-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </Button>
-                      )}
                     </div>
                   </div>
 
-                  {/* Score and Grade */}
-                  {selectedEvaluation.score != null && selectedEvaluation.maxScore != null && (
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <Card>
-                        <CardContent className="p-4 text-center">
-                          <div className="text-3xl font-bold text-blue-600 mb-1">{selectedEvaluation.score}</div>
-                          <div className="text-sm text-gray-600">out of {selectedEvaluation.maxScore}</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-4 text-center">
-                          <div className="text-3xl font-bold text-green-600 mb-1">
-                            {getGradeFromScore(selectedEvaluation.score, selectedEvaluation.maxScore)}
-                          </div>
-                          <div className="text-sm text-gray-600">Grade</div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-
-                  {/* Points with unified color logic, smaller cards */}
+                  {/* Points */}
                   <div className="grid grid-cols-2 gap-3 mb-5">
                     {[
                       {
@@ -505,70 +446,99 @@ export default function StudentEvaluationModal({
                     })}
                   </div>
 
-                  {/* Details */}
-                  <Card>
+                  {/* Details Card (delete button placed at bottom of the card) */}
+                  <Card className="flex-1 flex flex-col">
                     <CardHeader>
                       <CardTitle className="text-lg">Evaluation Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="text-sm flex justify-between">
-                        <span className="font-medium text-gray-600">Teacher:</span>
-                        <span className="text-gray-900">{selectedEvaluation.teacher}</span>
-                      </div>
+
+                    <CardContent className="space-y-2 flex-1">
+                      {/* hide Teacher row for teacher role */}
+                      {userRole !== "teacher" && (
+                        <div className="text-sm flex justify-between">
+                          <span className="font-medium text-gray-600">Teacher:</span>
+                          <span className="text-gray-900">{selectedEvaluation.teacher}</span>
+                        </div>
+                      )}
+
                       <div className="text-sm flex justify-between">
                         <span className="font-medium text-gray-600">Date:</span>
                         <span className="text-gray-900">{formatDateDMY(selectedEvaluation.date)}</span>
                       </div>
+
                       <div className="text-sm flex justify-between">
                         <span className="font-medium text-gray-600">Type:</span>
                         <span className="text-gray-900 capitalize">{selectedEvaluation.type}</span>
                       </div>
+
                       <div className="text-sm flex justify-between">
                         <span className="font-medium text-gray-600">Class:</span>
                         <span className="text-gray-900">{selectedEvaluation.class_name}</span>
                       </div>
-                      <div className="text-sm flex justify-between">
-                        <span className="font-medium text-gray-600">Student ID:</span>
-                        <span className="text-gray-900">
-                          {selectedEvaluation.student_user_id}
-                        </span>
-                      </div>
-                      <div className="text-sm flex justify-between">
-                        <span className="font-medium text-gray-600">Student:</span>
-                        <span className="text-gray-900">
-                          {selectedEvaluation.student}
-                        </span>
-                      </div>
+
+                      {/* hide Student info for student role */}
+                      {userRole !== "student" && (
+                        <div className="text-sm flex justify-between">
+                          <span className="font-medium text-gray-600">Student:</span>
+                          <span className="text-gray-900">
+                            {selectedEvaluation.student} {selectedEvaluation.student_user_id ? `(ID: ${selectedEvaluation.student_user_id})` : ""}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="text-sm flex justify-between">
                         <span className="font-medium text-gray-600">Content:</span>
                         <span className="text-gray-900">{selectedEvaluation.content || "N/A"}</span>
                       </div>
                     </CardContent>
+
+                    {/* Delete button area placed at the bottom of the card (teacher only) */}
+                    {userRole === "teacher" && (
+                      <div className="p-4 border-t border-gray-100 flex justify-center">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex items-center gap-2"
+                          onClick={() =>
+                            openConfirm(
+                              `Bạn có chắc chắn muốn xoá evaluation ${selectedEvaluation.id}?`,
+                              () => handleDeleteConfirmed(selectedEvaluation.id)
+                            )
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    )}
                   </Card>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an Evaluation</h3>
-                  <p className="text-gray-600">Choose an evaluation from the list to view details</p>
-                  {summary && (
-                    <div className="mt-4 text-sm text-gray-700">
-                      <div>Final Study Points: <strong>{summary.final_study_point ?? summary.finalStudyPoint ?? 0}</strong></div>
-                      <div>Final Discipline Points: <strong>{summary.final_discipline_point ?? summary.finalDisciplinePoint ?? 0}</strong></div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Star className="w-8 h-8 text-gray-400" />
                     </div>
-                  )}
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an Evaluation</h3>
+                    <p className="text-gray-600">Choose an evaluation from the list to view details</p>
+                    {summary && (
+                      <div className="mt-4 text-sm text-gray-700">
+                        <div>Final Study Points: <strong>{summary.final_study_point ?? summary.finalStudyPoint ?? 0}</strong></div>
+                        <div>Final Discipline Points: <strong>{summary.final_discipline_point ?? summary.finalDisciplinePoint ?? 0}</strong></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal isOpen={confirmIsOpen} message={confirmMessage} onConfirm={confirmOnConfirm} onCancel={closeConfirm} />
+    </>
   );
 }
 
-export { StudentEvaluationModal };
+export { StudentEvaluationPage };

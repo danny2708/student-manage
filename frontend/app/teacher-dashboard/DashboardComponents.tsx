@@ -17,6 +17,7 @@ import {
   Clock,
   Award,
   Star,
+  User,
 } from "lucide-react";
 
 import type { TeacherStats } from "../../src/services/api/teacher";
@@ -237,8 +238,8 @@ export function Sidebar({
             <SidebarLink id="evaluation" activeSection={activeSection} setSection={setSection} icon={StarIcon} text="Evaluations" />
           </Category>
 
-          <Category name="personal" title="Personal" icon={Wallet} expandedCategories={expandedCategories} toggleCategory={toggleCategory}>
-            <SidebarLink id="payroll" activeSection={activeSection} setSection={setSection} icon={FileText} text="Payrolls" />
+          <Category name="personal" title="Personal" icon={User} expandedCategories={expandedCategories} toggleCategory={toggleCategory}>
+            <SidebarLink id="payroll" activeSection={activeSection} setSection={setSection} icon={Wallet} text="Payrolls" />
             <SidebarLink id="teacher-review" activeSection={activeSection} setSection={setSection} icon={StarIcon} text="Teacher reviews" />
             <SidebarLink id="report" activeSection={activeSection} setSection={setSection} icon={FileText} text="Report" />
           </Category>

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
+  getTeachersByStudentId,
   getStudents,
   getStudentById,
   createStudent,
@@ -14,6 +15,7 @@ import {
   StudentUpdate,
   Enrollment,
   StudentStats,
+  TeacherView,
 } from "../services/api/student"; 
 import { Class } from "../services/api/class"; 
 
@@ -183,7 +185,23 @@ export function useStudent() {
     []
   );
   
-  // Tương tự cho các hàm còn lại...
+  const fetchTeachersByStudentId = useCallback(
+      async (studentUserId: number): Promise<TeacherView[] | null> => {
+          setLoading(true);
+          setError(null);
+          try {
+              return await getTeachersByStudentId(studentUserId);
+          } catch (err: any) {
+              const msg = err.response?.data?.detail || "Lỗi tải danh sách giáo viên của học sinh.";
+              toast.error(msg);
+              setError(msg);
+              return null;
+          } finally {
+              setLoading(false);
+          }
+      },
+      []
+  );  
 
   return {
     // Trạng thái
@@ -205,5 +223,6 @@ export function useStudent() {
     fetchStudentStats,
     fetchClassesByStudent,
     fetchEnrollments,
+    fetchTeachersByStudentId,
   };
 }

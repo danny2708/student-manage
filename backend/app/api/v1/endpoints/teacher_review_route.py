@@ -36,7 +36,7 @@ def create_new_teacher_review(
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
     # Kiểm tra teacher tồn tại
-    db_teacher = teacher_crud.get_teacher(db, user_id=teacher_review_in.teacher_user_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=teacher_review_in.teacher_user_id)
     if not db_teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
 
@@ -54,7 +54,7 @@ def create_new_teacher_review(
 
 
 @router.get(
-    "/",
+    "",
     response_model=List[teacher_review_schema.TeacherReviewView],
     summary="Lấy danh sách tất cả đánh giá của giáo viên",
     dependencies=[Depends(get_current_active_user)] # Bất kỳ người dùng đã đăng nhập nào cũng có thể xem

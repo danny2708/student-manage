@@ -19,7 +19,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const EvaluationModal = dynamic(() => import("./StudentEvaluationModal"), { ssr: false });
 const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
 const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
-const TeacherReviewManagement = dynamic(() => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"), { ssr: false });
+const TeacherReviewManagement = dynamic(() => import("./TeacherReviewModal"), { ssr: false });
 const ReportManagement = dynamic(() => import("../manager-dashboard/dashboard_components/report/ReportManagement"), { ssr: false });
 
 export default function StudentDashboardPage() {
@@ -38,14 +38,6 @@ export default function StudentDashboardPage() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showPersonalSchedule, setShowPersonalSchedule] = useState(false);
 
-  const [searchTerms, setSearchTerms] = useState({
-    evaluation: "",
-    schedule: "",
-    classes: "",
-    teacherReview: "",
-    report: "",
-  });
-
   useEffect(() => {
     if (!fetchStudentStats || !user?.user_id) return;
     let mountedFlag = true;
@@ -59,10 +51,6 @@ export default function StudentDashboardPage() {
       mountedFlag = false;
     };
   }, [fetchStudentStats, user?.user_id]);
-
-  const updateSearchTerm = (section: string, value: string) => {
-    setSearchTerms((prev) => ({ ...prev, [section]: value }));
-  };
 
   const setSection = (id: string) => {
     setActiveSection(id);
@@ -120,8 +108,6 @@ export default function StudentDashboardPage() {
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
             <EvaluationModal
-              isOpen={activeSection === "evaluation"}
-              onClose={() => setSection("overview")}
               userRole="student"
             />
           </div>
@@ -144,7 +130,7 @@ export default function StudentDashboardPage() {
         {/* Teacher Review */}
         {visitedSections.includes("teacher-review") && (
           <div className={activeSection === "teacher-review" ? "block" : "hidden"}>
-            <TeacherReviewManagement searchTerm={searchTerms.teacherReview} updateSearchTerm={updateSearchTerm} />
+            <TeacherReviewManagement userRole="student" studentUserId={user?.user_id} />
           </div>
         )}
 

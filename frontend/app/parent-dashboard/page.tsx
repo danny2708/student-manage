@@ -88,8 +88,6 @@ export default function ParentDashboardPage() {
         {visitedSections.includes("evaluation") && (
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
             <ChildrenEvaluationModal
-              isOpen={activeSection === "evaluation"}
-              onClose={() => setSection("overview")}
               userRole="parent"
             />
           </div>
