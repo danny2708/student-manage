@@ -1,7 +1,7 @@
 # app/schemas/teacher_review_schema.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional
-from datetime import datetime
+from datetime import date as dt_date
 
 # Schema cơ sở cho các trường dữ liệu do người dùng cung cấp
 class TeacherReviewBase(BaseModel):
@@ -16,7 +16,7 @@ class TeacherReviewCreate(TeacherReviewBase):
 class TeacherReview(TeacherReviewBase):
     review_id: int
     student_user_id: int
-    review_date: datetime
+    review_date: dt_date
 
     class Config:
         from_attributes = True
@@ -31,8 +31,15 @@ class TeacherReviewView(BaseModel):
     teacher_name: str
     student_name: str
     rating: float
-    review_date: datetime
+    review_date: dt_date
     review_content: Optional[str]
     
     class Config:
         from_attributes = True
+
+    @field_serializer('review_date')
+    def serialize_date(self, value: Optional[dt_date], info):
+        if value is None:
+            return None
+        # Chuyển đổi đối tượng date thành chuỗi 'dd/mm/yyyy'
+        return value.strftime('%d/%m/%Y')

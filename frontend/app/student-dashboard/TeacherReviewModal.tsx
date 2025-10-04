@@ -16,6 +16,8 @@ import {
   Trash2,
   Award,
   CheckCircle,
+  X as XIcon,
+  Eye,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -75,6 +77,11 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
   const [loadingTeachers, setLoadingTeachers] = useState(false);
 
   const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+
+  // Modal for "View All Reviews"
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [teacherReviews, setTeacherReviews] = useState<any[]>([]);
+  const [loadingTeacherReviews, setLoadingTeacherReviews] = useState(false);
 
   // Load reviews / teachers on mount or when studentUserId changes
   useEffect(() => {
@@ -186,7 +193,6 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
     try {
       const ok = await deleteReview(id);
       if (ok) {
-        toast.success("Xóa đánh giá thành công");
         if (studentUserId) await fetchReviewsByStudentId(studentUserId);
         else await fetchAllReviews();
       } else {
@@ -223,7 +229,6 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
       if (editingReviewId) {
         const ok = await updateReview(editingReviewId, payload);
         if (ok) {
-          toast.success("Cập nhật đánh giá thành công");
           setEditingReviewId(null);
         }
       } else {
@@ -264,6 +269,29 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
 
   // helper to render review text
   const getReviewText = (r: any) => r.review_content ?? r.review_text ?? r.review ?? "";
+
+  // --- NEW: open "View All Reviews" modal for specific teacher
+  const openAllReviewsForTeacher = async (teacher: TeacherViewLite) => {
+    setLoadingTeacherReviews(true);
+    setShowAllReviewsModal(true); // optimistic open
+    setSelectedTeacher(teacher); // ensure header shows teacher
+    try {
+      const list = await fetchReviewsByTeacherId(teacher.teacher_user_id);
+      setTeacherReviews(list ?? []);
+    } catch (err) {
+      console.error("fetchReviewsByTeacherId for modal failed:", err);
+      toast.error("Không thể tải đánh giá của giáo viên này.");
+      setTeacherReviews([]);
+    } finally {
+      setLoadingTeacherReviews(false);
+    }
+  };
+
+  const closeAllReviewsModal = () => {
+    setShowAllReviewsModal(false);
+    setTeacherReviews([]);
+    setLoadingTeacherReviews(false);
+  };
 
   return (
     <>
@@ -346,7 +374,7 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
                         <div
                           className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg"
                           style={{
-                            background: "conic-gradient(from 180deg at 50% 50%, #3b82f6, #06b6d4, #f472b6, #f59e0b)",
+                            background: "conic-gradient(from 180deg at 50% 50%, #3b82f6, #06b6d4, #60a5fa)",
                           }}
                         >
                           {/* colorful multi-layer avatar circle with white inner ring */}
@@ -380,13 +408,28 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
                           </div>
                         </div>
 
-                        <Button
-                          onClick={() => handleTeacherClick(teacher)}
-                          className="w-full mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white"
-                        >
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Write Review
-                        </Button>
+                        <div className="mt-4 space-y-3">
+                          <Button
+                            onClick={() => handleTeacherClick(teacher)}
+                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white"
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Write Review
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            onClick={(e) => {
+                              // prevent triggering the outer card onClick
+                              e.stopPropagation();
+                              openAllReviewsForTeacher(teacher);
+                            }}
+                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View All Reviews
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -406,7 +449,7 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
                       className="w-16 h-16 rounded-full flex items-center justify-center"
                       style={{
                         background:
-                          "linear-gradient(135deg,#3b82f6 0%,#06b6d4 40%,#f472b6 70%)",
+                          "linear-gradient(135deg,#3b82f6 0%,#06b6d4 40%,#60a5fa 70%)",
                       }}
                     >
                       <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
@@ -585,6 +628,126 @@ export default function TeacherReviewPage({ studentUserId }: TeacherReviewPagePr
 
       {/* Confirm Modal (shared) */}
       <ConfirmModal isOpen={confirmIsOpen} message={confirmMessage} onConfirm={confirmOnConfirm} onCancel={closeConfirm} />
+
+      {/* --- Modal: View All Reviews for a teacher (reduced height + inner scroll) --- */}
+      {showAllReviewsModal && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={closeAllReviewsModal} />
+
+          {/* modal box: reduced height + internal scroll */}
+          <div
+            className="relative w-full max-w-3xl mx-auto rounded-lg shadow-xl bg-white text-black overflow-hidden"
+            style={{ maxHeight: "70vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* header (sticky) */}
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg,#06b6d4,#3b82f6)" }}
+                >
+                  <User className="w-6 h-6 text-white " />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedTeacher?.full_name ?? "Teacher"}</h3>
+                  <p className="text-sm text-gray-600">{selectedTeacher?.subject ?? ""}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={closeAllReviewsModal} className="text-gray-700 bg-red-500 bg-red-500 hover :bg-red-700 text-white">
+                  <XIcon className="w-4 h-4" />
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            {/* content area with scrollbar */}
+            <div className="p-4 overflow-y-auto" style={{ maxHeight: "calc(70vh - 80px)" }}>
+              {loadingTeacherReviews ? (
+                <div className="text-center py-8">Loading reviews...</div>
+              ) : teacherReviews.length === 0 ? (
+                <div className="text-center py-8 text-gray-600">No reviews for this teacher yet.</div>
+              ) : (
+                <div className="space-y-4">
+                  {teacherReviews.map((r: any) => {
+                    const mine = !!(studentUserId && r.student_user_id && Number(r.student_user_id) === Number(studentUserId));
+                    return (
+                      <Card key={r.id} className={`border-0 shadow-sm ${mine ? "ring-2 ring-sky-300 bg-sky-50" : ""}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center"
+                                style={{
+                                  background: mine ? "linear-gradient(135deg,#06b6d4,#3b82f6)" : "linear-gradient(135deg,#e2e8f0,#f8fafc)",
+                                }}
+                              >
+                                <User className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-semibold text-gray-900">{r.student_name ?? `Student #${r.student_user_id ?? "?"}`}</h4>
+                                  {mine && <span className="text-xs text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">Your review</span>}
+                                </div>
+                                <div className="text-sm text-gray-500">{formatDate(r.created_at ?? r.review_date)}</div>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star key={s} className={`w-4 h-4 ${s <= (r.rating ?? 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg p-3 bg-white">
+                            <p className="text-gray-700">{getReviewText(r)}</p>
+                          </div>
+
+                          {/* small action row (edit/delete for owner if available) */}
+                          <div className="flex items-center justify-end gap-2 mt-3">
+                            {mine && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleStartEdit(r)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                  Edit
+                                </Button>
+
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => openConfirm(`Bạn có chắc chắn muốn xoá đánh giá này?`, () => handleDeleteConfirmed(r.id))}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

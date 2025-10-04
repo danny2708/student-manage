@@ -1,13 +1,11 @@
 # Trong file app/crud/tuition_crud.py
-
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import date
 from typing import Optional, Tuple, List
 from app.models.tuition_model import Tuition, PaymentStatus
 from app.schemas.tuition_schema import TuitionCreate, TuitionUpdate
 from app.models.user_model import User
 from app.models.student_model import Student
-from app.models.parent_model import Parent
 
 
 def get_tuition(db: Session, tuition_id: int) -> Optional[Tuple[Tuition, str]]:
@@ -72,7 +70,10 @@ def update_tuition(db: Session, tuition_id: int, tuition_update: TuitionUpdate):
 
     # Không cho phép cập nhật nếu đã thanh toán
     if db_tuition.status == PaymentStatus.paid:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Không thể cập nhật học phí ID {tuition_id} vì trạng thái đã là 'paid'."
+        )
 
     update_data = tuition_update.model_dump(exclude_unset=True)
     update_data.pop("student_user_id", None)

@@ -109,6 +109,12 @@ def create_teacher_review(
     db.refresh(db_teacher_review)
     return db_teacher_review
 
+def get_teacher_review_model(db: Session, review_id: int) -> TeacherReview | None:
+    """
+    Lấy đối tượng Model TeacherReview từ DB theo ID.
+    Hàm này được dùng để kiểm tra quyền.
+    """
+    return db.get(TeacherReview, review_id)
 
 def update_teacher_review(db: Session, db_obj: TeacherReview, obj_in: TeacherReviewUpdate):
     """Cập nhật thông tin review dựa trên db_obj."""

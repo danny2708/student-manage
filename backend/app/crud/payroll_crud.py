@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models import Payroll
 from app.schemas.payroll_schema import PayrollCreate, PayrollUpdate
@@ -60,14 +61,27 @@ def get_payrolls_by_teacher(db: Session, teacher_user_id: int, skip: int = 0, li
 
 def update_payroll(db: Session, payroll_id: int, payroll_update: PayrollUpdate):
     db_payroll = db.query(Payroll).filter(Payroll.payroll_id == payroll_id).first()
-    if db_payroll:
-        update_data = payroll_update.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(db_payroll, key, value)
+    
+    if not db_payroll:
+        # Xử lý trường hợp không tìm thấy, nên trả về None hoặc raise HTTPException
+        return None 
+    
+    # ✅ BỔ SUNG LOGIC: KHÔNG CHO PHÉP SỬA NẾU ĐÃ THANH TOÁN
+    if db_payroll.status == PaymentStatus.paid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Không thể cập nhật bảng lương ID {payroll_id} vì trạng thái đã là 'paid'."
+        )
 
-        db.add(db_payroll)
-        db.commit()
-        db.refresh(db_payroll)  # total được DB tự động tính
+    update_data = payroll_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_payroll, key, value)
+
+    db.add(db_payroll)
+    db.commit()
+    db.refresh(db_payroll) 
+    
     return db_payroll
 
 def delete_payroll(db: Session, payroll_id: int):

@@ -163,14 +163,17 @@ def update_existing_teacher_review(
     review_id: int, 
     teacher_review_update: teacher_review_schema.TeacherReviewUpdate, 
     db: Session = Depends(deps.get_db),
-    current_user: AuthenticatedUser = Depends(get_current_active_user)  # đổi lại cho đúng type
+    current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
-    db_teacher_review = teacher_review_crud.get_teacher_review(db, review_id=review_id)
-    if not db_teacher_review:
+    # ✅ Lấy Model SQLAlchemy để kiểm tra quyền
+    db_teacher_review_model = teacher_review_crud.get_teacher_review_model(db, review_id=review_id)
+    
+    if not db_teacher_review_model:
         raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
 
+    # ✅ Kiểm tra quyền trên đối tượng Model (chắc chắn có student_user_id)
     # Chỉ student sửa review của chính mình
-    if db_teacher_review.student_user_id != current_user.user_id:
+    if db_teacher_review_model.student_user_id != current_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền sửa đánh giá này."
@@ -178,7 +181,7 @@ def update_existing_teacher_review(
 
     updated_review = teacher_review_crud.update_teacher_review(
         db=db, 
-        db_obj=db_teacher_review, 
+        db_obj=db_teacher_review_model, # Truyền Model vào hàm update
         obj_in=teacher_review_update
     )
     return updated_review
@@ -196,18 +199,21 @@ def delete_teacher_review_api(
     db: Session = Depends(deps.get_db),
     current_user: AuthenticatedUser = Depends(get_current_active_user)
 ):
-    db_teacher_review = teacher_review_crud.get_teacher_review(db, review_id=review_id)
-    if not db_teacher_review:
+    # ✅ Lấy Model SQLAlchemy để kiểm tra quyền
+    db_teacher_review_model = teacher_review_crud.get_teacher_review_model(db, review_id=review_id)
+    
+    if not db_teacher_review_model:
         raise HTTPException(status_code=404, detail="Đánh giá giáo viên không tìm thấy.")
 
+    # ✅ Kiểm tra quyền trên đối tượng Model (chắc chắn có student_user_id)
     # Nếu student, chỉ được xóa review của chính mình
-    if "student" in current_user.roles and db_teacher_review.student_user_id != current_user.user_id:
+    if "student" in current_user.roles and db_teacher_review_model.student_user_id != current_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền xóa đánh giá này."
         )
 
-    deleted_review = teacher_review_crud.delete_teacher_review(db=db, db_obj=db_teacher_review)
+    deleted_review = teacher_review_crud.delete_teacher_review(db=db, db_obj=db_teacher_review_model)
     return {
         "message": "Đánh giá giáo viên đã được xóa thành công.",
         "deleted_review_id": deleted_review.review_id,
