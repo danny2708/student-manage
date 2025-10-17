@@ -7,10 +7,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { LoginResponse } from "../../src/services/api/auth";
 import { toast } from "react-hot-toast";
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
+import { UserAccountModal } from "../user_account";
+
+=======
+>>>>>>> temp-merge
 import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
 import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
 import { Button } from "../../components/ui/button";
+<<<<<<< HEAD
+=======
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
 import { useTeacher } from "../../src/hooks/useTeacher";
 import type { TeacherStats } from "../../src/services/api/teacher";
 
@@ -18,6 +31,32 @@ import { Sidebar, TeacherDashboardContent } from "./DashboardComponents";
 
 // dynamic imports
 const ScheduleManagement = dynamic(
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  () => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"),
+  { ssr: false }
+);
+const ClassManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/class/ClassManagement"),
+  { ssr: false }
+);
+const EvaluationModal = dynamic(
+  () => import("../student-dashboard/StudentEvaluationModal"),
+  { ssr: false }
+);
+const PayrollManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/payroll/PayrollManagement"),
+  { ssr: false }
+);
+const TeacherReviewManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"),
+  { ssr: false }
+);
+const AttendanceManagement = dynamic(
+  () => import("../manager-dashboard/dashboard_components/attendance/AttendanceManagement"),
+=======
+>>>>>>> temp-merge
   () => import("../dashboard_components/schedule/ScheduleManagement"),
   { ssr: false }
 );
@@ -39,6 +78,10 @@ const TeacherReviewManagement = dynamic(
 );
 const AttendanceManagement = dynamic(
   () => import("../dashboard_components/attendance/AttendanceManagement"),
+<<<<<<< HEAD
+=======
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
   { ssr: false }
 );
 
@@ -116,12 +159,28 @@ export default function TeacherDashboard() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
           <div className="flex items-center gap-3">
+<<<<<<< HEAD
             <Button
+=======
+<<<<<<< HEAD
+            <button
+=======
+            <Button
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
               onClick={() => setShowPersonalSchedule(true)}
               className="px-3 py-2 rounded-md bg-slate-600 text-white hover:bg-slate-500 cursor-pointer"
             >
               My Schedule
+<<<<<<< HEAD
             </Button>
+=======
+<<<<<<< HEAD
+            </button>
+=======
+            </Button>
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
             <NotificationManagement />
           </div>
         </div>
@@ -157,7 +216,14 @@ export default function TeacherDashboard() {
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
             <EvaluationModal
               userRole="teacher"
+<<<<<<< HEAD
               teacherUserId={user ? user.user_id : undefined}
+=======
+<<<<<<< HEAD
+=======
+              teacherUserId={user ? user.user_id : undefined}
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
             />
           </div>
         )}

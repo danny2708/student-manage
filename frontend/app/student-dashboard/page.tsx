@@ -7,8 +7,18 @@ import { Calendar } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { useStudents } from "../../src/contexts/StudentContext";
+<<<<<<< HEAD
 import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
 import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
+=======
+<<<<<<< HEAD
+import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
+=======
+import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
 import { UserAccountModal } from "../user_account";
 import type { StudentStats } from "../../src/services/api/student";
 
@@ -16,11 +26,25 @@ import { Sidebar, StudentDashboardContent } from "./DashboardComponents";
 import { AnimatePresence, motion } from "framer-motion";
 
 // dynamic subpages
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+const EvaluationModal = dynamic(() => import("./StudentEvaluationModal"), { ssr: false });
+const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
+const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
+const TeacherReviewManagement = dynamic(() => import("./TeacherReviewModal"), { ssr: false });
+const ReportManagement = dynamic(() => import("../manager-dashboard/dashboard_components/report/ReportManagement"), { ssr: false });
+=======
+>>>>>>> temp-merge
 const EvaluationModal = dynamic(() => import("../dashboard_components/evaluation/StudentEvaluationModal"), { ssr: false });
 const ScheduleManagement = dynamic(() => import("../dashboard_components/schedule/ScheduleManagement"), { ssr: false });
 const ClassManagement = dynamic(() => import("../dashboard_components/class/ClassManagement"), { ssr: false });
 const TeacherReviewManagement = dynamic(() => import("../dashboard_components/teacherReview/TeacherReviewModal"), { ssr: false });
 const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
+<<<<<<< HEAD
+=======
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
 
 export default function StudentDashboardPage() {
   const router = useRouter();
@@ -70,7 +94,15 @@ export default function StudentDashboardPage() {
   };
 
   return (
+<<<<<<< HEAD
     <div className="flex min-h-screen bg-gray-50 text-gray-900">
+=======
+<<<<<<< HEAD
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 cursor-pointer">
+=======
+    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+>>>>>>> bb0dd92 (add gg auth)
+>>>>>>> temp-merge
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}

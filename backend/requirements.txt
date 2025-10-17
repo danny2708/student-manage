@@ -31,4 +31,8 @@ python-dotenv>=1.0.0
 setuptools>=68.0.0
 wheel>=0.40.0
 openpyxl
+<<<<<<< HEAD
 itsdangerous
+=======
+itsdangerous
+>>>>>>> temp-merge

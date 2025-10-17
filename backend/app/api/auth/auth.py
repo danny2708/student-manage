@@ -74,4 +74,3 @@ def has_roles(required_roles: List[str]):
                 detail="Bạn không có quyền để thực hiện hành động này."
             )
         return current_user
-    return role_checker
