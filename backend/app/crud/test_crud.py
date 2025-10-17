@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from app.models.test_model import Test
 from app.models.class_model import Class
 from app.schemas.test_schema import TestCreate, TestUpdate
 from app.services.test_service import validate_student_enrollment
 from app.schemas.auth_schema import AuthenticatedUser
-
+from app.models.student_model import Student
 
 def create_test(db: Session, test_in: TestCreate, current_user: AuthenticatedUser):
     db_class = db.get(Class, test_in.class_id)
@@ -98,6 +98,11 @@ def get_test(db: Session, test_id: int, current_user: AuthenticatedUser = None):
         if not db_class or db_class.teacher_user_id != current_user.user_id:
             return None
 
+    if current_user and "student" in current_user.roles:
+        db_student = db.get(Student, test.student_user_id)
+        if not db_student or db_student.user_id != current_user.user_id:
+            return None
+
     return test
 
 
@@ -124,13 +129,66 @@ def get_tests_by_student_user_id (db: Session, student_user_id : int, skip: int 
     stmt = select(Test).where(Test.student_user_id  == student_user_id ).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
-def get_tests_by_subject_id(db: Session, subject_id: int, skip: int = 0, limit: int = 100):
-    """Lấy danh sách các bài kiểm tra theo subject_id."""
-    stmt = select(Test).where(Test.subject_id == subject_id).offset(skip).limit(limit)
+def get_tests_by_teacher_user_id (db: Session, teacher_user_id : int, skip: int = 0, limit: int = 100):
+    """Lấy danh sách các bài kiểm tra theo teacher_user_id ."""
+    stmt = select(Test).where(Test.teacher_user_id  == teacher_user_id ).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
-def get_all_tests(db: Session, skip: int = 0, limit: int = 100):
-    """Lấy danh sách tất cả các bài kiểm tra."""
-    stmt = select(Test).offset(skip).limit(limit)
+def get_tests_by_subject_id(db: Session, subject_id: int, skip: int = 0, limit: int = 100):
+    stmt = select(Test).where(Test.subject_id  == subject_id ).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
+
+def get_all_tests(db: Session, current_user: AuthenticatedUser, skip: int = 0, limit: int = 100):
+    """
+    - Manager: Trả về tất cả.
+    - Teacher: Chỉ trả về test của các lớp mình dạy.
+    - Student: Chỉ trả về test của chính mình.
+    - Parent: Chỉ trả về test của con mình.
+    """
+    stmt = select(Test)
+    filters = []
+
+    # --- BƯỚC 1: Xử lý Manager (Ưu tiên Cao nhất) ---
+    # Nếu người dùng là Manager, trả về TẤT CẢ ngay lập tức.
+    if "manager" in current_user.roles:
+        # Bỏ qua tất cả các bộ lọc khác.
+        stmt = stmt.offset(skip).limit(limit)
+        return db.execute(stmt).scalars().all()
+
+    # --- BƯỚC 2: Xử lý các vai trò khác (sử dụng OR để kết hợp) ---
+
+    # 1. Vai trò Teacher
+    if "teacher" in current_user.roles:
+        # Lọc theo teacher_user_id của test
+        filters.append(Test.teacher_user_id == current_user.user_id)
+
+    # 2. Vai trò Student
+    if "student" in current_user.roles:
+        # Lọc theo student_user_id của test
+        filters.append(Test.student_user_id == current_user.user_id)
+
+    # 3. Vai trò Parent
+    if "parent" in current_user.roles:
+        # Tìm tất cả student_user_id là con của parent này
+        # (Giả định Student model đã được import)
+        child_students = db.execute(
+            select(Student.user_id).where(Student.parent_id == current_user.user_id)
+        ).scalars().all()
+        
+        if child_students:
+            # Lọc test theo danh sách ID học sinh là con
+            filters.append(Test.student_user_id.in_(child_students))
+        else:
+            # Nếu không có con, tạo điều kiện không bao giờ đúng để không trả về test nào
+            filters.append(Test.test_id == -1) 
+
+    # --- BƯỚC 3: Áp dụng bộ lọc (Chỉ khi filters KHÔNG rỗng) ---
+    if filters:
+        # Kết hợp các điều kiện lọc bằng OR
+        # Đây là lý do tại sao Manager phải được xử lý riêng ở trên.
+        stmt = stmt.where(or_(*filters))
+    
+    # Áp dụng phân trang
+    stmt = stmt.offset(skip).limit(limit)
+    
 

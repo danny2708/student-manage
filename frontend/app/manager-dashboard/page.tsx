@@ -13,6 +13,7 @@ import {
   UserCheck, School, LogOut, User as UserIcon,
 } from "lucide-react"
 
+<<<<<<< HEAD
 import { UserInfoModal } from "./showInfo/UserInfoModal"
 import { ActionModal } from "./showInfo/action_modal"
 import { CreateModal } from "./showInfo/create_modal"
@@ -30,6 +31,25 @@ const TeacherReviewManagement = dynamic(() => import("./dashboard_components/Tea
 const EvaluationManagement = dynamic(() => import("./dashboard_components/EvaluationManagement"), { ssr: false })
 const ClassManagement = dynamic(() => import("./dashboard_components/class/ClassManagement"), { ssr: false })
 const SubjectManagement = dynamic(() => import("./dashboard_components/SubjectManagement"), { ssr: false })
+=======
+import { UserInfoModal } from "../dashboard_components/showInfo/UserInfoModal"
+import { ActionModal } from "../dashboard_components/showInfo/action_modal"
+import { CreateModal } from "../dashboard_components/showInfo/create_modal"
+import { ShowInfoModal } from "../dashboard_components/showInfo/ShowInfoModal"
+import { UserAccountModal } from "../user_account"
+import { RoleModal } from "./users_management/roles-components/RoleModal"
+import DashboardContent from "./DashboardContent"
+
+// ⚡ Lazy-load các component quản lý
+const UserManagement = dynamic(() => import("../dashboard_components/users/UserManagement"), { ssr: false })
+const TuitionManagement = dynamic(() => import("../dashboard_components/tuition/TuitionManagement"), { ssr: false })
+const ScheduleManagement = dynamic(() => import("../dashboard_components/schedule/ScheduleManagement"), { ssr: false })
+const PayrollManagement = dynamic(() => import("../dashboard_components/payroll/PayrollManagement"), { ssr: false })
+const TeacherReviewManagement = dynamic(() => import("../dashboard_components/TeacherReviewManagement"), { ssr: false })
+const EvaluationManagement = dynamic(() => import("../dashboard_components/EvaluationManagement"), { ssr: false })
+const ClassManagement = dynamic(() => import("../dashboard_components/class/ClassManagement"), { ssr: false })
+const SubjectManagement = dynamic(() => import("../dashboard_components/SubjectManagement"), { ssr: false })
+>>>>>>> bb0dd92 (add gg auth)
 
 export default function ManagerDashboard() {
   const { user, logout } = useAuth() as { user: LoginResponse | null, logout: () => void }

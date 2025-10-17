@@ -10,10 +10,20 @@ import {
   User as UserIcon,
   LogOut,
   DollarSign,
+<<<<<<< HEAD
 } from "lucide-react";
 
 /* ---------------- ParentDashboardContent ---------------- */
 export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () => void }) {
+=======
+  ClipboardList, // Icon mới cho Tuition/Bill
+  MessageSquare, // Icon mới cho Contact
+} from "lucide-react";
+import React from "react";
+
+/* ---------------- ParentDashboardContent ---------------- */
+export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoToTuition, onGoToChildren }: { onOpenSchedule: () => void; onGoToEvaluation: () => void; onGoToTuition: () => void; onGoToChildren: () => void; }) {
+>>>>>>> bb0dd92 (add gg auth)
   return (
     <div className="space-y-8">
       {/* Hero / quick summary */}
@@ -21,7 +31,11 @@ export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () 
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Parent Overview</h2>
+<<<<<<< HEAD
             <p className="text-indigo-100 mt-1">Summary of your study activity</p>
+=======
+            <p className="text-indigo-100 mt-1">Summary of your family's study activity</p>
+>>>>>>> bb0dd92 (add gg auth)
           </div>
           <div className="hidden md:block">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
@@ -31,6 +45,7 @@ export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () 
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Quick actions & recent */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -75,6 +90,100 @@ export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () 
               </div>
             </div>
           </div>
+=======
+      {/* Quick actions Section (Đã thêm nhiều nút hơn) */}
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <LayoutDashboard className="w-6 h-6 text-indigo-600" />
+            Quick Access Center
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          
+          {/* 1. View Schedule (Lịch học) */}
+          <QuickActionButton 
+            onClick={onOpenSchedule} 
+            icon={Calendar} 
+            title="View Schedule" 
+            subtitle="Open your children's upcoming classes"
+            color="blue"
+          />
+
+          {/* 2. Study Materials (Tài liệu học) */}
+          <QuickActionButton 
+            onClick={() => console.log('Go to Study Materials')} 
+            icon={BookOpen} 
+            title="Study Materials" 
+            subtitle="Access course resources and homework"
+            color="green"
+          />
+
+          {/* 3. Check Evaluation (Kết quả học tập) */}
+          <QuickActionButton 
+            onClick={onGoToEvaluation} 
+            icon={Star} 
+            title="Child's Evaluation" 
+            subtitle="View performance, grades, and reports"
+            color="purple"
+          />
+          
+          {/* 4. Tuition/Billing (Thanh toán) */}
+          <QuickActionButton 
+            onClick={onGoToTuition} 
+            icon={ClipboardList} 
+            title="Tuition & Payments" 
+            subtitle="Check bills and payment history"
+            color="yellow"
+          />
+
+          {/* 5. Contact Teacher (Liên hệ giáo viên) */}
+          <QuickActionButton 
+            onClick={() => console.log('Go to Contact Teacher')} 
+            icon={MessageSquare} 
+            title="Contact Teacher" 
+            subtitle="Direct message the class teacher"
+            color="pink"
+          />
+          
+          {/* 6. Children Management (Quản lý con cái) */}
+          <QuickActionButton 
+            onClick={onGoToChildren} 
+            icon={Users} 
+            title="Children Overview" 
+            subtitle="Manage profiles and course enrollment"
+            color="indigo"
+          />
+        </div>
+      </div>
+
+      {/* Recent Activity Section (Giữ nguyên) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Placeholder: Để lại khu vực này trống hoặc có thể dùng cho thông báo/tiến độ */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+            <div className="space-y-4">
+                <div className="flex items-start gap-3 border-b pb-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                    <div>
+                        <div className="font-medium text-gray-900">Assignment graded (Child A)</div>
+                        <div className="text-sm text-gray-600">Math - 2 hours ago</div>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3 border-b pb-3">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                    <div>
+                        <div className="font-medium text-gray-900">Tuition overdue notice</div>
+                        <div className="text-sm text-gray-600">September Invoice - 1 day ago</div>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <div>
+                        <div className="font-medium text-gray-900">New announcement from School</div>
+                        <div className="text-sm text-gray-600">Holiday Schedule - Yesterday</div>
+                    </div>
+                </div>
+            </div>
+>>>>>>> bb0dd92 (add gg auth)
         </div>
       </div>
     </div>
@@ -82,6 +191,10 @@ export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () 
 }
 
 /* ---------------- Sidebar ---------------- */
+<<<<<<< HEAD
+=======
+// (Giữ nguyên Sidebar và SidebarLink vì chúng đã đúng)
+>>>>>>> bb0dd92 (add gg auth)
 type SidebarProps = {
   activeSection: string;
   setSection: (id: string) => void;
@@ -151,3 +264,42 @@ function SidebarLink({ id, activeSection, setSection, icon: Icon, text }: any) {
   );
 }
 
+<<<<<<< HEAD
+=======
+/* ---------------- Helper Component: Quick Action Button ---------------- */
+
+// Component mới để dễ dàng tái sử dụng các nút hành động nhanh
+function QuickActionButton({ onClick, icon: Icon, title, subtitle, color }: {
+    onClick: () => void;
+    icon: any;
+    title: string;
+    subtitle: string;
+    color: 'blue' | 'green' | 'purple' | 'yellow' | 'pink' | 'indigo'; // Thêm màu sắc để dễ tùy chỉnh
+}) {
+    const baseClasses = `w-full text-left p-4 rounded-xl transition-all border shadow-sm cursor-pointer`;
+    
+    // Tùy chỉnh màu sắc dựa trên prop 'color'
+    const colorClasses = {
+        blue: "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600",
+        green: "bg-green-50 hover:bg-green-100 border-green-200 text-green-600",
+        purple: "bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600",
+        yellow: "bg-yellow-50 hover:bg-yellow-100 border-yellow-200 text-yellow-600",
+        pink: "bg-pink-50 hover:bg-pink-100 border-pink-200 text-pink-600",
+        indigo: "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-600",
+    };
+    
+    const iconColor = colorClasses[color].split(" ").find(c => c.startsWith('text-')) || 'text-gray-600';
+
+    return (
+        <button onClick={onClick} className={`${baseClasses} ${colorClasses[color]}`}>
+            <div className="flex items-start gap-4">
+                <Icon className={`h-6 w-6 ${iconColor}`} />
+                <div>
+                    <div className="font-semibold text-gray-900">{title}</div>
+                    <div className="text-sm text-gray-600 mt-1">{subtitle}</div>
+                </div>
+            </div>
+        </button>
+    );
+}
+>>>>>>> bb0dd92 (add gg auth)

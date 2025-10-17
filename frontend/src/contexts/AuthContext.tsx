@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 "use client";
+=======
+﻿"use client";
+>>>>>>> bb0dd92 (add gg auth)
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import authService from "../services/authService";
@@ -20,11 +24,21 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; user?: User | null; error?: string }>;
+<<<<<<< HEAD
   logout: () => void;
   hasAnyRole: (roles: string[]) => boolean;
   refresh: () => Promise<void>;
   // NEW: expose setAuthUser to allow trusted callers to update the current user directly
   setAuthUser: (u: User | null) => void;
+=======
+  loginWithGoogle: (code: string) => Promise<{ success: boolean; user?: User | null; error?: string }>;
+  logout: () => void;
+  hasAnyRole: (roles: string[]) => boolean;
+  refresh: () => Promise<void>;
+  setAuthUser: (u: User | null) => void;
+  handleLoginSuccess: (roles: string[], router: any) => void;
+  
+>>>>>>> bb0dd92 (add gg auth)
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +60,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+<<<<<<< HEAD
     (async () => {
+=======
+    const initAuth = async () => {
+>>>>>>> bb0dd92 (add gg auth)
       setLoading(true);
       try {
         if (typeof (authService as any).init === "function") {
@@ -59,7 +77,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser((authService as any).user ?? null);
         setLoading(false);
       }
+<<<<<<< HEAD
     })();
+=======
+    };
+
+    initAuth();
+>>>>>>> bb0dd92 (add gg auth)
 
     const handleAuthUpdate = () => {
       try {
@@ -81,17 +105,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const onFocus = async () => {
       try {
         await (authService as any).init?.();
+<<<<<<< HEAD
       } catch {
         /* ignore */
       }
+=======
+      } catch {}
+>>>>>>> bb0dd92 (add gg auth)
       setUser((authService as any).user ?? null);
       setLoading(false);
     };
 
     const onVisibility = () => {
+<<<<<<< HEAD
       if (document.visibilityState === "visible") {
         onFocus();
       }
+=======
+      if (document.visibilityState === "visible") onFocus();
+>>>>>>> bb0dd92 (add gg auth)
     };
 
     window.addEventListener("storage", onStorage);
@@ -116,14 +148,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+<<<<<<< HEAD
+=======
+  // login bằng username/password
+>>>>>>> bb0dd92 (add gg auth)
   const login = async (credentials: { username: string; password: string }) => {
     setLoading(true);
     try {
       const res = await authService.login(credentials);
       if (res.success) {
+<<<<<<< HEAD
         setUser((authService as any).user ?? (res.user ?? null));
         setLoading(false);
         return { success: true, user: (authService as any).user ?? (res.user ?? null) };
+=======
+        setUser(res.user ?? null);
+        setLoading(false);
+        return { success: true, user: res.user ?? null };
+>>>>>>> bb0dd92 (add gg auth)
       } else {
         setUser(null);
         setLoading(false);
@@ -136,6 +178,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+<<<<<<< HEAD
+=======
+  // login bằng Google SSO
+  const loginWithGoogle = async (code: string) => {
+    setLoading(true);
+    try {
+      const res = await authService.loginWithGoogle(code);
+      if (res.success) {
+        setUser(res.user ?? null);
+        setLoading(false);
+        return { success: true, user: res.user ?? null };
+      } else {
+        setUser(null);
+        setLoading(false);
+        return { success: false, error: res.error || "Google login failed" };
+      }
+    } catch (err: any) {
+      setUser(null);
+      setLoading(false);
+      return { success: false, error: err?.message || "Google login failed" };
+    }
+  };
+
+  const handleLoginSuccess = (roles: string[], router: any) => {
+  if (roles.length === 1) {
+    router.push(`/${roles[0]}-dashboard`);
+  } else if (roles.length > 1) {
+    router.push("/select-role"); // có thể tuỳ chỉnh
+  } else {
+    router.push("/login");
+  }
+};
+
+>>>>>>> bb0dd92 (add gg auth)
   const logout = () => {
     try {
       authService.logout();
@@ -155,6 +231,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser((authService as any).user ?? null);
   };
 
+<<<<<<< HEAD
   // Expose a safe setter so other trusted providers can update current user
   const setAuthUser = (u: User | null) => {
     setUser(u);
@@ -169,24 +246,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           localStorage.setItem("user", JSON.stringify(u));
         }
+=======
+  const setAuthUser = (u: User | null) => {
+    setUser(u);
+    try {
+      if (typeof (authService as any).setUser === "function") {
+        (authService as any).setUser(u);
+      } else {
+        if (u === null) localStorage.removeItem("user");
+        else localStorage.setItem("user", JSON.stringify(u));
+>>>>>>> bb0dd92 (add gg auth)
       }
     } catch (e) {
       console.warn("setAuthUser: persist failed", e);
     }
 
+<<<<<<< HEAD
     // broadcast to other tabs/listeners (and to any listeners that rely on storage event)
+=======
+>>>>>>> bb0dd92 (add gg auth)
     try {
       if (typeof window !== "undefined" && "BroadcastChannel" in window) {
         const bc = new BroadcastChannel("app_auth_channel");
         bc.postMessage({ type: "auth_update", ts: Date.now() });
         bc.close();
       } else {
+<<<<<<< HEAD
         // fallback: trigger a storage key change (storage event will fire in other tabs)
         localStorage.setItem("app_auth_event", String(Date.now()));
       }
     } catch (e) {
       // ignore
     }
+=======
+        localStorage.setItem("app_auth_event", String(Date.now()));
+      }
+    } catch {}
+>>>>>>> bb0dd92 (add gg auth)
   };
 
   const value: AuthContextType = {
@@ -194,10 +290,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !loading && !!user && !!(authService as any).token,
     loading,
     login,
+<<<<<<< HEAD
+=======
+    loginWithGoogle,
+>>>>>>> bb0dd92 (add gg auth)
     logout,
     hasAnyRole,
     refresh,
     setAuthUser,
+<<<<<<< HEAD
+=======
+    handleLoginSuccess,
+>>>>>>> bb0dd92 (add gg auth)
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

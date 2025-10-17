@@ -1,4 +1,4 @@
-# backend/app/database.py (replace contents)
+﻿# backend/app/database.py (replace contents)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
@@ -24,7 +24,12 @@ if not all([DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME]):
     raise RuntimeError("Database environment variables are not set. Check credentials.env or environment.")
 
 # Use psycopg2 driver explicitly to avoid async driver in sync code
+
 DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+print(f"DATABASE_URL: {DATABASE_URL}")  # Debugging line, remove in production")
+
+
 
 # Create sync engine
 engine = create_engine(DATABASE_URL)

@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 # app/api/v1/endpoints/test_route.py
+=======
+>>>>>>> bb0dd92 (add gg auth)
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -15,18 +18,32 @@ from app.services.excel_services.import_tests import import_tests_from_excel
 
 router = APIRouter()
 
+<<<<<<< HEAD
 # Dependency cho quyền truy cập của Manager
 MANAGER_ONLY = has_roles(["manager"])
 
 # Dependency cho quyền truy cập của Manager hoặc Teacher
 MANAGER_OR_TEACHER = has_roles(["manager", "teacher"])
+=======
+# Khai báo Dependency: MANAGER_ONLY và MANAGER_OR_TEACHER đã là đối tượng Depends
+# Không cần bọc thêm Depends() khi sử dụng chúng trong dependencies=[...]
+# Dependency cho quyền truy cập của Manager
+MANAGER_ONLY = Depends(has_roles(["manager"]))
+
+# Dependency cho quyền truy cập của Manager hoặc Teacher
+MANAGER_OR_TEACHER = Depends(has_roles(["manager", "teacher"]))
+>>>>>>> bb0dd92 (add gg auth)
 
 @router.post(
     "/",
     response_model=test_schema.Test,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bài kiểm tra mới",
+<<<<<<< HEAD
     dependencies=[Depends(MANAGER_OR_TEACHER)]
+=======
+    dependencies=[MANAGER_OR_TEACHER] # ĐÃ SỬA: Sử dụng trực tiếp biến dependency
+>>>>>>> bb0dd92 (add gg auth)
 )
 def create_new_test(
     test_in: test_schema.TestCreate,
@@ -48,6 +65,27 @@ def create_new_test(
 
     return db_test
 
+<<<<<<< HEAD
+=======
+# --- ENDPOINT: Lấy tất cả bài kiểm tra (áp dụng phân quyền) ---
+@router.get(
+    "",
+    response_model=List[test_schema.Test],
+    summary="Lấy tất cả bài kiểm tra (áp dụng phân quyền theo vai trò)",
+    dependencies=[Depends(get_current_active_user)]
+)
+def get_all_tests(
+    db: Session = Depends(deps.get_db),
+    current_user = Depends(get_current_active_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=1000)
+):
+    """
+    Trả về danh sách bài kiểm tra đã được lọc theo vai trò của người dùng hiện tại (Manager/Teacher/Student/Parent).
+    """
+    return test_crud.get_all_tests(db, current_user, skip=skip, limit=limit)
+
+>>>>>>> bb0dd92 (add gg auth)
 
 @router.get(
     "/{test_id}", 
@@ -72,12 +110,67 @@ def get_test(
         )
     return db_test
 
+<<<<<<< HEAD
+=======
+# --- ENDPOINT: Lấy bài kiểm tra theo Học sinh ---
+@router.get(
+    "/student/{student_user_id}",
+    response_model=List[test_schema.Test],
+    summary="Lấy tất cả bài kiểm tra của một học sinh",
+    dependencies=[MANAGER_OR_TEACHER] # SỬ DỤNG TRỰC TIẾP
+)
+def get_tests_for_student(
+    student_user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user = Depends(get_current_active_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=1000)
+):
+    # Hiện tại, ta chỉ gọi hàm CRUD đã có sẵn:
+    tests = test_crud.get_tests_by_student_user_id(db, student_user_id, skip=skip, limit=limit)
+    return tests
+
+# --- ENDPOINT: Lấy bài kiểm tra theo Giáo viên ---
+@router.get(
+    "/teacher/{teacher_user_id}",
+    response_model=List[test_schema.Test],
+    summary="Lấy tất cả bài kiểm tra của các lớp do một giáo viên giảng dạy",
+    dependencies=[MANAGER_ONLY] # SỬ DỤNG TRỰC TIẾP
+)
+def get_tests_for_teacher(
+    teacher_user_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user = Depends(get_current_active_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=1000)
+):
+    """
+    Trả về danh sách bài kiểm tra của các lớp do giáo viên này giảng dạy.
+    Giới hạn quyền truy cập: Chỉ Manager, hoặc chính Giáo viên đó mới được xem.
+    """
+    
+    # Kiểm tra quyền: Chỉ Manager hoặc chính Teacher đó mới được phép truy vấn.
+    if "manager" not in current_user.roles and current_user.user_id != teacher_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền xem bài kiểm tra của giáo viên này."
+        )
+
+    tests = test_crud.get_tests_by_teacher_user_id(db, teacher_user_id, skip=skip, limit=limit)
+    
+    return tests
+
+>>>>>>> bb0dd92 (add gg auth)
 
 @router.put(
     "/{test_id}",
     response_model=test_schema.Test,
     summary="Cập nhật một bài kiểm tra",
+<<<<<<< HEAD
     dependencies=[Depends(MANAGER_OR_TEACHER)]
+=======
+    dependencies=[MANAGER_OR_TEACHER] # ĐÃ SỬA: Sử dụng trực tiếp biến dependency
+>>>>>>> bb0dd92 (add gg auth)
 )
 def update_existing_test(
     test_id: int,
@@ -99,7 +192,11 @@ def update_existing_test(
     "/{test_id}", 
     summary="Xóa một bản ghi bài kiểm tra cụ thể bằng ID",
     status_code=status.HTTP_200_OK,
+<<<<<<< HEAD
     dependencies=[Depends(MANAGER_OR_TEACHER)]
+=======
+    dependencies=[MANAGER_OR_TEACHER] # ĐÃ SỬA: Sử dụng trực tiếp biến dependency
+>>>>>>> bb0dd92 (add gg auth)
 )
 def delete_existing_test(
     test_id: int, 
@@ -126,7 +223,11 @@ def delete_existing_test(
 @router.post(
     "/import",
     summary="Import danh sách điểm kiểm tra từ file Excel vào DB",
+<<<<<<< HEAD
     dependencies=[Depends(MANAGER_OR_TEACHER)]
+=======
+    dependencies=[MANAGER_OR_TEACHER] # ĐÃ SỬA: Sử dụng trực tiếp biến dependency
+>>>>>>> bb0dd92 (add gg auth)
 )
 def import_tests_endpoint(
     class_id: int = Query(..., description="ID của lớp cần import bài kiểm tra"),
@@ -151,4 +252,8 @@ def import_tests_endpoint(
         result = import_tests_from_excel(db, file, class_id, current_user)
         return {"message": "Import thành công", "result": result}
     except Exception as e:
+<<<<<<< HEAD
         raise HTTPException(status_code=400, detail=str(e))
+=======
+        raise HTTPException(status_code=400, detail=str(e))
+>>>>>>> bb0dd92 (add gg auth)

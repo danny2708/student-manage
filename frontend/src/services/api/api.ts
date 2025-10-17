@@ -48,4 +48,15 @@ api.interceptors.response.use(
   }
 );
 
+<<<<<<< HEAD
+=======
+
+export async function loginWithGoogle(code: string) {
+  // Không gắn token
+  const res = await api.post("/auth/google", { code });
+  return res.data; // backend trả về JWT + user info
+}
+
+
+>>>>>>> bb0dd92 (add gg auth)
 export default api

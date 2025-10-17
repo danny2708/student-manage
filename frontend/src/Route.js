@@ -10,6 +10,10 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<ManagerDashboard />} />
       <Route path="/login" element={<Login />} />
+<<<<<<< HEAD
+=======
+      <Route path="/callback" element={<GoogleCallbackPage />} />
+>>>>>>> bb0dd92 (add gg auth)
       {/* Add more routes here */}
     </Routes>
   );
