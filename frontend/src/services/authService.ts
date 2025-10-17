@@ -1,17 +1,7 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-// src/services/authService.ts
-=======
->>>>>>> temp-merge
 ﻿// src/services/authService.ts
 
 import api from "./api/api";
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 export interface ILoginResponse {
   access_token: string;
   token_type: string;
@@ -36,16 +26,8 @@ export interface IUser {
   dob?: string;
 }
 
-<<<<<<< HEAD
 
 
-=======
-<<<<<<< HEAD
-=======
-
-
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 // keys
@@ -171,14 +153,7 @@ class AuthService {
   logout() {
     this.token = null;
     this.user = null;
-<<<<<<< HEAD
      
-=======
-<<<<<<< HEAD
-=======
-     
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
     this.broadcast({ type: "logout" });
   }
 
@@ -207,13 +182,6 @@ class AuthService {
 
     return "/login";
   }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-}
-
-=======
->>>>>>> temp-merge
 
   /**
  * Đăng nhập với Google SSO
@@ -311,8 +279,4 @@ async handleTokenAndFetchUser(token: string): Promise<IUser | null> {
 }
 
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 export default new AuthService();

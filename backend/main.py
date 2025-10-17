@@ -63,10 +63,7 @@ app = FastAPI(
     lifespan=lifespan # Thêm dòng này để sử dụng lifespan
 )
 
-<<<<<<< HEAD
 
-=======
->>>>>>> temp-merge
 # Cấu hình CORS để cho phép các domain khác truy cập API
 app.add_middleware(
     CORSMiddleware,

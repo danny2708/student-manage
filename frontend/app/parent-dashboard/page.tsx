@@ -7,44 +7,18 @@ import { Calendar } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../src/contexts/AuthContext";
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
-import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
-import { UserAccountModal } from "../user_account";
-
-import { Sidebar } from "./DashboardComponents";
-=======
->>>>>>> temp-merge
 import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
 import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
 
 import { Sidebar, ParentDashboardContent } from "./DashboardComponents"; 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 import { AnimatePresence, motion } from "framer-motion";
 
 // dynamic subpages
 const ChildrenManagement = dynamic(() => import("./ChildrenManagement").then(mod => mod.default), { ssr: false });
-<<<<<<< HEAD
 const ChildrenEvaluationModal = dynamic(() => import("../dashboard_components/evaluation/StudentEvaluationModal"), { ssr: false });
 const TuitionManagement = dynamic(() => import("../dashboard_components/tuition/TuitionManagement"), { ssr: false });
 const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
-=======
-<<<<<<< HEAD
-const ChildrenEvaluationModal = dynamic(() => import("../student-dashboard/StudentEvaluationModal"), { ssr: false });
-const TuitionManagement = dynamic(() => import("../manager-dashboard/dashboard_components/tuition/TuitionManagement"), { ssr: false });
-const ReportManagement = dynamic(() => import("../manager-dashboard/dashboard_components/report/ReportManagement"), { ssr: false });
-=======
-const ChildrenEvaluationModal = dynamic(() => import("../dashboard_components/evaluation/StudentEvaluationModal"), { ssr: false });
-const TuitionManagement = dynamic(() => import("../dashboard_components/tuition/TuitionManagement"), { ssr: false });
-const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 
 export default function ParentDashboardPage() {
   const router = useRouter();
@@ -59,24 +33,12 @@ export default function ParentDashboardPage() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showPersonalSchedule, setShowPersonalSchedule] = useState(false);
 
-<<<<<<< HEAD
   // Hàm chuyển đổi section chính
-=======
-<<<<<<< HEAD
-=======
-  // Hàm chuyển đổi section chính
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
   const setSection = (id: string) => {
     setActiveSection(id);
     if (!visitedSections.includes(id)) setVisitedSections((prev) => [...prev, id]);
   };
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> temp-merge
   // Hàm xử lý Quick Actions (mới)
   // Các hàm này sẽ được truyền xuống ParentDashboardContent để gắn vào các nút.
   const quickActions = {
@@ -89,10 +51,6 @@ export default function ParentDashboardPage() {
     // Hiện tại chỉ cần các action map tới sidebar sections
   };
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
   const handleLogout = () => {
     logout();
     router.replace("/login");
@@ -119,15 +77,7 @@ export default function ParentDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-<<<<<<< HEAD
             <Button onClick={quickActions.onViewSchedule} className="px-3 py-2 bg-slate-700 text-white rounded" >
-=======
-<<<<<<< HEAD
-            <Button onClick={() => setShowPersonalSchedule(true)} className="px-3 py-2 bg-slate-700 text-white rounded" >
-=======
-            <Button onClick={quickActions.onViewSchedule} className="px-3 py-2 bg-slate-700 text-white rounded" >
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
               <Calendar className="h-4 w-4 mr-2 inline-block" />
               My Schedule
             </Button>
@@ -136,11 +86,6 @@ export default function ParentDashboardPage() {
           </div>
         </div>
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> temp-merge
         {/* Dynamic Content */}
         {activeSection === "overview" && (
             <ParentDashboardContent 
@@ -152,24 +97,12 @@ export default function ParentDashboardPage() {
             />
         )}
         
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
         {/* Children */}
         {visitedSections.includes("children") && (
           <div className={activeSection === "children" ? "block" : "hidden"}>
             {user && (
               <ChildrenManagement
-<<<<<<< HEAD
                 parent={user}   // truyền cả object
-=======
-<<<<<<< HEAD
-                parent={user}   // truyền cả object
-=======
-                parent={user}   // truyền cả object
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
               />
             )}
           </div>

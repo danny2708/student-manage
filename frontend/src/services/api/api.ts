@@ -48,11 +48,6 @@ api.interceptors.response.use(
   }
 );
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> temp-merge
 
 export async function loginWithGoogle(code: string) {
   // Không gắn token
@@ -61,8 +56,4 @@ export async function loginWithGoogle(code: string) {
 }
 
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 export default api

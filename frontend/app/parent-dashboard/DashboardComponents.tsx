@@ -10,15 +10,6 @@ import {
   User as UserIcon,
   LogOut,
   DollarSign,
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-} from "lucide-react";
-
-/* ---------------- ParentDashboardContent ---------------- */
-export function ParentDashboardContent({ onOpenSchedule }: { onOpenSchedule: () => void }) {
-=======
->>>>>>> temp-merge
   ClipboardList, // Icon mới cho Tuition/Bill
   MessageSquare, // Icon mới cho Contact
 } from "lucide-react";
@@ -26,10 +17,6 @@ import React from "react";
 
 /* ---------------- ParentDashboardContent ---------------- */
 export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoToTuition, onGoToChildren }: { onOpenSchedule: () => void; onGoToEvaluation: () => void; onGoToTuition: () => void; onGoToChildren: () => void; }) {
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
   return (
     <div className="space-y-8">
       {/* Hero / quick summary */}
@@ -37,15 +24,7 @@ export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoT
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Parent Overview</h2>
-<<<<<<< HEAD
             <p className="text-indigo-100 mt-1">Summary of your family's study activity</p>
-=======
-<<<<<<< HEAD
-            <p className="text-indigo-100 mt-1">Summary of your study activity</p>
-=======
-            <p className="text-indigo-100 mt-1">Summary of your family's study activity</p>
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
           </div>
           <div className="hidden md:block">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
@@ -55,55 +34,6 @@ export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoT
         </div>
       </div>
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-      {/* Quick actions & recent */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <button onClick={onOpenSchedule} className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <div>
-                  <div className="font-medium text-gray-900">View Schedule</div>
-                  <div className="text-sm text-gray-600">Open your upcoming classes</div>
-                </div>
-              </div>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors border border-green-200 cursor-pointer">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="font-medium text-gray-900">Study Materials</div>
-                  <div className="text-sm text-gray-600">Open course resources</div>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <div className="font-medium text-gray-900">Assignment graded</div>
-                <div className="text-sm text-gray-600">Math - 2 hours ago</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <div>
-                <div className="font-medium text-gray-900">New announcement</div>
-                <div className="text-sm text-gray-600">Course updates - Yesterday</div>
-              </div>
-            </div>
-          </div>
-=======
->>>>>>> temp-merge
       {/* Quick actions Section (Đã thêm nhiều nút hơn) */}
       <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -196,10 +126,6 @@ export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoT
                     </div>
                 </div>
             </div>
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
         </div>
       </div>
     </div>
@@ -207,14 +133,7 @@ export function ParentDashboardContent({ onOpenSchedule, onGoToEvaluation, onGoT
 }
 
 /* ---------------- Sidebar ---------------- */
-<<<<<<< HEAD
 // (Giữ nguyên Sidebar và SidebarLink vì chúng đã đúng)
-=======
-<<<<<<< HEAD
-=======
-// (Giữ nguyên Sidebar và SidebarLink vì chúng đã đúng)
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 type SidebarProps = {
   activeSection: string;
   setSection: (id: string) => void;
@@ -284,11 +203,6 @@ function SidebarLink({ id, activeSection, setSection, icon: Icon, text }: any) {
   );
 }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> temp-merge
 /* ---------------- Helper Component: Quick Action Button ---------------- */
 
 // Component mới để dễ dàng tái sử dụng các nút hành động nhanh
@@ -325,7 +239,3 @@ function QuickActionButton({ onClick, icon: Icon, title, subtitle, color }: {
         </button>
     );
 }
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge

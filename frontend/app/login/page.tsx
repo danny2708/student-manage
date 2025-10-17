@@ -55,25 +55,11 @@ export default function Auth() {
       gender: "other",
     })
   }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-
-  const handleInputChange = (field: FormField, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: "", general: "" }))
-  }
-=======
->>>>>>> temp-merge
   const handleInputChange = (field: FormField, value: string) => {
   setFormData((prev) => ({ ...prev, [field]: value }));
   setErrors((prev) => ({ ...prev, [field]: "", general: "" }));
 };
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -408,11 +394,6 @@ export default function Auth() {
                             "Login"
                           )}
                         </Button>
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
->>>>>>> temp-merge
 
                         {/*Nút Đăng nhập bằng Google */}
                         <div className="mt-4 flex justify-center cursor-pointer">
@@ -430,10 +411,6 @@ export default function Auth() {
                           </Button>
                         </div>
 
-<<<<<<< HEAD
-=======
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
                       </motion.div>
                     </form>
 
@@ -681,20 +658,9 @@ export default function Auth() {
                       </motion.div>
                     </form>
 
-<<<<<<< HEAD
                                
                     <div className="mt-6 text-center cursor-pointer">
                       <p className="text-muted-foreground cursor-pointer">
-=======
-<<<<<<< HEAD
-                    <div className="mt-6 text-center">
-                      <p className="text-muted-foreground">
-=======
-                               
-                    <div className="mt-6 text-center cursor-pointer">
-                      <p className="text-muted-foreground cursor-pointer">
->>>>>>> bb0dd92 (add gg auth)
->>>>>>> temp-merge
                         Already have an account?{" "}
                         <button
                           onClick={toggleMode}
