@@ -30,7 +30,6 @@ interface ReportModalProps {
 const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, userRole }) => {
   const [selectedReport, setSelectedReport] = useState("academic-performance")
   const [dateRange, setDateRange] = useState("semester")
-  const [searchTerm, setSearchTerm] = useState("")
 
   if (!isOpen) return null
 
