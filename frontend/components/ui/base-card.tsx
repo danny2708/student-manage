@@ -9,7 +9,7 @@ interface BaseCardProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
 }
 
-export function BaseCard({ children, className, variant = "default", hover = true, onClick }: BaseCardProps) {
+export function BaseCard({ children, className, variant = "default", hover = true }: BaseCardProps) {
   return (
     <div
       className={cn(
