@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "src/contexts/AuthContext";
-import authService from "src/services/authService";
+import { useAuth } from "../../../src/contexts/AuthContext";
+import authService from "../../../src/services/authService";
 
 export default function GoogleCallbackPage() {
   const router = useRouter();

@@ -126,15 +126,15 @@ export default function Auth() {
         } else {
           setErrors({ general: result.error || "Login failed" })
         }
-      } else {
-        const result = await authService.register({
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          phone_number: formData.phone_number,
-          date_of_birth: formData.date_of_birth,
-          gender: formData.gender,
-        })
+      // } else {
+      //   const result = await authService.register({
+      //     email: formData.email,
+      //     password: formData.password,
+      //     full_name: formData.full_name,
+      //     phone_number: formData.phone_number,
+      //     date_of_birth: formData.date_of_birth,
+      //     gender: formData.gender,
+      //   })
         if (result.success) {
           setSuccessMessage("Account created! Please login.")
           setTimeout(() => toggleMode(), 1500)

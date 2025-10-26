@@ -20,7 +20,6 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
   const { subjects, loading: subjectsLoading } = useSubjects();
 
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
-  const [subjectName, setSubjectName] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [className, setClassName] = useState("");
   const [capacityDisplay, setCapacityDisplay] = useState("");
@@ -178,8 +177,6 @@ export function CreateClassForm({ onClose, onCreated }: CreateClassFormProps) {
                 onChange={(e) => {
                   const id = Number(e.target.value);
                   setSelectedSubjectId(id);
-                  const found = subjects.find((s) => s.subject_id === id);
-                  setSubjectName(found?.name || "");
                 }}
                 className="border border-purple-300 focus:border-purple-500 rounded-md p-2"
               >
