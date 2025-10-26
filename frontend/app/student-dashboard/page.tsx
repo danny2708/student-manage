@@ -21,6 +21,7 @@ const ScheduleManagement = dynamic(() => import("../dashboard_components/schedul
 const ClassManagement = dynamic(() => import("../dashboard_components/class/ClassManagement"), { ssr: false });
 const TeacherReviewManagement = dynamic(() => import("../dashboard_components/teacherReview/TeacherReviewModal"), { ssr: false });
 const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
+const TestManagement = dynamic(() => import("../dashboard_components/test/TestManagement"), {ssr: false});
 
 export default function StudentDashboardPage() {
   const router = useRouter();
@@ -144,6 +145,14 @@ export default function StudentDashboardPage() {
             />
           </div>
         )}
+
+        {/* Test */}
+        {visitedSections.includes("test") && (
+          <div className={activeSection === "test" ? "block" : "hidden"}>
+            <TestManagement/>
+          </div>
+        )}
+
 
         {/* Modals */}
         <PersonalScheduleModal open={showPersonalSchedule} onClose={() => setShowPersonalSchedule(false)} />

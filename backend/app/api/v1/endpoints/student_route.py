@@ -108,13 +108,13 @@ def get_all_students(
 
 # --- GET student by ID ---
 @router.get(
-    "/{user_id}",
-    response_model=student_schema.Student,
+    "/{student_user_id}",
+    response_model=student_schema.StudentView,
     summary="Lấy thông tin của một học sinh cụ thể",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_student(user_id: int, db: Session = Depends(deps.get_db)):
-    db_student = student_crud.get_student(db, user_id=user_id)
+def get_student(student_user_id: int, db: Session = Depends(deps.get_db)):
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
     return db_student

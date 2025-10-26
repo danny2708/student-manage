@@ -11,7 +11,12 @@ import {
   LayoutDashboard,
   User as UserIcon,
   LogOut,
+  BookA
+  
 } from "lucide-react";
+
+
+
 import type { StudentStats } from "../../src/services/api/student";
 
 /* ---------------- StudentDashboardContent ---------------- */
@@ -133,6 +138,8 @@ export function Sidebar({ activeSection, setSection, onOpenAccount, onLogout, us
           <SidebarLink id="classes" activeSection={activeSection} setSection={setSection} icon={Users} text="Classes" />
           <SidebarLink id="teacher-review" activeSection={activeSection} setSection={setSection} icon={GraduationCap} text="Teacher Review" />
           <SidebarLink id="report" activeSection={activeSection} setSection={setSection} icon={FileText} text="Report" />
+          <SidebarLink id="test" activeSection={activeSection} setSection={setSection} icon={BookA} text="Test" />
+
         </nav>
       </div>
 

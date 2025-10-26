@@ -8,6 +8,10 @@ export interface TestBase {
     teacher_user_id: number
     score: number
     exam_date: string // date được ánh xạ thành string
+    test_type: string
+
+    student_name?: string
+    class_name?: string
 }
 
 /**
@@ -26,7 +30,8 @@ export interface TestCreate {
     student_user_id: number
     class_id: number
     score: number
-    exam_date: string // YYYY-MM-DD
+    exam_date: string
+    test_type: string
 }
 
 /**
@@ -62,7 +67,7 @@ export async function getTestById(test_id: number): Promise<Test> {
  * Tạo một bài kiểm tra mới.
  */
 export async function createTest(data: TestCreate): Promise<Test> {
-    const res = await api.post<Test>("/tests", data)
+    const res = await api.post<Test>("/tests/", data)
     return res.data
 }
 

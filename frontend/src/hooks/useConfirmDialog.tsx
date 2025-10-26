@@ -1,16 +1,23 @@
-"use client";
+﻿"use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 export function useConfirmDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [onConfirm, setOnConfirm] = useState<() => void>(() => () => {});
+
+  // Dùng ref để lưu callback luôn cập nhật
+  const confirmCallbackRef = useRef<() => void>(() => {});
 
   const openConfirm = useCallback((msg: string, confirmAction: () => void) => {
     setMessage(msg);
-    setOnConfirm(() => confirmAction);
+    confirmCallbackRef.current = confirmAction; // ✅ luôn cập nhật callback mới
     setIsOpen(true);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    confirmCallbackRef.current(); // ✅ gọi hàm mới nhất
+    setIsOpen(false);
   }, []);
 
   const closeConfirm = useCallback(() => {
@@ -20,7 +27,7 @@ export function useConfirmDialog() {
   return {
     isOpen,
     message,
-    onConfirm,
+    onConfirm: handleConfirm,
     openConfirm,
     closeConfirm,
   };

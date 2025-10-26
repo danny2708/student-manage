@@ -1,5 +1,3 @@
-// ShowInfoModal.tsx (Đã sửa lỗi thụt dòng)
-
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -10,19 +8,22 @@ import { useSchedules } from "../../../src/contexts/ScheduleContext";
 import { useClasses } from "../../../src/contexts/ClassContext";
 import { useTuitions } from "../../../src/hooks/useTuition";
 import { usePayrolls } from "../../../src/hooks/usePayroll";
+import { useTest } from "../../../src/hooks/useTest";
 
 import { Tuition } from "../../../src/services/api/tuition";
 import { Payroll } from "../../../src/services/api/payroll";
 import { Class, ClassUpdate } from "../../../src/services/api/class";
 import { Schedule, ScheduleUpdate } from "../../../src/services/api/schedule";
+import { Test, TestUpdate } from "../../../src/services/api/test";
 
 import { PayrollInfoForm } from "./PayrollInfoForm";
 import { TuitionInfoForm } from "./TuitionInfoForm";
 import { ClassInfoForm } from "./ClassInfoForm";
 import { ScheduleInfoForm } from "./ScheduleInfoForm";
+import { TestInfoForm } from "./TestInfoForm";
 
-export type ModalDataType = Tuition | Payroll | Class | Schedule;
-export type ModalType = "tuition" | "payroll" | "class" | "schedule";
+export type ModalDataType = Tuition | Payroll | Class | Schedule | Test;
+export type ModalType = "tuition" | "payroll" | "class" | "schedule" | "test";
 
 interface ShowInfoModalProps {
   type: ModalType;
@@ -48,13 +49,13 @@ export function ShowInfoModal({
   const { editClass } = useClasses();
   const { editTuition } = useTuitions();
   const { editPayroll } = usePayrolls();
+  const { editTest } = useTest();
 
-  // --- Phân quyền ---
   const isManager = !!userRoles?.includes("manager");
   const isTeacher = !!userRoles?.includes("teacher");
   const isStudent = !!userRoles?.includes("student");
 
-  // convert date trước khi render form
+  // --- convert date trước khi render form ---
   useEffect(() => {
     if (type === "schedule") {
       const s = data as Schedule;
@@ -62,12 +63,24 @@ export function ShowInfoModal({
         const [y, m, d] = s.date.split("-");
         setEditedData({ ...s, date: `${d}/${m}/${y}` });
       }
-    }
-    if (type === "tuition") {
+    } else if (type === "tuition") {
       const t = data as Tuition;
       if (t.due_date && t.due_date.includes("-")) {
         const [y, m, d] = t.due_date.split("-");
         setEditedData({ ...t, due_date: `${d}/${m}/${y}` });
+      }
+    } else if (type === "test") {
+      const t = data as Test;
+      if (t.exam_date) {
+        const parts = t.exam_date.includes("-") ? t.exam_date.split("-") : t.exam_date.split("/");
+        if (parts.length === 3) {
+          const [y, m, d] = parts;
+          setEditedData({ ...t, exam_date: `${d}/${m}/${y}` });
+        } else {
+          setEditedData(t);
+        }
+      } else {
+        setEditedData(t);
       }
     }
   }, [type, data]);
@@ -84,7 +97,6 @@ export function ShowInfoModal({
     try {
       if (type === "tuition") {
         const t = editedData as Tuition;
-        // Bỏ kiểm tra quyền ở đây, chỉ kiểm tra ở nút Save
         const [d, m, y] = (t.due_date as string).split("/");
         await editTuition(t.id, {
           amount: Number(t.amount),
@@ -94,7 +106,6 @@ export function ShowInfoModal({
         });
       } else if (type === "payroll") {
         const p = editedData as Payroll;
-
         const updatedMonth =
           p.month !== undefined && p.month !== null
             ? Number(p.month)
@@ -103,12 +114,8 @@ export function ShowInfoModal({
         let sentAtISO: string;
         try {
           const dateObj = new Date(p.sent_at);
-          if (isNaN(dateObj.getTime())) {
-            throw new Error("Invalid Date");
-          }
-          sentAtISO = dateObj.toISOString();
-        } catch (error) {
-          console.warn("Invalid sent_at value. Using current date as fallback.");
+          sentAtISO = isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
+        } catch {
           sentAtISO = new Date().toISOString();
         }
 
@@ -150,7 +157,24 @@ export function ShowInfoModal({
           payload.day_of_week = s.day_of_week;
         }
         await editSchedule(s.id, payload);
+      } else if (type === "test") {
+        const t = editedData as Test;
+        const payload: TestUpdate = {
+          test_name: t.test_name,
+          score: Number(t.score),
+          exam_date: t.exam_date
+            ? (() => {
+                const [d, m, y] = t.exam_date.split("/");
+                return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+              })()
+            : undefined,
+        };
+
+        console.log("Test payload:", payload, "Test ID:", t.test_id);
+        await editTest(t.test_id, payload);
+        console.log("API call completed");
       }
+
       await onUpdated();
       onClose();
     } catch (err) {
@@ -162,58 +186,38 @@ export function ShowInfoModal({
 
   const renderContent = () => {
     let disabled = false;
-    let canEditTuition = isManager; // Mặc định Manager có quyền sửa Tuition
+    let canEditTuition = isManager;
 
     if (isStudent) {
-      disabled = true; // student chỉ xem
+      disabled = true;
     } else if (isTeacher) {
-      // teacher chỉ được update schedule
-      disabled = type !== "schedule";
+      disabled = type !== "schedule" && type !== "test";
     }
 
     if (type === "tuition") {
-      // Chỉ Manager mới có quyền sửa học phí
-      canEditTuition = isManager;
       return (
         <TuitionInfoForm
           data={editedData as Tuition}
           onInputChange={handleInputChange}
-          canEdit={canEditTuition} // ✅ TRUYỀN PROP canEdit cho TuitionInfoForm
+          canEdit={canEditTuition}
         />
       );
     }
     if (type === "payroll")
-      return (
-        <PayrollInfoForm
-          data={editedData as Payroll}
-          onInputChange={handleInputChange}
-          disabled={disabled}
-        />
-      );
+      return <PayrollInfoForm data={editedData as Payroll} onInputChange={handleInputChange} disabled={disabled} />;
     if (type === "class")
-      return (
-        <ClassInfoForm
-          data={editedData as Class}
-          onInputChange={handleInputChange}
-          disabled={disabled}
-        />
-      );
+      return <ClassInfoForm data={editedData as Class} onInputChange={handleInputChange} disabled={disabled} />;
     if (type === "schedule")
-      return (
-        <ScheduleInfoForm
-          data={editedData as Schedule}
-          onInputChange={handleInputChange}
-          disabled={disabled}
-        />
-      );
+      return <ScheduleInfoForm data={editedData as Schedule} onInputChange={handleInputChange} disabled={disabled} />;
+    if (type === "test")
+      return <TestInfoForm data={editedData as Test} onInputChange={handleInputChange} disabled={disabled} />;
+
     return <div className="text-gray-600">No information to display.</div>;
   };
 
-  // Kiểm tra xem nút Save có nên hiển thị không
-  const showSaveButton = 
-      (isManager && ["class", "tuition", "payroll"].includes(type)) ||
-      (isTeacher && type === "schedule");
-
+  const showSaveButton =
+    (isManager && ["class", "tuition", "payroll", "test"].includes(type)) ||
+    (isTeacher && ["schedule", "test"].includes(type));
 
   return (
     <motion.div
@@ -238,41 +242,27 @@ export function ShowInfoModal({
           ? "Payroll "
           : type === "class"
           ? "Class "
-          : "Schedule "}
+          : type === "schedule"
+          ? "Schedule "
+          : "Test "}
         details
       </h2>
 
       {renderContent()}
 
-      {/* Save button */}
-      {showSaveButton && ( // Dùng biến mới để kiểm tra
+      {showSaveButton && (
         <div className="flex justify-center mt-6 space-x-3">
-          {isManager && (
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          )}
-
-          {isTeacher && type === "schedule" && (
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          )}
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
         </div>
       )}
 
-      {/* Extra actions */}
-      {extraActions && (isManager || isTeacher) ? (
-        <div className="mt-3 text-center">{extraActions}</div>
-      ) : null}
+      {extraActions && (isManager || isTeacher) && <div className="mt-3 text-center">{extraActions}</div>}
     </motion.div>
   );
 }

@@ -153,7 +153,6 @@ class AuthService {
   logout() {
     this.token = null;
     this.user = null;
-     
     this.broadcast({ type: "logout" });
   }
 

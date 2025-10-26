@@ -27,14 +27,15 @@ MANAGER_OR_TEACHER = Depends(has_roles(["manager", "teacher"]))
     response_model=test_schema.Test,
     status_code=status.HTTP_201_CREATED,
     summary="Tạo một bài kiểm tra mới",
-    dependencies=[MANAGER_OR_TEACHER] # ĐÃ SỬA: Sử dụng trực tiếp biến dependency
+    dependencies=[MANAGER_OR_TEACHER]
 )
 def create_new_test(
     test_in: test_schema.TestCreate,
     db: Session = Depends(deps.get_db),
-    current_user = Depends(get_current_active_user)  # lấy thông tin user
+    current_user = Depends(get_current_active_user)
 ):
-    db_student = student_crud.get_student(db, user_id=test_in.student_user_id)
+
+    db_student = student_crud.get_student(db, student_user_id=test_in.student_user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail=f"Student with id {test_in.student_user_id} not found.")
 

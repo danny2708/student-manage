@@ -17,10 +17,32 @@ from app.models.subject_model import Subject
 from app.schemas.teacher_schema import TeacherView
 from app.crud import teacher_crud
 
-def get_student(db: Session, student_user_id: int) -> Optional[Student]:
-    return db.execute(
-        select(Student).where(Student.user_id == student_user_id)
-    ).scalar_one_or_none()
+def get_student(db: Session, student_user_id: int) -> Optional[StudentView]:
+    """
+    Lấy thông tin sinh viên bằng cách JOIN bảng Student và User, 
+    trả về dưới dạng StudentView.
+    """
+    stmt = (
+        select(
+            # Chọn các trường từ Student
+            Student.user_id.label("student_user_id"),
+            # Chọn các trường cần thiết từ User
+            User.full_name,
+            User.email,
+            User.date_of_birth,
+            User.phone_number,
+            User.gender,
+        )
+        .join(User, Student.user_id == User.user_id)
+        .where(Student.user_id == student_user_id)
+    )
+
+    result = db.execute(stmt).one_or_none()
+
+    if result:
+        return StudentView.model_validate(result._asdict())
+
+    return None
 
 
 def get_student_with_user(db: Session, user_id: int) -> Optional[Tuple[Student, User]]:

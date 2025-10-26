@@ -212,7 +212,7 @@ export function UserAccountModal({ user, onClose }: UserAccountModalProps) {
                 setInputDobText(formatDateToDDMMYYYY(userData.dob));
               }
             }}
-            className="text-white hover:bg-white hover:bg-opacity-10 p-2 rounded-full"
+            className="text-white hover:bg-white hover:text-black hover:bg-opacity-10 p-2 rounded-full cursor-pointer"
           >
             <PenSquare className="h-4 w-4" />
           </button>

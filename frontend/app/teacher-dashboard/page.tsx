@@ -42,6 +42,11 @@ const AttendanceManagement = dynamic(
   { ssr: false }
 );
 
+const TestManagement = dynamic(
+    () => import("../dashboard_components/test/TestManagement"),
+    { ssr: false }
+);
+
 export default function TeacherDashboard() {
   const { user, logout } = useAuth() as { user: LoginResponse | null; logout: () => void };
   const router = useRouter();
@@ -58,6 +63,7 @@ export default function TeacherDashboard() {
     payroll: "",
     reviews: "",
     report: "",
+    tests: "",
   });
 
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -160,6 +166,13 @@ export default function TeacherDashboard() {
               teacherUserId={user ? user.user_id : undefined}
             />
           </div>
+        )}
+
+        {/* Test Management */}
+        {visitedSections.includes("tests") && (
+            <div className={activeSection === "tests" ? "block" : "hidden"}>
+             <TestManagement/>
+            </div>
         )}
 
         {/* Payroll */}

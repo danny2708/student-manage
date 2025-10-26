@@ -17,6 +17,16 @@ import {
   Schedule,
   deleteSchedule,
 } from "../../../src/services/api/schedule";
+
+{/*test*/}
+import {
+  Test,
+  getTests,
+  deleteTest,
+  updateTest
+
+} from "../../../src/services/api/test";
+
 import { ShowInfoModal, ModalDataType } from "./ShowInfoModal";
 
 export function ShowInfoFlow() {
@@ -29,6 +39,10 @@ export function ShowInfoFlow() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
+  const [testRows, setTestRows] = useState<Test[]>([]);
+  const [selectedType, setSelectedType] = useState<"tuition" | "payroll" | "schedule" | "test">("tuition");
+
+
   const fetchTuitionData = async () => {
     try {
       const data = await getTuitions();
@@ -38,10 +52,21 @@ export function ShowInfoFlow() {
     }
   };
 
+
+  const fetchTestData = async () => {
+  try {
+    const data = await getTests();
+    setTestRows(data);
+  } catch (error) {
+    console.error("Failed to fetch tests:", error);
+  }
+};
+
   useEffect(() => {
     fetchTuitionData();
     fetchPayrolls();
     fetchSchedules();
+    fetchTestData();
   }, []);
 
   const handleRowClick = (row: ModalDataType, type: "tuition" | "payroll" | "schedule") => {
@@ -65,6 +90,10 @@ export function ShowInfoFlow() {
         await deleteSchedule((selectedRow as Schedule).id);
         await fetchSchedules();
         alert("Schedule deleted successfully!");
+      } else if (selectedType === "test") {
+        await deleteTest((selectedRow as Test).id);
+        await fetchTestData();
+        alert("Test deleted successfully!");
       }
       setShowConfirm(false);
     } catch (err) {
@@ -77,6 +106,7 @@ export function ShowInfoFlow() {
     await fetchTuitionData();
     await fetchPayrolls();
     await fetchSchedules();
+    await fetchTestData();
   };
 
   return (
@@ -137,6 +167,25 @@ export function ShowInfoFlow() {
           ))}
         </tbody>
       </table>
+
+      <h3 className="text-lg font-bold mb-2">Tests</h3>
+        <table className="w-full mb-6">
+          <thead>
+            <tr><th>ID</th><th>Title</th></tr>
+          </thead>
+          <tbody>
+            {testRows.map((t) => (
+              <tr
+                key={t.id}
+                className="hover:bg-gray-700 cursor-pointer"
+                onClick={() => handleRowClick(t, "test")}
+              >
+                <td>{t.id}</td>
+                <td>{t.title}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
       {/* Action Modal */}
       {showConfirm && selectedRow && (

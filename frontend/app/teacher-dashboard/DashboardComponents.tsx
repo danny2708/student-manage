@@ -236,6 +236,7 @@ export function Sidebar({
             <SidebarLink id="schedule" activeSection={activeSection} setSection={setSection} icon={Calendar} text="Schedules" />
             <SidebarLink id="class" activeSection={activeSection} setSection={setSection} icon={BookOpen} text="Classes" />
             <SidebarLink id="evaluation" activeSection={activeSection} setSection={setSection} icon={StarIcon} text="Evaluations" />
+            <SidebarLink id="tests" activeSection={activeSection} setSection={setSection} icon={FileText} text="Tests" />
           </Category>
 
           <Category name="personal" title="Personal" icon={User} expandedCategories={expandedCategories} toggleCategory={toggleCategory}>
