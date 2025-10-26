@@ -70,15 +70,6 @@ export function CalendarListView({ schedules, onEventClick }: CalendarListViewPr
     return sorted;
   }, [schedules]);
 
-  // derive subjects for filter
-  const subjects = useMemo(() => {
-    const set = new Set<string>();
-    for (const [, arr] of grouped) {
-      for (const s of arr) if (s.subject) set.add(s.subject);
-    }
-    return Array.from(set);
-  }, [grouped]);
-
   // apply search + filter
   const filteredGrouped = useMemo(() => {
     if (grouped.length === 0) return [] as [string, ScheduleItem[]][];

@@ -119,25 +119,26 @@ export const ClassesProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getTeacherClasses = useCallback(async (teacherUserId: number) => {
-    console.log(
-      "[ClassesProvider] getTeacherClasses called for teacher:",
-      teacherUserId,
-      new Date().toISOString()
-    );
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getTeacherClassesApi(teacherUserId);
-      setLoading(false);
-      return data;
-    } catch (err: any) {
-      setLoading(false);
-      const msg = err?.message || "Không thể tải danh sách lớp học của giáo viên.";
-      setError(msg);
-      toast.error(msg);
-      throw new Error(msg);
-    }
-  }, []);
+  console.log(
+    "[ClassesProvider] getTeacherClasses called for teacher:",
+    teacherUserId,
+    new Date().toISOString()
+  );
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await getTeacherClassesApi(teacherUserId);
+    setClasses(data ?? []); // ✅ thêm dòng này để cập nhật state
+    setLoading(false);
+    return data;
+  } catch (err: any) {
+    setLoading(false);
+    const msg = err?.message || "Không thể tải danh sách lớp học của giáo viên.";
+    setError(msg);
+    toast.error(msg);
+    throw new Error(msg);
+  }
+}, []);
 
   const exportClassData = useCallback(async (id: number) => {
     try {

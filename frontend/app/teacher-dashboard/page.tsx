@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../src/contexts/AuthContext";
 import type { LoginResponse } from "../../src/services/api/auth";
 import { toast } from "react-hot-toast";
-import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
-import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
+import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
-
+import { Button } from "../../components/ui/button";
 import { useTeacher } from "../../src/hooks/useTeacher";
 import type { TeacherStats } from "../../src/services/api/teacher";
 
@@ -18,28 +18,33 @@ import { Sidebar, TeacherDashboardContent } from "./DashboardComponents";
 
 // dynamic imports
 const ScheduleManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"),
+  () => import("../dashboard_components/schedule/ScheduleManagement"),
   { ssr: false }
 );
 const ClassManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/class/ClassManagement"),
+  () => import("../dashboard_components/class/ClassManagement"),
   { ssr: false }
 );
 const EvaluationModal = dynamic(
-  () => import("../student-dashboard/StudentEvaluationModal"),
+  () => import("../dashboard_components/evaluation/StudentEvaluationModal"),
   { ssr: false }
 );
 const PayrollManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/payroll/PayrollManagement"),
+  () => import("../dashboard_components/payroll/PayrollManagement"),
   { ssr: false }
 );
 const TeacherReviewManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/TeacherReviewManagement"),
+  () => import("../dashboard_components/teacherReview/TeacherReviewManagement"),
   { ssr: false }
 );
 const AttendanceManagement = dynamic(
-  () => import("../manager-dashboard/dashboard_components/attendance/AttendanceManagement"),
+  () => import("../dashboard_components/attendance/AttendanceManagement"),
   { ssr: false }
+);
+
+const TestManagement = dynamic(
+    () => import("../dashboard_components/test/TestManagement"),
+    { ssr: false }
 );
 
 export default function TeacherDashboard() {
@@ -58,6 +63,7 @@ export default function TeacherDashboard() {
     payroll: "",
     reviews: "",
     report: "",
+    tests: "",
   });
 
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -116,12 +122,12 @@ export default function TeacherDashboard() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               onClick={() => setShowPersonalSchedule(true)}
               className="px-3 py-2 rounded-md bg-slate-600 text-white hover:bg-slate-500 cursor-pointer"
             >
               My Schedule
-            </button>
+            </Button>
             <NotificationManagement />
           </div>
         </div>
@@ -157,8 +163,16 @@ export default function TeacherDashboard() {
           <div className={activeSection === "evaluation" ? "block" : "hidden"}>
             <EvaluationModal
               userRole="teacher"
+              teacherUserId={user ? user.user_id : undefined}
             />
           </div>
+        )}
+
+        {/* Test Management */}
+        {visitedSections.includes("tests") && (
+            <div className={activeSection === "tests" ? "block" : "hidden"}>
+             <TestManagement/>
+            </div>
         )}
 
         {/* Payroll */}

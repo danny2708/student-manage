@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import authService from "../services/authService";
@@ -20,11 +20,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; user?: User | null; error?: string }>;
+  loginWithGoogle: (code: string) => Promise<{ success: boolean; user?: User | null; error?: string }>;
   logout: () => void;
   hasAnyRole: (roles: string[]) => boolean;
   refresh: () => Promise<void>;
-  // NEW: expose setAuthUser to allow trusted callers to update the current user directly
   setAuthUser: (u: User | null) => void;
+  handleLoginSuccess: (roles: string[], router: any) => void;
+  
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
+    const initAuth = async () => {
       setLoading(true);
       try {
         if (typeof (authService as any).init === "function") {
@@ -59,7 +61,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser((authService as any).user ?? null);
         setLoading(false);
       }
-    })();
+    };
+
+    initAuth();
 
     const handleAuthUpdate = () => {
       try {
@@ -81,17 +85,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const onFocus = async () => {
       try {
         await (authService as any).init?.();
-      } catch {
-        /* ignore */
-      }
+      } catch {}
       setUser((authService as any).user ?? null);
       setLoading(false);
     };
 
     const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        onFocus();
-      }
+      if (document.visibilityState === "visible") onFocus();
     };
 
     window.addEventListener("storage", onStorage);
@@ -116,14 +116,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // login bằng username/password
   const login = async (credentials: { username: string; password: string }) => {
     setLoading(true);
     try {
       const res = await authService.login(credentials);
       if (res.success) {
-        setUser((authService as any).user ?? (res.user ?? null));
+        setUser(res.user ?? null);
         setLoading(false);
-        return { success: true, user: (authService as any).user ?? (res.user ?? null) };
+        return { success: true, user: res.user ?? null };
       } else {
         setUser(null);
         setLoading(false);
@@ -135,6 +136,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { success: false, error: err?.message || "Login failed" };
     }
   };
+
+  // login bằng Google SSO
+  const loginWithGoogle = async (code: string) => {
+    setLoading(true);
+    try {
+      const res = await authService.loginWithGoogle(code);
+      if (res.success) {
+        setUser(res.user ?? null);
+        setLoading(false);
+        return { success: true, user: res.user ?? null };
+      } else {
+        setUser(null);
+        setLoading(false);
+        return { success: false, error: res.error || "Google login failed" };
+      }
+    } catch (err: any) {
+      setUser(null);
+      setLoading(false);
+      return { success: false, error: err?.message || "Google login failed" };
+    }
+  };
+
+  const handleLoginSuccess = (roles: string[], router: any) => {
+  if (roles.length === 1) {
+    router.push(`/${roles[0]}-dashboard`);
+  } else if (roles.length > 1) {
+    router.push("/select-role"); // có thể tuỳ chỉnh
+  } else {
+    router.push("/login");
+  }
+};
 
   const logout = () => {
     try {
@@ -155,38 +187,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser((authService as any).user ?? null);
   };
 
-  // Expose a safe setter so other trusted providers can update current user
   const setAuthUser = (u: User | null) => {
     setUser(u);
     try {
-      // persist to authService if available
       if (typeof (authService as any).setUser === "function") {
         (authService as any).setUser(u);
       } else {
-        // optional fallback persist
-        if (u === null) {
-          localStorage.removeItem("user");
-        } else {
-          localStorage.setItem("user", JSON.stringify(u));
-        }
+        if (u === null) localStorage.removeItem("user");
+        else localStorage.setItem("user", JSON.stringify(u));
       }
     } catch (e) {
       console.warn("setAuthUser: persist failed", e);
     }
 
-    // broadcast to other tabs/listeners (and to any listeners that rely on storage event)
     try {
       if (typeof window !== "undefined" && "BroadcastChannel" in window) {
         const bc = new BroadcastChannel("app_auth_channel");
         bc.postMessage({ type: "auth_update", ts: Date.now() });
         bc.close();
       } else {
-        // fallback: trigger a storage key change (storage event will fire in other tabs)
         localStorage.setItem("app_auth_event", String(Date.now()));
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch {}
   };
 
   const value: AuthContextType = {
@@ -194,10 +216,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !loading && !!user && !!(authService as any).token,
     loading,
     login,
+    loginWithGoogle,
     logout,
     hasAnyRole,
     refresh,
     setAuthUser,
+    handleLoginSuccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

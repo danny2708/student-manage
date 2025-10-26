@@ -55,11 +55,11 @@ export default function Auth() {
       gender: "other",
     })
   }
-
   const handleInputChange = (field: FormField, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: "", general: "" }))
-  }
+  setFormData((prev) => ({ ...prev, [field]: value }));
+  setErrors((prev) => ({ ...prev, [field]: "", general: "" }));
+};
+
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -394,6 +394,23 @@ export default function Auth() {
                             "Login"
                           )}
                         </Button>
+
+                        {/*Nút Đăng nhập bằng Google */}
+                        <div className="mt-4 flex justify-center cursor-pointer">
+                          <Button
+                            type="button"
+                            onClick={() => window.location.href = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=786885090531-48kvletdoja8fhlld75k3l5drk6rmdnv.apps.googleusercontent.com&redirect_uri=http://localhost:8000/api/v1/auth/google/callback&scope=openid email profile"}
+                            className="w-full h-12 bg-white text-gray-700 border hover:bg-gray-100 transition-all"
+                          >
+                            <img
+                              src="https://www.svgrepo.com/show/475656/google-color.svg"
+                              alt="Google Logo"
+                              className="w-5 h-5 mr-2"
+                            />
+                            Sign in with Google
+                          </Button>
+                        </div>
+
                       </motion.div>
                     </form>
 
@@ -641,8 +658,9 @@ export default function Auth() {
                       </motion.div>
                     </form>
 
-                    <div className="mt-6 text-center">
-                      <p className="text-muted-foreground">
+                               
+                    <div className="mt-6 text-center cursor-pointer">
+                      <p className="text-muted-foreground cursor-pointer">
                         Already have an account?{" "}
                         <button
                           onClick={toggleMode}

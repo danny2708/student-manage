@@ -48,4 +48,12 @@ api.interceptors.response.use(
   }
 );
 
+
+export async function loginWithGoogle(code: string) {
+  // Không gắn token
+  const res = await api.post("/auth/google", { code });
+  return res.data; // backend trả về JWT + user info
+}
+
+
 export default api

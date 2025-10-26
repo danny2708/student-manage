@@ -16,7 +16,7 @@ class Subject(Base):
     classes = relationship("Class", back_populates="subject")
     
     # Thêm mối quan hệ mới với bảng Test
-    tests = relationship("Test", back_populates="subject")
+    ##tests = relationship("Test", back_populates="subject")
 
     def __repr__(self):
         return f"<Subject(name='{self.name}')>"

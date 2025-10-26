@@ -28,12 +28,12 @@ class Student(StudentBase):
 
 class StudentView(BaseModel):
     student_user_id: int
-    class_name: Optional[str]
-    full_name: Optional[str]
-    email: Optional[str]
-    date_of_birth: Optional[date]
-    phone_number: Optional[str]
-    gender: Optional[str]
+    class_name: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    phone_number: Optional[str] = None
+    gender: Optional[str] = None
 
     @field_serializer("date_of_birth")
     def format_date_of_birth(self, date_of_birth: date, _info):

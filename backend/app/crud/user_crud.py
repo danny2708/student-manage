@@ -9,7 +9,11 @@ from app.schemas.user_schema import UserView, UserViewDetails
 # bcrypt context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Trong app/crud/user_crud.py
+def is_bcrypt_hash(password: str) -> bool:
+    # Bcrypt hash thường bắt đầu bằng $2b$, $2a$, hoặc $2y$
+    return isinstance(password, str) and (
+        password.startswith("$2b$") or password.startswith("$2a$") or password.startswith("$2y$")
+    )
 
 def get_user(db: Session, user_id: int) -> Optional[UserViewDetails]:
     """
@@ -34,8 +38,6 @@ def get_user(db: Session, user_id: int) -> Optional[UserViewDetails]:
         date_of_birth=db_user.date_of_birth,
         gender=db_user.gender,
     )
-
-# Trong app/crud/user_crud.py
 
 def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[UserView]:
     """
@@ -66,6 +68,10 @@ def create_user(db: Session, user: UserCreate) -> User:
     Lưu first_password (raw), password = hash(first_password).
     """
 
+    # Chỉ hash nếu chưa phải là hash bcrypt
+    password = user.password
+    if not is_bcrypt_hash(password):
+        password = pwd_context.hash(password)
     db_user = User(
         username=user.username,
         email=user.email,
@@ -74,7 +80,7 @@ def create_user(db: Session, user: UserCreate) -> User:
         gender=user.gender,
         phone_number=user.phone_number,
         password_changed=False,                
-        password=pwd_context.hash(user.password),    
+        password=password,    
     )
 
     db.add(db_user)
@@ -96,7 +102,8 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[
 
     # Nếu có password mới → hash và set password_changed = True
     if "password" in update_data and update_data["password"]:
-        update_data["password"] = pwd_context.hash(update_data["password"])
+        if not is_bcrypt_hash(update_data["password"]):
+            update_data["password"] = pwd_context.hash(update_data["password"])
         db_user.password_changed = True  # gán trực tiếp vào entity
 
     for key, value in update_data.items():

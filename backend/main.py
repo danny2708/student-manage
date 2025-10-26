@@ -8,6 +8,8 @@ from app.api.v1.api import api_router
 from app.database import Base, engine, SessionLocal
 from app.models import *
 from app.services import tuition_service
+import os
+from starlette.middleware.sessions import SessionMiddleware
 import logging
 
 # Cấu hình logging cho APScheduler
@@ -61,6 +63,7 @@ app = FastAPI(
     lifespan=lifespan # Thêm dòng này để sử dụng lifespan
 )
 
+
 # Cấu hình CORS để cho phép các domain khác truy cập API
 app.add_middleware(
     CORSMiddleware,
@@ -68,6 +71,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# ⚠️ Cần thêm middleware này cho OAuth Google
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET_KEY", "supersecretkey")
 )
 
 # Bao gồm router chính của API v1

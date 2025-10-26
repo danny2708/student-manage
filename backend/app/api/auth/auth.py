@@ -11,15 +11,12 @@ from app.api.deps import get_db
 from app.models.user_model import User
 from app.schemas.auth_schema import TokenData, AuthenticatedUser
 from dotenv import load_dotenv
+from app.config import SECRET_KEY
 
 # Tải các biến môi trường
 load_dotenv()
 
 # Cấu hình JWT
-SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-from-env")
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable is not set. Please set it in your .env file.")
-
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 180
 

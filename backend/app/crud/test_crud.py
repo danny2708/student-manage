@@ -1,11 +1,19 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import or_, select
+from typing import List
+
+# ✅ Dùng SQLAlchemy model cho thao tác DB
 from app.models.test_model import Test
 from app.models.class_model import Class
-from app.schemas.test_schema import TestCreate, TestUpdate
-from app.services.test_service import validate_student_enrollment
+from app.models.student_model import Student
+from app.models.user_model import User
+
+# ✅ Dùng Pydantic schema cho dữ liệu vào/ra
+from app.schemas.test_schema import TestBase, TestCreate, TestUpdate
 from app.schemas.auth_schema import AuthenticatedUser
+
+from app.services.test_service import validate_student_enrollment
 
 
 def create_test(db: Session, test_in: TestCreate, current_user: AuthenticatedUser):
@@ -38,10 +46,10 @@ def create_test(db: Session, test_in: TestCreate, current_user: AuthenticatedUse
         test_name=test_in.test_name,
         student_user_id=test_in.student_user_id,
         class_id=test_in.class_id,
-        subject_id=db_class.subject_id,
         teacher_user_id=db_class.teacher_user_id,
         score=test_in.score,
-        exam_date=test_in.exam_date
+        exam_date=test_in.exam_date,
+        test_type=test_in.test_type
     )
     db.add(db_test)
     db.commit()
@@ -49,12 +57,14 @@ def create_test(db: Session, test_in: TestCreate, current_user: AuthenticatedUse
     return db_test
 
 
-def update_test(db: Session, test_id: int, test_update: TestUpdate, current_user: AuthenticatedUser):
+def update_test(db: Session, test_id: int, test_update: TestUpdate, current_user):
+    # 1. Tìm bài kiểm tra
     db_test = db.query(Test).filter(Test.test_id == test_id).first()
     if not db_test:
         return None
 
-    # Nếu user là teacher -> chỉ update test của lớp mình dạy
+    # 2. Kiểm tra quyền của Teacher (Logic này giữ nguyên)
+    # Lấy class_id của bài test hiện tại để kiểm tra quyền
     if "teacher" in current_user.roles:
         db_class = db.get(Class, db_test.class_id)
         if not db_class or db_class.teacher_user_id != current_user.user_id:
@@ -63,23 +73,26 @@ def update_test(db: Session, test_id: int, test_update: TestUpdate, current_user
                 detail="Bạn không có quyền cập nhật bài kiểm tra này."
             )
 
+    # 3. Loại bỏ student_user_id và class_id khỏi dữ liệu cập nhật
+    # Danh sách các trường KHÔNG được phép cập nhật
+    EXCLUDE_FIELDS = {"student_user_id", "class_id", "teacher_user_id"} 
+    
     update_data = test_update.model_dump(exclude_unset=True)
-    new_class_id = update_data.get("class_id", db_test.class_id)
-    new_student_id = update_data.get("student_user_id", db_test.student_user_id)
 
-    # Validate enrollment
-    validate_student_enrollment(db, new_student_id, new_class_id)
+    # Loại bỏ các trường không cho phép cập nhật
+    update_data_filtered = {
+        key: value 
+        for key, value in update_data.items() 
+        if key not in EXCLUDE_FIELDS
+    }
+    
+    # 4. Áp dụng cập nhật (chỉ cho các trường còn lại)
+    # KHÔNG CẦN VALIDATE ENROLLMENT VÀ LOGIC UPDATE TEACHER NỮA
 
-    if "class_id" in update_data:
-        new_class = db.get(Class, new_class_id)
-        if not new_class:
-            return None
-        db_test.subject_id = new_class.subject_id
-        db_test.teacher_user_id = new_class.teacher_user_id
-
-    for key, value in update_data.items():
+    for key, value in update_data_filtered.items():
         setattr(db_test, key, value)
 
+    # 5. Commit và trả về
     db.commit()
     db.refresh(db_test)
     return db_test
@@ -96,6 +109,11 @@ def get_test(db: Session, test_id: int, current_user: AuthenticatedUser = None):
     if current_user and "teacher" in current_user.roles:
         db_class = db.get(Class, test.class_id)
         if not db_class or db_class.teacher_user_id != current_user.user_id:
+            return None
+
+    if current_user and "student" in current_user.roles:
+        db_student = db.get(Student, test.student_user_id)
+        if not db_student or db_student.user_id != current_user.user_id:
             return None
 
     return test
@@ -119,18 +137,85 @@ def delete_test(db: Session, test_id: int, current_user: AuthenticatedUser):
     db.commit()
     return db_test
 
-def get_tests_by_student_user_id (db: Session, student_user_id : int, skip: int = 0, limit: int = 100):
-    """Lấy danh sách các bài kiểm tra theo student_user_id ."""
-    stmt = select(Test).where(Test.student_user_id  == student_user_id ).offset(skip).limit(limit)
+
+def get_tests_by_student_user_id(db: Session, student_user_id: int, skip: int = 0, limit: int = 100):
+    """Lấy danh sách các bài kiểm tra theo student_user_id."""
+    stmt = select(Test).where(Test.student_user_id == student_user_id).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
-def get_tests_by_subject_id(db: Session, subject_id: int, skip: int = 0, limit: int = 100):
-    """Lấy danh sách các bài kiểm tra theo subject_id."""
-    stmt = select(Test).where(Test.subject_id == subject_id).offset(skip).limit(limit)
+
+def get_tests_by_teacher_user_id(db: Session, teacher_user_id: int, skip: int = 0, limit: int = 100):
+    """Lấy danh sách các bài kiểm tra theo teacher_user_id."""
+    stmt = select(Test).where(Test.teacher_user_id == teacher_user_id).offset(skip).limit(limit)
     return db.execute(stmt).scalars().all()
 
-def get_all_tests(db: Session, skip: int = 0, limit: int = 100):
-    """Lấy danh sách tất cả các bài kiểm tra."""
-    stmt = select(Test).offset(skip).limit(limit)
-    return db.execute(stmt).scalars().all()
 
+from sqlalchemy import select, or_
+from sqlalchemy.orm import Session
+# Giả định các import cần thiết khác như Test, Class, Student, User, AuthenticatedUser
+# VÀ TestBase (Pydantic model)
+
+def get_all_tests(db: Session, current_user: AuthenticatedUser, skip: int = 0, limit: int = 100):
+    
+    # BƯỚC 1: Xây dựng truy vấn cơ sở với JOIN thêm User
+    stmt = (
+        select(
+            Test.test_id,
+            Test.test_name,
+            Test.student_user_id,
+            
+            # THÊM CỘT TÊN HỌC SINH VÀ ĐẶT TÊN LẠI
+            User.full_name.label("student_name"), 
+            
+            Test.class_id,
+            Class.class_name,
+            Test.teacher_user_id,
+            Test.score,
+            Test.exam_date,
+            Test.test_type
+        )
+        # JOIN LỚP
+        .join(Class, Test.class_id == Class.class_id)
+        # JOIN HỌC SINH (Student) VÀ USER ĐỂ LẤY TÊN
+        # Ta cần một bảng User để lấy full_name. Vì Test liên kết với Student qua student_user_id, 
+        # và Student cũng chính là một User (giả định Student.user_id = User.id)
+        # Nếu Student và User là hai bảng riêng biệt, bạn cần JOIN qua cả hai.
+        # Ở đây, ta giả định student_user_id của Test là user_id của User.
+        .join(User, Test.student_user_id == User.user_id) # Thay User.id bằng khóa chính của User
+    )
+
+    filters = []
+
+    # --- BƯỚC 2: Xử lý Manager (Áp dụng filter sau cho Manager) ---
+    # Logic Manager được hợp nhất vào cuối để tránh lặp code.
+
+    # --- BƯỚC 3: Xử lý các vai trò khác (Giữ nguyên logic phân quyền) ---
+    
+    if "teacher" in current_user.roles:
+        filters.append(Test.teacher_user_id == current_user.user_id)
+
+    if "student" in current_user.roles:
+        filters.append(Test.student_user_id == current_user.user_id)
+
+    if "parent" in current_user.roles:
+        # Giữ nguyên logic tìm con
+        child_students = db.execute(
+            select(Student.user_id).where(Student.parent_id == current_user.user_id)
+        ).scalars().all()
+        if child_students:
+            filters.append(Test.student_user_id.in_(child_students))
+        else:
+            filters.append(Test.test_id == -1)
+
+    # --- BƯỚC 4: Áp dụng filter (bao gồm cả các vai trò không phải Manager) ---
+    
+    if filters:
+        # Nếu là Manager, filters vẫn là rỗng nên không WHERE gì cả
+        stmt = stmt.where(or_(*filters))
+
+    # --- BƯỚC 5: Phân trang & Thực thi ---
+    stmt = stmt.offset(skip).limit(limit)
+    results = db.execute(stmt).all()
+
+    # --- BƯỚC 6: Map tuple -> dict cho Pydantic ---
+    return [TestBase.model_validate(row._asdict()) for row in results]

@@ -28,17 +28,20 @@ def create_new_evaluation_record(
     db: Session = Depends(deps.get_db),
     current_user=Depends(get_current_active_user)
 ):
-    db_teacher = teacher_crud.get_teacher(db, user_id=current_user.user_id)
+    db_teacher = teacher_crud.get_teacher(db, teacher_user_id=current_user.user_id)
     if not db_teacher:
         raise HTTPException(status_code=404, detail=f"Teacher {current_user.user_id} not found.")
 
-    db_student = student_crud.get_student(db, user_id=evaluation_in.student_user_id)
+    db_student = student_crud.get_student(db, student_user_id=evaluation_in.student_user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail=f"Student {evaluation_in.student_user_id} not found.")
 
     allowed_students = teacher_crud.get_students(db, teacher_user_id=current_user.user_id)
-    if evaluation_in.student_user_id not in allowed_students:
+    allowed_student_ids = [s.student_user_id for s in allowed_students]
+    if evaluation_in.student_user_id not in allowed_student_ids:
         raise HTTPException(status_code=403, detail="Not allowed to evaluate this student.")
+
+
 
     return evaluation_crud.create_evaluation(
         db=db,

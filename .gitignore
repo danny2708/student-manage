@@ -6,8 +6,8 @@ __pycache__/
 venv/
 .env
 
-# VSCode
-.vscode/
+# VSC
+.vs/
 
 # OS
 .DS_Store
@@ -24,3 +24,4 @@ Thumbs.db
 config.ini
 *.properties
 backend/credentials.env
+requirements.txt

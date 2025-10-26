@@ -2,7 +2,7 @@ from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select, delete
 from app.models.student_model import Student
-from app.schemas.student_schema import StudentUpdate, StudentCreate
+from app.schemas.student_schema import StudentUpdate, StudentCreate, StudentView
 from app.models.parent_model import Parent
 from app.models.user_model import User
 from app.models.role_model import Role
@@ -17,10 +17,32 @@ from app.models.subject_model import Subject
 from app.schemas.teacher_schema import TeacherView
 from app.crud import teacher_crud
 
-def get_student(db: Session, user_id: int) -> Optional[Student]:
-    return db.execute(
-        select(Student).where(Student.user_id == user_id)
-    ).scalar_one_or_none()
+def get_student(db: Session, student_user_id: int) -> Optional[StudentView]:
+    """
+    Lấy thông tin sinh viên bằng cách JOIN bảng Student và User, 
+    trả về dưới dạng StudentView.
+    """
+    stmt = (
+        select(
+            # Chọn các trường từ Student
+            Student.user_id.label("student_user_id"),
+            # Chọn các trường cần thiết từ User
+            User.full_name,
+            User.email,
+            User.date_of_birth,
+            User.phone_number,
+            User.gender,
+        )
+        .join(User, Student.user_id == User.user_id)
+        .where(Student.user_id == student_user_id)
+    )
+
+    result = db.execute(stmt).one_or_none()
+
+    if result:
+        return StudentView.model_validate(result._asdict())
+
+    return None
 
 
 def get_student_with_user(db: Session, user_id: int) -> Optional[Tuple[Student, User]]:
@@ -67,10 +89,61 @@ def get_students_by_class_id(db: Session, class_id: int, skip: int = 0, limit: i
     ).scalars().all()
 
 
-def get_all_students(db: Session, skip: int = 0, limit: int = 100) -> List[Student]:
-    return db.execute(
-        select(Student).offset(skip).limit(limit)
-    ).scalars().all()
+def get_students_for_role(
+    db: Session, 
+    teacher_user_id: Optional[int] = None, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[StudentView]:
+    """
+    Lấy danh sách học sinh. 
+    - Nếu teacher_user_id là None (Manager): Lấy tất cả học sinh.
+    - Nếu teacher_user_id có giá trị (Teacher): Chỉ lấy học sinh thuộc các lớp mà giáo viên đó dạy.
+    
+    Kết quả được join với bảng User để trả về StudentView.
+    """
+    
+    # Bắt đầu truy vấn: Chọn các trường cần thiết cho StudentView
+    stmt = select(
+        Student.user_id.label("student_user_id"),
+        User.full_name,
+        User.email,
+        User.date_of_birth,
+        User.phone_number,
+        User.gender,
+        Class.class_name.label("class_name") # Lấy tên lớp gần nhất hoặc chỉ lấy 1 tên lớp bất kỳ
+    ).join(User, Student.user_id == User.user_id) # Join User để lấy thông tin cá nhân
+    
+    # Lọc cho Giáo viên
+    if teacher_user_id is not None:
+        # Join qua Enrollment và Class để lọc những học sinh thuộc lớp của giáo viên
+        stmt = stmt.join(Enrollment, Enrollment.student_user_id == Student.user_id)
+        stmt = stmt.join(Class, Class.class_id == Enrollment.class_id)
+        # Thêm điều kiện: teacher_user_id của Class phải là ID của giáo viên hiện tại
+        stmt = stmt.where(Class.teacher_user_id == teacher_user_id)
+    else:
+        # Nếu là Manager, vẫn cần join Class để lấy class_name (dù là bất kỳ lớp nào)
+        # Sử dụng outerjoin để đảm bảo học sinh không có lớp vẫn được hiển thị
+        stmt = stmt.outerjoin(Enrollment, Enrollment.student_user_id == Student.user_id)
+        stmt = stmt.outerjoin(Class, Class.class_id == Enrollment.class_id)
+        
+    # Nhóm theo học sinh để tránh trùng lặp nếu học sinh ở nhiều lớp
+    # Lấy class_name đầu tiên (sẽ phức tạp nếu muốn lớp gần nhất)
+    stmt = stmt.group_by(
+        Student.user_id, User.full_name, User.email, User.date_of_birth, User.phone_number, User.gender, Class.class_name
+    )
+
+    # Thêm phân trang
+    stmt = stmt.offset(skip).limit(limit)
+    
+    results = db.execute(stmt).all()
+
+    # Chuyển đổi kết quả thành List[StudentView]
+    student_views = []
+    for row in results:
+        student_views.append(StudentView.model_validate(row, from_attributes=True))
+        
+    return student_views
 
 
 def create_student(db: Session, student_in: StudentCreate) -> Student:

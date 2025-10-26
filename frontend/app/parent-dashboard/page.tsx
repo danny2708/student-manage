@@ -7,18 +7,18 @@ import { Calendar } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../src/contexts/AuthContext";
 
-import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
-import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
+import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
 
-import { Sidebar } from "./DashboardComponents";
+import { Sidebar, ParentDashboardContent } from "./DashboardComponents"; 
 import { AnimatePresence, motion } from "framer-motion";
 
 // dynamic subpages
 const ChildrenManagement = dynamic(() => import("./ChildrenManagement").then(mod => mod.default), { ssr: false });
-const ChildrenEvaluationModal = dynamic(() => import("../student-dashboard/StudentEvaluationModal"), { ssr: false });
-const TuitionManagement = dynamic(() => import("../manager-dashboard/dashboard_components/tuition/TuitionManagement"), { ssr: false });
-const ReportManagement = dynamic(() => import("../manager-dashboard/dashboard_components/report/ReportManagement"), { ssr: false });
+const ChildrenEvaluationModal = dynamic(() => import("../dashboard_components/evaluation/StudentEvaluationModal"), { ssr: false });
+const TuitionManagement = dynamic(() => import("../dashboard_components/tuition/TuitionManagement"), { ssr: false });
+const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
 
 export default function ParentDashboardPage() {
   const router = useRouter();
@@ -33,9 +33,22 @@ export default function ParentDashboardPage() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showPersonalSchedule, setShowPersonalSchedule] = useState(false);
 
+  // Hàm chuyển đổi section chính
   const setSection = (id: string) => {
     setActiveSection(id);
     if (!visitedSections.includes(id)) setVisitedSections((prev) => [...prev, id]);
+  };
+
+  // Hàm xử lý Quick Actions (mới)
+  // Các hàm này sẽ được truyền xuống ParentDashboardContent để gắn vào các nút.
+  const quickActions = {
+    onViewSchedule: () => setShowPersonalSchedule(true),
+    onGoToEvaluation: () => setSection("evaluation"),
+    onGoToChildren: () => setSection("children"),
+    onGoToTuition: () => setSection("tuition"),
+    onGoToReport: () => setSection("report"),
+    // Thêm các action khác khi cần (ví dụ: onGoToStudyMaterials, onContactTeacher)
+    // Hiện tại chỉ cần các action map tới sidebar sections
   };
 
   const handleLogout = () => {
@@ -64,7 +77,7 @@ export default function ParentDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={() => setShowPersonalSchedule(true)} className="px-3 py-2 bg-slate-700 text-white rounded" >
+            <Button onClick={quickActions.onViewSchedule} className="px-3 py-2 bg-slate-700 text-white rounded" >
               <Calendar className="h-4 w-4 mr-2 inline-block" />
               My Schedule
             </Button>
@@ -73,12 +86,23 @@ export default function ParentDashboardPage() {
           </div>
         </div>
 
+        {/* Dynamic Content */}
+        {activeSection === "overview" && (
+            <ParentDashboardContent 
+                onOpenSchedule={quickActions.onViewSchedule} // Hành động xem lịch
+                onGoToEvaluation={quickActions.onGoToEvaluation} // Hành động chuyển đến Evaluation
+                onGoToTuition={quickActions.onGoToTuition} // Hành động chuyển đến Tuition
+                onGoToChildren={quickActions.onGoToChildren} // Hành động chuyển đến Children
+                // có thể thêm các prop khác tương ứng với các nút Quick Action mới
+            />
+        )}
+        
         {/* Children */}
         {visitedSections.includes("children") && (
           <div className={activeSection === "children" ? "block" : "hidden"}>
             {user && (
               <ChildrenManagement
-                parent={user}   // truyền cả object
+                parent={user}   // truyền cả object
               />
             )}
           </div>

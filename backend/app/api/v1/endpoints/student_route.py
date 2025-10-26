@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
-from app.api.auth.auth import has_roles
+from app.api.auth.auth import get_current_active_user, has_roles
 from app.api import deps
 from app.crud import student_crud, user_crud, user_role_crud
 from app.schemas.user_role_schema import UserRoleCreate
@@ -13,6 +13,7 @@ from app.schemas.stats_schema import StudentStats
 from app.crud import parent_crud
 from app.models.user_model import User
 from app.schemas.teacher_schema import TeacherView
+from app.schemas.auth_schema import AuthenticatedUser
 
 router = APIRouter()
 
@@ -68,29 +69,52 @@ def assign_student(
 
 # --- GET all students ---
 @router.get(
-    "/",
-    response_model=List[student_schema.Student],
-    summary="Lấy danh sách tất cả học sinh",
-    # dependencies=[Depends(MANAGER_OR_TEACHER)]
+        "/",
+    response_model=List[student_schema.StudentView], 
+    summary="Lấy danh sách tất cả học sinh (Phân quyền theo Manager/Teacher)",
+    dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
 def get_all_students(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: AuthenticatedUser = Depends(get_current_active_user) # Lấy user hiện tại
 ):
-    students = student_crud.get_all_students(db, skip=skip, limit=limit)
-    return students
+    """
+    - **Manager**: Trả về tất cả học sinh.
+    - **Teacher**: Chỉ trả về học sinh thuộc các lớp do giáo viên đó dạy.
+"""
+    teacher_user_id: Optional[int] = None
+
+    # Nếu người dùng là Teacher (và không phải Manager)
+    if "teacher" in current_user.roles and "manager" not in current_user.roles:
+        teacher_user_id = current_user.user_id
+
+    # Gọi hàm CRUD đã được cập nhật
+    students_view = student_crud.get_students_for_role(
+        db, 
+        teacher_user_id=teacher_user_id, 
+        skip=skip, 
+        limit=limit
+    )
+
+    # Xử lý trường hợp không tìm thấy học sinh cho giáo viên đó
+    if not students_view and teacher_user_id:
+        # Có thể trả về 200 [] hoặc 404 tùy ý, 200 là tốt hơn cho danh sách rỗng
+        return [] 
+        
+    return students_view
 
 
 # --- GET student by ID ---
 @router.get(
-    "/{user_id}",
-    response_model=student_schema.Student,
+    "/{student_user_id}",
+    response_model=student_schema.StudentView,
     summary="Lấy thông tin của một học sinh cụ thể",
     dependencies=[Depends(MANAGER_OR_TEACHER)]
 )
-def get_student(user_id: int, db: Session = Depends(deps.get_db)):
-    db_student = student_crud.get_student(db, user_id=user_id)
+def get_student(student_user_id: int, db: Session = Depends(deps.get_db)):
+    db_student = student_crud.get_student(db, student_user_id=student_user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
     return db_student
@@ -137,7 +161,7 @@ def delete_student(user_id: int, db: Session = Depends(deps.get_db)):
 )
 def get_student_stats(user_id: int, db: Session = Depends(deps.get_db)):
     # 1. Kiểm tra học sinh tồn tại
-    db_student = student_crud.get_student(db, user_id=user_id)
+    db_student = student_crud.get_student(db, student_user_id=user_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Học sinh không tìm thấy.")
     

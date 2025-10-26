@@ -7,8 +7,8 @@ import { Calendar } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { useStudents } from "../../src/contexts/StudentContext";
-import NotificationManagement from "../manager-dashboard/dashboard_components/notification/NotificationManagement";
-import PersonalScheduleModal from "../manager-dashboard/dashboard_components/personalschedule/PersonalScheduleModal";
+import NotificationManagement from "../dashboard_components/notification/NotificationManagement";
+import PersonalScheduleModal from "../dashboard_components/personalschedule/PersonalScheduleModal";
 import { UserAccountModal } from "../user_account";
 import type { StudentStats } from "../../src/services/api/student";
 
@@ -16,11 +16,12 @@ import { Sidebar, StudentDashboardContent } from "./DashboardComponents";
 import { AnimatePresence, motion } from "framer-motion";
 
 // dynamic subpages
-const EvaluationModal = dynamic(() => import("./StudentEvaluationModal"), { ssr: false });
-const ScheduleManagement = dynamic(() => import("../manager-dashboard/dashboard_components/schedule/ScheduleManagement"), { ssr: false });
-const ClassManagement = dynamic(() => import("../manager-dashboard/dashboard_components/class/ClassManagement"), { ssr: false });
-const TeacherReviewManagement = dynamic(() => import("./TeacherReviewModal"), { ssr: false });
-const ReportManagement = dynamic(() => import("../manager-dashboard/dashboard_components/report/ReportManagement"), { ssr: false });
+const EvaluationModal = dynamic(() => import("../dashboard_components/evaluation/StudentEvaluationModal"), { ssr: false });
+const ScheduleManagement = dynamic(() => import("../dashboard_components/schedule/ScheduleManagement"), { ssr: false });
+const ClassManagement = dynamic(() => import("../dashboard_components/class/ClassManagement"), { ssr: false });
+const TeacherReviewManagement = dynamic(() => import("../dashboard_components/teacherReview/TeacherReviewModal"), { ssr: false });
+const ReportManagement = dynamic(() => import("../dashboard_components/report/ReportManagement"), { ssr: false });
+const TestManagement = dynamic(() => import("../dashboard_components/test/TestManagement"), {ssr: false});
 
 export default function StudentDashboardPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function StudentDashboardPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900 cursor-pointer">
+    <div className="flex min-h-screen bg-gray-50 text-gray-900">
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}
@@ -144,6 +145,14 @@ export default function StudentDashboardPage() {
             />
           </div>
         )}
+
+        {/* Test */}
+        {visitedSections.includes("test") && (
+          <div className={activeSection === "test" ? "block" : "hidden"}>
+            <TestManagement/>
+          </div>
+        )}
+
 
         {/* Modals */}
         <PersonalScheduleModal open={showPersonalSchedule} onClose={() => setShowPersonalSchedule(false)} />
