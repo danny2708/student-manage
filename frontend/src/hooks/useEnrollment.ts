@@ -1,13 +1,11 @@
 // src/hooks/useEnrollment.ts
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
-  getEnrollments,
   createEnrollment,
   updateEnrollment,
   setEnrollmentInactive,
-  Enrollment,
   EnrollmentCreate,
   EnrollmentUpdate,
   getEnrollmentById,

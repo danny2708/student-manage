@@ -2,7 +2,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "./useAuth"
+import { useAuth } from "../contexts/AuthContext"
 
 export function useAuthGuard() {
   const { user, loading } = useAuth()
