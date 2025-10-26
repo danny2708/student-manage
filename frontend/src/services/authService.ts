@@ -26,8 +26,6 @@ export interface IUser {
   dob?: string;
 }
 
-
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 // keys
@@ -36,6 +34,7 @@ const TOKEN_KEY = "access_token";
 const USER_KEY = "user";
 
 class AuthService {
+  [x: string]: any;
   private _token: string | null = null;
   private _user: IUser | null = null;
   private _initialized = false;
