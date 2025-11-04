@@ -126,15 +126,15 @@ export default function Auth() {
         } else {
           setErrors({ general: result.error || "Login failed" })
         }
-      // } else {
-      //   const result = await authService.register({
-      //     email: formData.email,
-      //     password: formData.password,
-      //     full_name: formData.full_name,
-      //     phone_number: formData.phone_number,
-      //     date_of_birth: formData.date_of_birth,
-      //     gender: formData.gender,
-      //   })
+      } else {
+        const result = await authService.register({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+          phone_number: formData.phone_number,
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+        })
         if (result.success) {
           setSuccessMessage("Account created! Please login.")
           setTimeout(() => toggleMode(), 1500)
@@ -379,21 +379,21 @@ export default function Auth() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.4 }}
                       >
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold transition-all duration-200 hover:scale-[1.02] shadow-lg disabled:opacity-50"
-                        >
-                          {loading ? (
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full h-12 bg-gradient-to-r from-[#0072ff] via-[#0080ff] to-[#00c6ff] text-white font-semibold transition-all duration-200 hover:scale-[1.02] shadow-lg disabled:opacity-50"
+                      >
+                        {loading ? (
                             <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                              className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                             />
-                          ) : (
+                        ) : (
                             "Login"
-                          )}
-                        </Button>
+                        )}
+                      </Button>
 
                         {/*Nút Đăng nhập bằng Google */}
                         <div className="mt-4 flex justify-center cursor-pointer">
@@ -643,7 +643,7 @@ export default function Auth() {
                         <Button
                           type="submit"
                           disabled={loading}
-                          className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold transition-all duration-200 hover:scale-[1.02] shadow-lg disabled:opacity-50"
+                          className="w-full h-12 bg-gradient-to-r from-[#0072ff] via-[#0080ff] to-[#00c6ff] text-white font-semibold transition-all duration-200 hover:scale-[1.02] shadow-lg disabled:opacity-50"
                         >
                           {loading ? (
                             <motion.div
@@ -664,7 +664,7 @@ export default function Auth() {
                         Already have an account?{" "}
                         <button
                           onClick={toggleMode}
-                          className="text-primary hover:text-primary/80 font-semibold transition-colors"
+                          className="w-full h-12 bg-primary text-white font-semibold rounded-lg hover:bg-primary/80 transition"
                         >
                           Login
                         </button>
